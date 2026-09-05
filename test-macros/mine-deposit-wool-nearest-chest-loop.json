@@ -1,0 +1,485 @@
+{
+  "format": "litemacro-v1",
+  "name": "Test - Mine Deposit Wool Loop",
+  "stepDelayMs": 0,
+  "alwaysOn": false,
+  "autoStartMode": "off",
+  "autoStartFilter": "",
+  "randomDelayEnabled": false,
+  "randomDelayMinMs": 250,
+  "randomDelayMaxMs": 1250,
+  "nextIndex": 63,
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "official:start",
+      "x": 120,
+      "y": 120,
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "started": "node-2"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "builder:localMessage",
+      "x": 360,
+      "y": 120,
+      "value": "Mining wool until inventory is full.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-3"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "official:player.setMouseButton",
+      "x": 620,
+      "y": 120,
+      "value": "press",
+      "value2": "left",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-4",
+        "failed": "node-60"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "builder:misc.idleUntil",
+      "x": 880,
+      "y": 120,
+      "value": "full",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "triggered": "node-5",
+        "failed": "node-60"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "official:player.setMouseButton",
+      "x": 1140,
+      "y": 120,
+      "value": "release",
+      "value2": "left",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-7",
+        "failed": "node-60"
+      }
+    },
+    {
+      "id": "node-7",
+      "type": "builder:localMessage",
+      "x": 1400,
+      "y": 120,
+      "value": "Inventory full. Opening nearest chest for wool.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-17"
+      }
+    },
+    {
+      "id": "node-17",
+      "type": "builder:world.openNearestContainer",
+      "x": 1660,
+      "y": 120,
+      "value": "8",
+      "value2": "move=true type=chest",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-18",
+        "failed": "node-61"
+      }
+    },
+    {
+      "id": "node-18",
+      "type": "official:inventory.chestDepositItems",
+      "x": 1920,
+      "y": -300,
+      "value": "specific",
+      "value2": "minecraft:white_wool",
+      "value3": "true",
+      "value4": "true",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-19",
+        "failed": "node-61"
+      }
+    },
+    {
+      "id": "node-19",
+      "type": "official:inventory.chestDepositItems",
+      "x": 1920,
+      "y": -220,
+      "value": "specific",
+      "value2": "minecraft:orange_wool",
+      "value3": "true",
+      "value4": "true",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-20",
+        "failed": "node-61"
+      }
+    },
+    {
+      "id": "node-20",
+      "type": "official:inventory.chestDepositItems",
+      "x": 1920,
+      "y": -140,
+      "value": "specific",
+      "value2": "minecraft:magenta_wool",
+      "value3": "true",
+      "value4": "true",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-21",
+        "failed": "node-61"
+      }
+    },
+    {
+      "id": "node-21",
+      "type": "official:inventory.chestDepositItems",
+      "x": 1920,
+      "y": -60,
+      "value": "specific",
+      "value2": "minecraft:light_blue_wool",
+      "value3": "true",
+      "value4": "true",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-22",
+        "failed": "node-61"
+      }
+    },
+    {
+      "id": "node-22",
+      "type": "official:inventory.chestDepositItems",
+      "x": 1920,
+      "y": 20,
+      "value": "specific",
+      "value2": "minecraft:yellow_wool",
+      "value3": "true",
+      "value4": "true",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-23",
+        "failed": "node-61"
+      }
+    },
+    {
+      "id": "node-23",
+      "type": "official:inventory.chestDepositItems",
+      "x": 1920,
+      "y": 100,
+      "value": "specific",
+      "value2": "minecraft:lime_wool",
+      "value3": "true",
+      "value4": "true",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-24",
+        "failed": "node-61"
+      }
+    },
+    {
+      "id": "node-24",
+      "type": "official:inventory.chestDepositItems",
+      "x": 1920,
+      "y": 180,
+      "value": "specific",
+      "value2": "minecraft:pink_wool",
+      "value3": "true",
+      "value4": "true",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-25",
+        "failed": "node-61"
+      }
+    },
+    {
+      "id": "node-25",
+      "type": "official:inventory.chestDepositItems",
+      "x": 1920,
+      "y": 260,
+      "value": "specific",
+      "value2": "minecraft:gray_wool",
+      "value3": "true",
+      "value4": "true",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-26",
+        "failed": "node-61"
+      }
+    },
+    {
+      "id": "node-26",
+      "type": "official:inventory.chestDepositItems",
+      "x": 1920,
+      "y": 340,
+      "value": "specific",
+      "value2": "minecraft:light_gray_wool",
+      "value3": "true",
+      "value4": "true",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-27",
+        "failed": "node-61"
+      }
+    },
+    {
+      "id": "node-27",
+      "type": "official:inventory.chestDepositItems",
+      "x": 1920,
+      "y": 420,
+      "value": "specific",
+      "value2": "minecraft:cyan_wool",
+      "value3": "true",
+      "value4": "true",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-28",
+        "failed": "node-61"
+      }
+    },
+    {
+      "id": "node-28",
+      "type": "official:inventory.chestDepositItems",
+      "x": 1920,
+      "y": 500,
+      "value": "specific",
+      "value2": "minecraft:purple_wool",
+      "value3": "true",
+      "value4": "true",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-29",
+        "failed": "node-61"
+      }
+    },
+    {
+      "id": "node-29",
+      "type": "official:inventory.chestDepositItems",
+      "x": 1920,
+      "y": 580,
+      "value": "specific",
+      "value2": "minecraft:blue_wool",
+      "value3": "true",
+      "value4": "true",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-30",
+        "failed": "node-61"
+      }
+    },
+    {
+      "id": "node-30",
+      "type": "official:inventory.chestDepositItems",
+      "x": 1920,
+      "y": 660,
+      "value": "specific",
+      "value2": "minecraft:brown_wool",
+      "value3": "true",
+      "value4": "true",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-31",
+        "failed": "node-61"
+      }
+    },
+    {
+      "id": "node-31",
+      "type": "official:inventory.chestDepositItems",
+      "x": 1920,
+      "y": 740,
+      "value": "specific",
+      "value2": "minecraft:green_wool",
+      "value3": "true",
+      "value4": "true",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-32",
+        "failed": "node-61"
+      }
+    },
+    {
+      "id": "node-32",
+      "type": "official:inventory.chestDepositItems",
+      "x": 1920,
+      "y": 820,
+      "value": "specific",
+      "value2": "minecraft:red_wool",
+      "value3": "true",
+      "value4": "true",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-33",
+        "failed": "node-61"
+      }
+    },
+    {
+      "id": "node-33",
+      "type": "official:inventory.chestDepositItems",
+      "x": 1920,
+      "y": 900,
+      "value": "specific",
+      "value2": "minecraft:black_wool",
+      "value3": "true",
+      "value4": "true",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-34",
+        "failed": "node-61"
+      }
+    },
+    {
+      "id": "node-34",
+      "type": "official:inventory.closeOpenContainer",
+      "x": 2200,
+      "y": 120,
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-35",
+        "failed": "node-60"
+      }
+    },
+    {
+      "id": "node-35",
+      "type": "official:misc.wait",
+      "x": 2460,
+      "y": 120,
+      "value": "500",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-36",
+        "failed": "node-60"
+      }
+    },
+    {
+      "id": "node-36",
+      "type": "builder:localMessage",
+      "x": 2720,
+      "y": 120,
+      "value": "Wool deposited. Mining again.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-3"
+      }
+    },
+    {
+      "id": "node-60",
+      "type": "builder:localMessage",
+      "x": 880,
+      "y": 360,
+      "value": "Mine/deposit macro failed. Releasing left mouse.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-8"
+      }
+    },
+    {
+      "id": "node-61",
+      "type": "builder:localMessage",
+      "x": 1660,
+      "y": 360,
+      "value": "Could not deposit wool. Check chest distance/space.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-62"
+      }
+    },
+    {
+      "id": "node-62",
+      "type": "official:inventory.closeOpenContainer",
+      "x": 1920,
+      "y": 360,
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-8",
+        "failed": "node-8"
+      }
+    },
+    {
+      "id": "node-8",
+      "type": "official:player.setMouseButton",
+      "x": 1140,
+      "y": 360,
+      "value": "release",
+      "value2": "left",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {}
+    }
+  ]
+}

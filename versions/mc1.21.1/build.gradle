@@ -1,0 +1,68 @@
+plugins {
+    id 'fabric-loom' version '1.15.5'
+    id 'maven-publish'
+}
+
+version = '1.0.54'
+group = 'com.alfre'
+
+def buildOwner = 'letgio'
+def buildDate = '2026-05-08'
+def minecraftVersion = '1.21.1'
+
+base {
+    archivesName = 'Litemacro'
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraftVersion}"
+    mappings loom.officialMojangMappings()
+    modImplementation 'net.fabricmc:fabric-loader:0.18.6'
+    modImplementation 'net.fabricmc.fabric-api:fabric-api:0.116.15+1.21.1'
+}
+
+processResources {
+    inputs.property 'version', version
+    inputs.property 'buildOwner', buildOwner
+    inputs.property 'buildDate', buildDate
+    inputs.property 'minecraftDependency', '~1.21.1'
+    inputs.property 'javaDependency', '>=21'
+    inputs.property 'minecraftLabel', '1.21.1'
+    inputs.property 'fabricLoaderDependency', '>=0.18.6'
+
+    filesMatching('fabric.mod.json') {
+        expand 'version': inputs.properties.version,
+                'buildOwner': buildOwner,
+                'buildDate': buildDate,
+                'minecraftDependency': inputs.properties.minecraftDependency,
+                'javaDependency': inputs.properties.javaDependency,
+                'minecraftLabel': inputs.properties.minecraftLabel,
+                'fabricLoaderDependency': inputs.properties.fabricLoaderDependency
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 21
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+jar {
+    manifest {
+        attributes(
+                'Implementation-Title': 'Litemacro',
+                'Implementation-Version': version,
+                'Built-For': buildOwner,
+                'Build-Date': buildDate,
+                'Minecraft-Version': minecraftVersion,
+                'Minecraft-Compatible': '1.21.1'
+        )
+    }
+
+    from('LICENSE') {
+        rename { "${it}_${project.base.archivesName.get()}" }
+    }
+}

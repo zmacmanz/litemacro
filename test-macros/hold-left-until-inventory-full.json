@@ -1,0 +1,133 @@
+{
+  "format": "litemacro-v1",
+  "name": "Test - Mine Until Inventory Full",
+  "stepDelayMs": 0,
+  "alwaysOn": false,
+  "autoStartMode": "off",
+  "autoStartFilter": "",
+  "randomDelayEnabled": false,
+  "randomDelayMinMs": 250,
+  "randomDelayMaxMs": 1250,
+  "nextIndex": 9,
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "official:start",
+      "x": 120,
+      "y": 120,
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "started": "node-2"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "builder:localMessage",
+      "x": 360,
+      "y": 120,
+      "value": "Mining: holding left mouse until inventory is full.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-3"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "official:player.setMouseButton",
+      "x": 660,
+      "y": 120,
+      "value": "press",
+      "value2": "left",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-4",
+        "failed": "node-6"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "builder:misc.idleUntil",
+      "x": 920,
+      "y": 120,
+      "value": "full",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "triggered": "node-5",
+        "failed": "node-6"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "official:player.setMouseButton",
+      "x": 1180,
+      "y": 120,
+      "value": "release",
+      "value2": "left",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-7",
+        "failed": "node-6"
+      }
+    },
+    {
+      "id": "node-6",
+      "type": "builder:localMessage",
+      "x": 920,
+      "y": 260,
+      "value": "Mine-until-full macro failed. Left mouse should be released.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-8"
+      }
+    },
+    {
+      "id": "node-7",
+      "type": "builder:localMessage",
+      "x": 1460,
+      "y": 120,
+      "value": "Inventory full. Add your next component after this.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {}
+    },
+    {
+      "id": "node-8",
+      "type": "official:player.setMouseButton",
+      "x": 1460,
+      "y": 260,
+      "value": "release",
+      "value2": "left",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {}
+    }
+  ]
+}

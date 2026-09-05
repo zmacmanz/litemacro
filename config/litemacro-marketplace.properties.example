@@ -1,0 +1,6 @@
+# Copy this to your Minecraft config folder as:
+# config/litemacro-marketplace.properties
+#
+# These values come from your Supabase project settings.
+project_url=https://klhkfpdtpoipafarugop.supabase.co
+publishable_key=sb_publishable_moPnPKqQ7DRbQIRuInf3yA_v14sPiJ7

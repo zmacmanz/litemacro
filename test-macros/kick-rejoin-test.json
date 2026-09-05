@@ -1,0 +1,101 @@
+{
+  "format": "litemacro-v1",
+  "name": "Test - Rejoin When Kicked",
+  "stepDelayMs": 0,
+  "alwaysOn": false,
+  "autoStartMode": "off",
+  "autoStartFilter": "",
+  "randomDelayEnabled": false,
+  "randomDelayMinMs": 250,
+  "randomDelayMaxMs": 1250,
+  "nextIndex": 7,
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "official:start",
+      "x": 120,
+      "y": 120,
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "started": "node-2"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "builder:localMessage",
+      "x": 360,
+      "y": 120,
+      "value": "Rejoin test armed. Kick or disconnect to test.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-3"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "builder:event.kicked",
+      "x": 640,
+      "y": 120,
+      "value": "",
+      "value2": "any",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "triggered": "node-4"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "official:misc.rejoinServer",
+      "x": 900,
+      "y": 120,
+      "value": "3000",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-5",
+        "failed": "node-6"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "builder:localMessage",
+      "x": 1160,
+      "y": 80,
+      "value": "Rejoin macro finished.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {}
+    },
+    {
+      "id": "node-6",
+      "type": "builder:localMessage",
+      "x": 1160,
+      "y": 200,
+      "value": "Rejoin failed. Open one server first or set Server IP.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {}
+    }
+  ]
+}

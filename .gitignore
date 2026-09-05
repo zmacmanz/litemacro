@@ -1,0 +1,30 @@
+# Gradle and build output
+.gradle/
+.gradle-tools/
+build/
+out/
+
+# Compiled artifacts
+*.class
+*.jar
+*.zip
+
+# IDE and local files
+.idea/
+.vscode/
+*.iml
+*.log
+*.tmp
+
+# Minecraft local runtime data
+run/
+logs/
+crash-reports/
+versions/*/run/
+versions/*/config/
+versions/*/logs/
+versions/*/crash-reports/
+
+# OS files
+Thumbs.db
+Desktop.ini

@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "macro_builder",
+  "version": "1.0.54",
+  "name": "Litemacro",
+  "description": "Litemacro is a drag-and-drop style macro builder and runner for Fabric 1.21.11 clients.",
+  "authors": [
+    "letgio"
+  ],
+  "license": "LicenseRef-Litemacro-Restricted",
+  "icon": "assets/macro_builder/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.alfre.macrobuilder.MacroBuilderClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.18.6",
+    "minecraft": "~1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  },
+  "custom": {
+    "litemacro:build": {
+      "name": "Litemacro",
+      "builtFor": "letgio",
+      "buildDate": "2026-05-08",
+      "minecraft": "1.21.11",
+      "loader": "Fabric"
+    }
+  }
+}

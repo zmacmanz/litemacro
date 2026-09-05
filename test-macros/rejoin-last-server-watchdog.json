@@ -1,0 +1,121 @@
+{
+  "format": "litemacro-v1",
+  "name": "Rejoin Last Server Watchdog",
+  "stepDelayMs": 0,
+  "alwaysOn": true,
+  "autoStartMode": "off",
+  "autoStartFilter": "",
+  "randomDelayEnabled": false,
+  "randomDelayMinMs": 250,
+  "randomDelayMaxMs": 1250,
+  "nextIndex": 8,
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "official:start",
+      "x": 120,
+      "y": 120,
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "started": "node-2"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "builder:misc.idleUntil",
+      "x": 400,
+      "y": 120,
+      "value": "kicked",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "triggered": "node-3",
+        "failed": "node-7"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "official:misc.rejoinServer",
+      "x": 700,
+      "y": 120,
+      "value": "5000",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-4",
+        "failed": "node-5"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "official:misc.wait",
+      "x": 1000,
+      "y": 120,
+      "value": "1000",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-2",
+        "failed": "node-2"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "builder:localMessage",
+      "x": 1000,
+      "y": 280,
+      "value": "Rejoin failed. Join the server once first, or set Server IP on Rejoin Server.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-6"
+      }
+    },
+    {
+      "id": "node-6",
+      "type": "official:misc.wait",
+      "x": 1320,
+      "y": 280,
+      "value": "5000",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-2",
+        "failed": "node-2"
+      }
+    },
+    {
+      "id": "node-7",
+      "type": "builder:localMessage",
+      "x": 700,
+      "y": 360,
+      "value": "Idle Until must be set to kicked.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {}
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version "${loom_version}"
+    id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+def buildOwner = providers.gradleProperty('build_owner').orElse('letgio').get()
+def buildDate = providers.gradleProperty('build_date').orElse('2026-05-08').get()
+def minecraftDependency = providers.gradleProperty('minecraft_dependency').orElse('~26.2').get()
+def javaDependency = providers.gradleProperty('java_dependency').orElse('>=25').get()
+def minecraftLabel = providers.gradleProperty('minecraft_label').orElse('26.2.x').get()
+def fabricLoaderDependency = providers.gradleProperty('fabric_loader_dependency').orElse('>=0.19.3').get()
+
+base {
+    archivesName = project.archives_base_name
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+}
+
+processResources {
+    inputs.property 'version', project.version
+    inputs.property 'buildOwner', buildOwner
+    inputs.property 'buildDate', buildDate
+    inputs.property 'minecraftDependency', minecraftDependency
+    inputs.property 'javaDependency', javaDependency
+    inputs.property 'minecraftLabel', minecraftLabel
+    inputs.property 'fabricLoaderDependency', fabricLoaderDependency
+
+    filesMatching('fabric.mod.json') {
+        expand 'version': inputs.properties.version,
+                'buildOwner': buildOwner,
+                'buildDate': buildDate,
+                'minecraftDependency': minecraftDependency,
+                'javaDependency': javaDependency,
+                'minecraftLabel': minecraftLabel,
+                'fabricLoaderDependency': fabricLoaderDependency
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 25
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+    manifest {
+        attributes(
+                'Implementation-Title': project.archives_base_name,
+                'Implementation-Version': project.version,
+                'Built-For': buildOwner,
+                'Build-Date': buildDate,
+                'Minecraft-Version': project.minecraft_version,
+                'Minecraft-Compatible': minecraftLabel
+        )
+    }
+
+    from('LICENSE') {
+        rename { "${it}_${project.base.archivesName.get()}" }
+    }
+}
