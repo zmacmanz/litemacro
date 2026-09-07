@@ -2,6 +2,8 @@
 
 This page explains what each component group is for.
 
+For exact text-box values, examples, and coordinate setup, see [Component Inputs](08-component-inputs.md).
+
 ## Entry
 
 | Component | Use |

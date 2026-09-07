@@ -11,6 +11,28 @@ Fix:
 3. Put a clear message such as `Could not open chest`.
 4. Run again and see which message appears.
 
+## Mine Area Stops After Some Time
+
+`Mine Area` stops when it reaches one of its safety exits.
+
+Common reasons:
+
+- `tool=10` is enabled and your held tool has 10 durability left. Connect `tool_low` to a repair/swap path, or use `tool=0` to disable this check.
+- One block did not break after about 15 seconds. This usually means the block is protected, unbreakable, too slow for the tool, or the server rejected the break.
+- The next block is out of reach and `move=false` is set.
+- The selected area is bigger than `16x16x16`. Split the mine into multiple `Mine Area` components.
+- The area is not loaded and the macro cannot move close enough.
+- The component finished the selected area and no next component is connected.
+
+Good Mine Area settings:
+
+```text
+From X Y Z: -11879 26 12100
+To X Y Z / tool low / move: -11864 41 12115 tool=0 move=true
+```
+
+Use `tool=10` only when you connect the `tool_low` output to something useful, such as a local message, repair macro, or stop path.
+
 ## Click GUI Item Does Nothing
 
 Check:
@@ -130,4 +152,3 @@ World-required examples:
 - Player movement
 
 Use `Rejoin Server`, `Wait`, `Idle Until`, or event components for main-menu-safe flows.
-

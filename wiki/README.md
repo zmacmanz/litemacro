@@ -9,6 +9,7 @@ Start with these pages:
 - [Beginner Macros](03-beginner-macros.md) - simple macros to learn the system.
 - [Common Macro Recipes](04-common-recipes.md) - mining, depositing, rejoin, GUI clicking, shearing, and chat triggers.
 - [Component Reference](05-component-reference.md) - what each component category is for.
+- [Component Inputs](08-component-inputs.md) - what to type in each component field, including coordinates.
 - [Marketplace](06-marketplace.md) - upload, load, delete, and manage community macros.
 - [Troubleshooting](07-troubleshooting.md) - common issues and how to fix them.
 
@@ -46,4 +47,3 @@ Deposit Items
   completed -> Close GUI
   failed -> Local Message
 ```
-
