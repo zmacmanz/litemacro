@@ -2356,7 +2356,7 @@ final class MacroRunner {
    private void runMineArea(Minecraft client, MacroModel.Node node) {
       MacroRunner.MineAreaOptions options = this.mineAreaOptions(client, node);
       if (options == null) {
-         this.fail(client, node, "Failed: Mine Area needs From X Y Z and To X Y Z with optional tool=10.");
+         this.fail(client, node, mineAreaOptionsError(node));
       } else if (toolIsLow(client, options.toolLowThreshold())) {
          this.releaseHeldKeys(client);
          this.complete(client, node, "tool_low");
@@ -3894,6 +3894,30 @@ final class MacroRunner {
       } else {
          return null;
       }
+   }
+
+   private static String mineAreaOptionsError(MacroModel.Node node) {
+      BlockPos from = parseBlockPos(node.value);
+      BlockPos to = parseFirstBlockPos(node.value2);
+      if (from == null && to == null) {
+         return "Failed: Mine Area needs From X Y Z and To X Y Z. Example: 10 64 10 / 25 79 25 tool=10 move=true.";
+      } else if (from == null) {
+         return "Failed: Mine Area needs From X Y Z in the first field.";
+      } else if (to == null) {
+         return "Failed: Mine Area needs To X Y Z in the second field.";
+      } else {
+         BlockPos min = minPos(from, to);
+         BlockPos max = maxPos(from, to);
+         if (!areaWithinLimit(min, max, 16)) {
+            return "Failed: Mine Area is " + areaSizeText(min, max) + ". Max is 16x16x16. Split bigger areas into smaller Mine Area components.";
+         } else {
+            return "Failed: Mine Area settings are invalid.";
+         }
+      }
+   }
+
+   private static String areaSizeText(BlockPos min, BlockPos max) {
+      return max.getX() - min.getX() + 1 + "x" + (max.getY() - min.getY() + 1) + "x" + (max.getZ() - min.getZ() + 1);
    }
 
    private BlockPos nextMineAreaBlock(Minecraft client, MacroRunner.MineAreaOptions options) {

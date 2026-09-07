@@ -1,0 +1,748 @@
+{
+  "format": "litemacro-v1",
+  "name": "Working Mine Area Full Chunked",
+  "stepDelayMs": 0,
+  "alwaysOn": false,
+  "autoStartMode": "off",
+  "autoStartFilter": "",
+  "randomDelayEnabled": false,
+  "randomDelayMinMs": 250,
+  "randomDelayMaxMs": 1250,
+  "nextIndex": 45,
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "official:start",
+      "x": 120,
+      "y": 120,
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "started": "node-2"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "builder:world.mineArea",
+      "x": 380,
+      "y": 60.0,
+      "value": "-11879 26 12100",
+      "value2": "-11864 41 12115 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-3",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "builder:world.mineArea",
+      "x": 660,
+      "y": 60.0,
+      "value": "-11863 26 12100",
+      "value2": "-11854 41 12115 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-4",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "builder:world.mineArea",
+      "x": 940,
+      "y": 60.0,
+      "value": "-11879 42 12100",
+      "value2": "-11864 57 12115 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-5",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "builder:world.mineArea",
+      "x": 1220,
+      "y": 60.0,
+      "value": "-11863 42 12100",
+      "value2": "-11854 57 12115 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-6",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-6",
+      "type": "builder:world.mineArea",
+      "x": 1500,
+      "y": 60.0,
+      "value": "-11879 58 12100",
+      "value2": "-11864 73 12115 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-7",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-7",
+      "type": "builder:world.mineArea",
+      "x": 380,
+      "y": 180.0,
+      "value": "-11863 58 12100",
+      "value2": "-11854 73 12115 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-8",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-8",
+      "type": "builder:world.mineArea",
+      "x": 660,
+      "y": 180.0,
+      "value": "-11879 74 12100",
+      "value2": "-11864 89 12115 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-9",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-9",
+      "type": "builder:world.mineArea",
+      "x": 940,
+      "y": 180.0,
+      "value": "-11863 74 12100",
+      "value2": "-11854 89 12115 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-10",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-10",
+      "type": "builder:world.mineArea",
+      "x": 1220,
+      "y": 180.0,
+      "value": "-11879 90 12100",
+      "value2": "-11864 92 12115 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-11",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-11",
+      "type": "builder:world.mineArea",
+      "x": 1500,
+      "y": 180.0,
+      "value": "-11863 90 12100",
+      "value2": "-11854 92 12115 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-12",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-12",
+      "type": "builder:world.mineArea",
+      "x": 380,
+      "y": 300.0,
+      "value": "-11879 26 12116",
+      "value2": "-11864 41 12131 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-13",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-13",
+      "type": "builder:world.mineArea",
+      "x": 660,
+      "y": 300.0,
+      "value": "-11863 26 12116",
+      "value2": "-11854 41 12131 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-14",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-14",
+      "type": "builder:world.mineArea",
+      "x": 940,
+      "y": 300.0,
+      "value": "-11879 42 12116",
+      "value2": "-11864 57 12131 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-15",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-15",
+      "type": "builder:world.mineArea",
+      "x": 1220,
+      "y": 300.0,
+      "value": "-11863 42 12116",
+      "value2": "-11854 57 12131 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-16",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-16",
+      "type": "builder:world.mineArea",
+      "x": 1500,
+      "y": 300.0,
+      "value": "-11879 58 12116",
+      "value2": "-11864 73 12131 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-17",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-17",
+      "type": "builder:world.mineArea",
+      "x": 380,
+      "y": 420.0,
+      "value": "-11863 58 12116",
+      "value2": "-11854 73 12131 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-18",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-18",
+      "type": "builder:world.mineArea",
+      "x": 660,
+      "y": 420.0,
+      "value": "-11879 74 12116",
+      "value2": "-11864 89 12131 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-19",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-19",
+      "type": "builder:world.mineArea",
+      "x": 940,
+      "y": 420.0,
+      "value": "-11863 74 12116",
+      "value2": "-11854 89 12131 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-20",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-20",
+      "type": "builder:world.mineArea",
+      "x": 1220,
+      "y": 420.0,
+      "value": "-11879 90 12116",
+      "value2": "-11864 92 12131 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-21",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-21",
+      "type": "builder:world.mineArea",
+      "x": 1500,
+      "y": 420.0,
+      "value": "-11863 90 12116",
+      "value2": "-11854 92 12131 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-22",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-22",
+      "type": "builder:world.mineArea",
+      "x": 380,
+      "y": 540.0,
+      "value": "-11879 26 12132",
+      "value2": "-11864 41 12147 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-23",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-23",
+      "type": "builder:world.mineArea",
+      "x": 660,
+      "y": 540.0,
+      "value": "-11863 26 12132",
+      "value2": "-11854 41 12147 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-24",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-24",
+      "type": "builder:world.mineArea",
+      "x": 940,
+      "y": 540.0,
+      "value": "-11879 42 12132",
+      "value2": "-11864 57 12147 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-25",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-25",
+      "type": "builder:world.mineArea",
+      "x": 1220,
+      "y": 540.0,
+      "value": "-11863 42 12132",
+      "value2": "-11854 57 12147 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-26",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-26",
+      "type": "builder:world.mineArea",
+      "x": 1500,
+      "y": 540.0,
+      "value": "-11879 58 12132",
+      "value2": "-11864 73 12147 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-27",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-27",
+      "type": "builder:world.mineArea",
+      "x": 380,
+      "y": 660.0,
+      "value": "-11863 58 12132",
+      "value2": "-11854 73 12147 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-28",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-28",
+      "type": "builder:world.mineArea",
+      "x": 660,
+      "y": 660.0,
+      "value": "-11879 74 12132",
+      "value2": "-11864 89 12147 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-29",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-29",
+      "type": "builder:world.mineArea",
+      "x": 940,
+      "y": 660.0,
+      "value": "-11863 74 12132",
+      "value2": "-11854 89 12147 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-30",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-30",
+      "type": "builder:world.mineArea",
+      "x": 1220,
+      "y": 660.0,
+      "value": "-11879 90 12132",
+      "value2": "-11864 92 12147 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-31",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-31",
+      "type": "builder:world.mineArea",
+      "x": 1500,
+      "y": 660.0,
+      "value": "-11863 90 12132",
+      "value2": "-11854 92 12147 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-32",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-32",
+      "type": "builder:world.mineArea",
+      "x": 380,
+      "y": 780.0,
+      "value": "-11879 26 12148",
+      "value2": "-11864 41 12152 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-33",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-33",
+      "type": "builder:world.mineArea",
+      "x": 660,
+      "y": 780.0,
+      "value": "-11863 26 12148",
+      "value2": "-11854 41 12152 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-34",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-34",
+      "type": "builder:world.mineArea",
+      "x": 940,
+      "y": 780.0,
+      "value": "-11879 42 12148",
+      "value2": "-11864 57 12152 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-35",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-35",
+      "type": "builder:world.mineArea",
+      "x": 1220,
+      "y": 780.0,
+      "value": "-11863 42 12148",
+      "value2": "-11854 57 12152 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-36",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-36",
+      "type": "builder:world.mineArea",
+      "x": 1500,
+      "y": 780.0,
+      "value": "-11879 58 12148",
+      "value2": "-11864 73 12152 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-37",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-37",
+      "type": "builder:world.mineArea",
+      "x": 380,
+      "y": 900.0,
+      "value": "-11863 58 12148",
+      "value2": "-11854 73 12152 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-38",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-38",
+      "type": "builder:world.mineArea",
+      "x": 660,
+      "y": 900.0,
+      "value": "-11879 74 12148",
+      "value2": "-11864 89 12152 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-39",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-39",
+      "type": "builder:world.mineArea",
+      "x": 940,
+      "y": 900.0,
+      "value": "-11863 74 12148",
+      "value2": "-11854 89 12152 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-40",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-40",
+      "type": "builder:world.mineArea",
+      "x": 1220,
+      "y": 900.0,
+      "value": "-11879 90 12148",
+      "value2": "-11864 92 12152 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-41",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-41",
+      "type": "builder:world.mineArea",
+      "x": 1500,
+      "y": 900.0,
+      "value": "-11863 90 12148",
+      "value2": "-11854 92 12152 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-42",
+        "tool_low": "node-43",
+        "failed": "node-44"
+      }
+    },
+    {
+      "id": "node-42",
+      "type": "builder:localMessage",
+      "x": 1800,
+      "y": 120,
+      "value": "Large Mine Area finished.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {}
+    },
+    {
+      "id": "node-43",
+      "type": "builder:localMessage",
+      "x": 1800,
+      "y": 240,
+      "value": "Tool durability is low. Repair or swap tools.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {}
+    },
+    {
+      "id": "node-44",
+      "type": "builder:localMessage",
+      "x": 1800,
+      "y": 360,
+      "value": "Mine Area failed. Check reach, blocks, area permissions, and server rules.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {}
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "format": "litemacro-v1",
+  "name": "Working Mine Area 16x16x16",
+  "stepDelayMs": 0,
+  "alwaysOn": false,
+  "autoStartMode": "off",
+  "autoStartFilter": "",
+  "randomDelayEnabled": false,
+  "randomDelayMinMs": 250,
+  "randomDelayMaxMs": 1250,
+  "nextIndex": 6,
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "official:start",
+      "x": 120,
+      "y": 120,
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "started": "node-2"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "builder:world.mineArea",
+      "x": 380,
+      "y": 120,
+      "value": "-11879 26 12100",
+      "value2": "-11864 41 12115 tool=10 move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {
+        "completed": "node-3",
+        "tool_low": "node-4",
+        "failed": "node-5"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "builder:localMessage",
+      "x": 660,
+      "y": 60,
+      "value": "Mine Area finished.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {}
+    },
+    {
+      "id": "node-4",
+      "type": "builder:localMessage",
+      "x": 660,
+      "y": 150,
+      "value": "Tool durability is low. Repair or swap tools.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {}
+    },
+    {
+      "id": "node-5",
+      "type": "builder:localMessage",
+      "x": 660,
+      "y": 240,
+      "value": "Mine Area failed. Check coordinates, reach, and permissions.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "outputs": {}
+    }
+  ]
+}
