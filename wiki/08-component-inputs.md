@@ -206,10 +206,12 @@ Use Open Nearest Grindstone first if you want the macro to open the GUI.
 Mode button: Remove Enchants or Repair
 Input item: held, selected, any, or an item ID
 Repair item: same, held, any, or an item ID
-Result: Inv moves the output back into inventory
+Result: Inv takes one output item and moves it back into inventory
 Result: Drop throws the output out instead
 Close: On closes the grindstone after taking the result
 ```
+
+Auto Grindstone only handles one grindstone output each time the component runs. Connect it back into a loop only when you want it to keep processing more tools.
 
 ### World
 

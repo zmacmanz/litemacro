@@ -194,6 +194,8 @@ Auto Grindstone
   completed -> Repeat Macro
 ```
 
+`Auto Grindstone` handles one grindstone result per run. Add a loop only when you want it to keep repairing or removing enchants from more items.
+
 For repair instead of disenchanting, switch `Auto Grindstone` to `Repair`, set `Input item` to `held`, and set `Repair item` to `same`. Keep the second damaged matching item in inventory.
 
 ## Buy GUI Items Under A Price

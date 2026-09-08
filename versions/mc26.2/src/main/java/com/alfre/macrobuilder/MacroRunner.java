@@ -120,6 +120,7 @@ final class MacroRunner {
    private boolean activeEnchantClicked;
    private int activeEnchantClickTick;
    private boolean activeGrindstoneResultClicked;
+   private boolean activeGrindstoneResultReleased;
    private int activeGrindstoneResultClickTick;
    private int stepDelayTicksRemaining;
    private String lastStatus = "Stopped";
@@ -2077,17 +2078,32 @@ final class MacroRunner {
    }
 
    private void runAutoEnchant(Minecraft client, MacroModel.Node node) {
+      if (this.activeTicks == 1) {
+         this.activeEnchantClicked = false;
+         this.activeEnchantClickTick = 0;
+      }
+
+      if (this.activeEnchantClicked) {
+         if (this.activeTicks - this.activeEnchantClickTick >= CLOSE_SETTLE_TICKS) {
+            MacroRunner.AutoEnchantOptions options = autoEnchantOptions(node);
+            if (options != null && options.closeGui() && client.player != null) {
+               client.player.closeContainer();
+            }
+
+            this.complete(client, node, "completed");
+         } else {
+            this.lastStatus = "Auto Enchant: finishing enchant.";
+         }
+
+         return;
+      }
+
       AbstractContainerMenu handler = activeContainerHandler(client);
       if (!(handler instanceof EnchantmentMenu menu)) {
          this.fail(client, node, "Failed: Auto Enchant needs an open Enchanting Table GUI.");
       } else if (client.gameMode == null || client.player == null || client.player.connection == null) {
          this.fail(client, node, "Failed: Auto Enchant cannot use the current game mode.");
       } else {
-         if (this.activeTicks == 1) {
-            this.activeEnchantClicked = false;
-            this.activeEnchantClickTick = 0;
-         }
-
          MacroRunner.AutoEnchantOptions options = autoEnchantOptions(node);
          if (options == null) {
             this.fail(client, node, "Failed: Auto Enchant needs option 1-3 and XP level 0 or higher.");
@@ -2146,6 +2162,7 @@ final class MacroRunner {
    private void runAutoGrindstone(Minecraft client, MacroModel.Node node) {
       if (this.activeTicks == 1) {
          this.activeGrindstoneResultClicked = false;
+         this.activeGrindstoneResultReleased = false;
          this.activeGrindstoneResultClickTick = 0;
       }
 
@@ -2190,20 +2207,14 @@ final class MacroRunner {
          } else {
             if (!this.activeGrindstoneResultClicked) {
                Slot result = handler.getSlot(2);
-               if ("drop".equals(options.resultAction())) {
-                  client.gameMode.handleContainerInput(handler.containerId, result.index, 0, ContainerInput.PICKUP, client.player);
-                  client.gameMode.handleContainerInput(handler.containerId, OUTSIDE_CONTAINER_SLOT, 0, ContainerInput.PICKUP, client.player);
-                  this.lastStatus = "Auto Grindstone: dropping result.";
-               } else {
-                  ItemStack resultStack = result.getItem();
-                  if (!this.playerInventoryCanAccept(handler, firstPlayerInventorySlot(handler), resultStack)) {
-                     this.fail(client, node, "Failed: Auto Grindstone needs inventory space for the result or Result: Drop.");
-                     return;
-                  }
-
-                  client.gameMode.handleContainerInput(handler.containerId, result.index, 0, ContainerInput.QUICK_MOVE, client.player);
-                  this.lastStatus = "Auto Grindstone: moving result to inventory.";
+               ItemStack resultStack = result.getItem();
+               if (!"drop".equals(options.resultAction()) && !this.playerInventoryCanAccept(handler, firstPlayerInventorySlot(handler), resultStack)) {
+                  this.fail(client, node, "Failed: Auto Grindstone needs inventory space for the result or Result: Drop.");
+                  return;
                }
+
+               client.gameMode.handleContainerInput(handler.containerId, result.index, 0, ContainerInput.PICKUP, client.player);
+               this.lastStatus = "drop".equals(options.resultAction()) ? "Auto Grindstone: taking result to drop." : "Auto Grindstone: taking one result.";
 
                this.activeGrindstoneResultClicked = true;
                this.activeGrindstoneResultClickTick = this.activeTicks;
@@ -2214,27 +2225,29 @@ final class MacroRunner {
                   if ("drop".equals(options.resultAction())) {
                      client.gameMode.handleContainerInput(handler.containerId, OUTSIDE_CONTAINER_SLOT, 0, ContainerInput.PICKUP, client.player);
                      this.lastStatus = "Auto Grindstone: clearing carried result.";
+                     this.activeGrindstoneResultReleased = true;
                   } else if (this.moveCarriedToPlayerInventory(client, handler)) {
                      this.lastStatus = "Auto Grindstone: putting carried result away.";
+                     this.activeGrindstoneResultReleased = true;
                   } else {
                      this.fail(client, node, "Failed: Auto Grindstone could not put the carried result away.");
                   }
-               } else if (containerSlotHasItem(handler, 2)) {
-                  if (this.activeTicks > SCREEN_TIMEOUT_TICKS) {
-                     this.fail(client, node, "Failed: Auto Grindstone result did not move.");
-                  } else {
-                     if (this.activeTicks - this.activeGrindstoneResultClickTick >= 10) {
-                        this.activeGrindstoneResultClicked = false;
-                     }
-
-                     this.lastStatus = "Auto Grindstone: waiting for result to move.";
-                  }
-               } else {
+               } else if (this.activeGrindstoneResultReleased) {
                   if (options.closeGui()) {
                      client.player.closeContainer();
                   }
 
                   this.complete(client, node, "completed");
+               } else if (containerSlotHasItem(handler, 2)) {
+                  if (this.activeTicks > SCREEN_TIMEOUT_TICKS) {
+                     this.fail(client, node, "Failed: Auto Grindstone result was not picked up.");
+                  } else {
+                     this.lastStatus = "Auto Grindstone: waiting to pick up result.";
+                  }
+               } else if (this.activeTicks > SCREEN_TIMEOUT_TICKS) {
+                  this.fail(client, node, "Failed: Auto Grindstone result did not move.");
+               } else {
+                  this.lastStatus = "Auto Grindstone: waiting for carried result.";
                }
             }
          }
