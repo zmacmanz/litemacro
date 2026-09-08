@@ -81,7 +81,7 @@ For exact text-box values, examples, and coordinate setup, see [Component Inputs
 | `Open GUI Is Full` | True when the open GUI has no empty slots. |
 | `Open GUI Has Item` | Checks for an item in the open GUI. |
 | `Auto Enchant` | Clicks an enchanting table option when the item, lapis, and XP level are ready. |
-| `Auto Grindstone` | Takes the output item from an open grindstone GUI. |
+| `Auto Grindstone` | Loads grindstone input items, removes enchants or repairs matching items, then takes the result. |
 | `Open Inventory` | Opens the player inventory. |
 | `Close GUI` | Closes the current GUI. |
 | `Select Hotbar Slot` | Selects hotbar slot 1-9. |
@@ -108,6 +108,7 @@ Inventory slots usually use:
 | `Jump And Place Block` | Jumps and places below the player. |
 | `Farm Area` | Harvests crops between two XYZ points and can move. |
 | `Open Nearest Container` | Finds and opens chest, barrel, ender chest, or shulker. |
+| `Open Nearest Grindstone` | Finds and opens the nearest grindstone, optionally walking toward it first. |
 | `Auto Bone Meal` | Uses bone meal and can refill from nearby containers. |
 | `Block At Location Is` | Checks block ID at coordinates. |
 | `Looking At Block` | Checks the block currently targeted. |

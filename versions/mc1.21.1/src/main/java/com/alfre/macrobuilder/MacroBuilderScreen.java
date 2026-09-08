@@ -65,6 +65,15 @@ final class MacroBuilderScreen extends Screen {
    private static final int RIGHT_AUTO_ENCHANT_LAPIS_LABEL_Y = 360;
    private static final int RIGHT_AUTO_ENCHANT_LAPIS_FIELD_Y = 374;
    private static final int RIGHT_AUTO_ENCHANT_LAPIS_BUTTON_Y = 398;
+   private static final int RIGHT_GRINDSTONE_MODE_LABEL_Y = 192;
+   private static final int RIGHT_GRINDSTONE_MODE_BUTTON_Y = 206;
+   private static final int RIGHT_GRINDSTONE_INPUT_LABEL_Y = 232;
+   private static final int RIGHT_GRINDSTONE_INPUT_FIELD_Y = 246;
+   private static final int RIGHT_GRINDSTONE_INPUT_BUTTON_Y = 270;
+   private static final int RIGHT_GRINDSTONE_REPAIR_LABEL_Y = 296;
+   private static final int RIGHT_GRINDSTONE_REPAIR_FIELD_Y = 310;
+   private static final int RIGHT_GRINDSTONE_REPAIR_BUTTON_Y = 334;
+   private static final int RIGHT_GRINDSTONE_TOGGLE_Y = 360;
    private static final int RIGHT_MODE_Y = 320;
    private static final int RIGHT_TOGGLE_ROW_Y = 342;
    private static final int RIGHT_EXTRA_LABEL_Y = 366;
@@ -91,6 +100,8 @@ final class MacroBuilderScreen extends Screen {
    private EditBox secondaryField;
    private EditBox autoEnchantItemField;
    private EditBox autoEnchantLapisField;
+   private EditBox autoGrindstoneInputField;
+   private EditBox autoGrindstoneRepairField;
    private EditBox excludeSlotsField;
    private EditBox nodeDelayField;
    private Button setNextButton;
@@ -115,6 +126,13 @@ final class MacroBuilderScreen extends Screen {
    private Button autoEnchantPickItemButton;
    private Button autoEnchantPickLapisButton;
    private Button autoEnchantCloseButton;
+   private Button autoGrindstoneModeButton;
+   private Button autoGrindstoneUseHeldButton;
+   private Button autoGrindstonePickInputButton;
+   private Button autoGrindstoneUseSameButton;
+   private Button autoGrindstonePickRepairButton;
+   private Button autoGrindstoneShiftButton;
+   private Button autoGrindstoneCloseButton;
    private Button copyComponentButton;
    private Button pasteComponentButton;
    private Button moreActionsButton;
@@ -266,6 +284,12 @@ final class MacroBuilderScreen extends Screen {
       this.autoEnchantLapisField = new EditBox(this.font, rightX + 14, RIGHT_AUTO_ENCHANT_LAPIS_FIELD_Y, rightWidth, 20, Component.empty());
       this.autoEnchantLapisField.setMaxLength(128);
       this.addRenderableWidget(this.autoEnchantLapisField);
+      this.autoGrindstoneInputField = new EditBox(this.font, rightX + 14, RIGHT_GRINDSTONE_INPUT_FIELD_Y, rightWidth, 20, Component.empty());
+      this.autoGrindstoneInputField.setMaxLength(128);
+      this.addRenderableWidget(this.autoGrindstoneInputField);
+      this.autoGrindstoneRepairField = new EditBox(this.font, rightX + 14, RIGHT_GRINDSTONE_REPAIR_FIELD_Y, rightWidth, 20, Component.empty());
+      this.autoGrindstoneRepairField.setMaxLength(128);
+      this.addRenderableWidget(this.autoGrindstoneRepairField);
       this.excludeSlotsField = new EditBox(this.font, rightX + 14, RIGHT_EXTRA_FIELD_Y, rightWidth, 20, Component.empty());
       this.excludeSlotsField.setMaxLength(128);
       this.addRenderableWidget(this.excludeSlotsField);
@@ -296,6 +320,41 @@ final class MacroBuilderScreen extends Screen {
       this.autoEnchantCloseButton = (Button)this.addRenderableWidget(
          Button.builder(Component.literal("Close: Off"), button -> this.toggleAutoEnchantClose())
             .bounds(rightX + 22 + splitButtonWidth, RIGHT_AUTO_ENCHANT_LAPIS_BUTTON_Y, trailingButtonWidth, 20)
+            .build()
+      );
+      this.autoGrindstoneModeButton = (Button)this.addRenderableWidget(
+         Button.builder(Component.literal("Mode: Remove Enchants"), button -> this.toggleAutoGrindstoneMode())
+            .bounds(rightX + 14, RIGHT_GRINDSTONE_MODE_BUTTON_Y, rightWidth, 20)
+            .build()
+      );
+      this.autoGrindstoneUseHeldButton = (Button)this.addRenderableWidget(
+         Button.builder(Component.literal("Use Held"), button -> this.setAutoGrindstoneInputToHeld())
+            .bounds(rightX + 40, RIGHT_GRINDSTONE_INPUT_BUTTON_Y, Math.max(46, splitButtonWidth - 26), 20)
+            .build()
+      );
+      this.autoGrindstonePickInputButton = (Button)this.addRenderableWidget(
+         Button.builder(Component.literal("Pick Item"), button -> this.openItemPicker("autoGrindstoneInput"))
+            .bounds(rightX + 22 + splitButtonWidth, RIGHT_GRINDSTONE_INPUT_BUTTON_Y, trailingButtonWidth, 20)
+            .build()
+      );
+      this.autoGrindstoneUseSameButton = (Button)this.addRenderableWidget(
+         Button.builder(Component.literal("Use Same"), button -> this.setAutoGrindstoneRepairToSame())
+            .bounds(rightX + 40, RIGHT_GRINDSTONE_REPAIR_BUTTON_Y, Math.max(46, splitButtonWidth - 26), 20)
+            .build()
+      );
+      this.autoGrindstonePickRepairButton = (Button)this.addRenderableWidget(
+         Button.builder(Component.literal("Pick Repair"), button -> this.openItemPicker("autoGrindstoneRepair"))
+            .bounds(rightX + 22 + splitButtonWidth, RIGHT_GRINDSTONE_REPAIR_BUTTON_Y, trailingButtonWidth, 20)
+            .build()
+      );
+      this.autoGrindstoneShiftButton = (Button)this.addRenderableWidget(
+         Button.builder(Component.literal("Shift: On"), button -> this.toggleAutoGrindstoneShift())
+            .bounds(rightX + 14, RIGHT_GRINDSTONE_TOGGLE_Y, splitButtonWidth, 20)
+            .build()
+      );
+      this.autoGrindstoneCloseButton = (Button)this.addRenderableWidget(
+         Button.builder(Component.literal("Close: Off"), button -> this.toggleAutoGrindstoneClose())
+            .bounds(rightX + 22 + splitButtonWidth, RIGHT_GRINDSTONE_TOGGLE_Y, trailingButtonWidth, 20)
             .build()
       );
       this.modeButton = (Button)this.addRenderableWidget(
@@ -883,15 +942,18 @@ final class MacroBuilderScreen extends Screen {
          && this.secondaryField != null
          && this.autoEnchantItemField != null
          && this.autoEnchantLapisField != null
+         && this.autoGrindstoneInputField != null
+         && this.autoGrindstoneRepairField != null
          && this.excludeSlotsField != null
          && this.nodeDelayField != null) {
          this.selectedNode.delayMs = this.parseNodeDelayMs(this.nodeDelayField.getValue());
          MacroModel.Descriptor descriptor = this.selectedNode.descriptor();
-         if (!descriptor.primaryLabel().isBlank()) {
+         boolean autoGrindstoneNode = this.isAutoGrindstoneNode(this.selectedNode);
+         if (!descriptor.primaryLabel().isBlank() && !autoGrindstoneNode) {
             this.selectedNode.value = this.primaryField.getValue();
          }
 
-         if (!descriptor.secondaryLabel().isBlank() && !this.isClickGuiItemNode(this.selectedNode)) {
+         if (!descriptor.secondaryLabel().isBlank() && !this.isClickGuiItemNode(this.selectedNode) && !autoGrindstoneNode) {
             this.selectedNode.value2 = this.secondaryField.getValue();
          }
 
@@ -899,6 +961,12 @@ final class MacroBuilderScreen extends Screen {
             this.selectedNode.value2 = this.cleanAutoEnchantXp(this.secondaryField.getValue());
             this.selectedNode.value3 = this.cleanAutoEnchantItem(this.autoEnchantItemField.getValue());
             this.selectedNode.value4 = this.cleanAutoEnchantLapis(this.autoEnchantLapisField.getValue());
+         }
+
+         if (autoGrindstoneNode) {
+            this.normalizeAutoGrindstoneNode(this.selectedNode);
+            this.selectedNode.value2 = this.cleanAutoGrindstoneSelector(this.autoGrindstoneInputField.getValue(), "held", false);
+            this.selectedNode.value3 = this.cleanAutoGrindstoneSelector(this.autoGrindstoneRepairField.getValue(), "same", true);
          }
 
          if (this.hasExcludeSlotField(this.selectedNode)) {
@@ -916,6 +984,8 @@ final class MacroBuilderScreen extends Screen {
          && this.secondaryField != null
          && this.autoEnchantItemField != null
          && this.autoEnchantLapisField != null
+         && this.autoGrindstoneInputField != null
+         && this.autoGrindstoneRepairField != null
          && this.excludeSlotsField != null
          && this.nodeDelayField != null) {
          boolean hasSelection = this.selectedNode != null;
@@ -926,8 +996,13 @@ final class MacroBuilderScreen extends Screen {
             this.normalizeAutoEnchantNode(this.selectedNode);
          }
 
-         boolean hasPrimary = hasSelection && !noteNode && !descriptor.primaryLabel().isBlank();
-         boolean hasSecondary = hasSelection && !noteNode && !descriptor.secondaryLabel().isBlank();
+         boolean autoGrindstoneNode = hasSelection && this.isAutoGrindstoneNode(this.selectedNode);
+         if (autoGrindstoneNode) {
+            this.normalizeAutoGrindstoneNode(this.selectedNode);
+         }
+
+         boolean hasPrimary = hasSelection && !noteNode && !autoGrindstoneNode && !descriptor.primaryLabel().isBlank();
+         boolean hasSecondary = hasSelection && !noteNode && !autoGrindstoneNode && !descriptor.secondaryLabel().isBlank();
          boolean clickGuiItem = hasSelection && this.isClickGuiItemNode(this.selectedNode);
          hasSecondary = hasSecondary && !clickGuiItem;
          boolean branch = hasSelection && descriptor.outputs().contains("true") && descriptor.outputs().contains("false");
@@ -951,6 +1026,9 @@ final class MacroBuilderScreen extends Screen {
          String secondaryText = hasSecondary && this.selectedNode.value2 != null ? this.selectedNode.value2 : "";
          String autoEnchantItemText = autoEnchantNode ? this.autoEnchantItemText(this.selectedNode) : "";
          String autoEnchantLapisText = autoEnchantNode ? this.autoEnchantLapisText(this.selectedNode) : "";
+         String autoGrindstoneInputText = autoGrindstoneNode ? this.autoGrindstoneInputText(this.selectedNode) : "";
+         String autoGrindstoneRepairText = autoGrindstoneNode ? this.autoGrindstoneRepairText(this.selectedNode) : "";
+         boolean autoGrindstoneRepair = autoGrindstoneNode && this.autoGrindstoneRepairMode(this.selectedNode);
          String excludeSlotsText = hasExcludeSlots ? this.excludeSlotText(this.selectedNode) : "";
          this.primaryField.visible = hasPrimary;
          this.primaryField.active = hasPrimary;
@@ -968,6 +1046,14 @@ final class MacroBuilderScreen extends Screen {
          this.autoEnchantLapisField.active = autoEnchantNode;
          this.autoEnchantLapisField.setValue(autoEnchantLapisText);
          this.autoEnchantLapisField.setSuggestion(autoEnchantNode && autoEnchantLapisText.isBlank() ? "minecraft:lapis_lazuli" : "");
+         this.autoGrindstoneInputField.visible = autoGrindstoneNode;
+         this.autoGrindstoneInputField.active = autoGrindstoneNode;
+         this.autoGrindstoneInputField.setValue(autoGrindstoneInputText);
+         this.autoGrindstoneInputField.setSuggestion(autoGrindstoneNode && autoGrindstoneInputText.isBlank() ? "held, selected, any, or minecraft:iron_sword" : "");
+         this.autoGrindstoneRepairField.visible = autoGrindstoneRepair;
+         this.autoGrindstoneRepairField.active = autoGrindstoneRepair;
+         this.autoGrindstoneRepairField.setValue(autoGrindstoneRepairText);
+         this.autoGrindstoneRepairField.setSuggestion(autoGrindstoneRepair && autoGrindstoneRepairText.isBlank() ? "same, held, any, or minecraft:iron_sword" : "");
          this.excludeSlotsField.visible = hasExcludeSlots;
          this.excludeSlotsField.active = hasExcludeSlots;
          this.excludeSlotsField.setValue(excludeSlotsText);
@@ -991,6 +1077,23 @@ final class MacroBuilderScreen extends Screen {
          this.autoEnchantCloseButton.visible = autoEnchantNode;
          this.autoEnchantCloseButton.active = autoEnchantNode;
          this.autoEnchantCloseButton.setMessage(Component.literal(this.autoEnchantCloseEnabled(this.selectedNode) ? "Close: On" : "Close: Off"));
+         this.autoGrindstoneModeButton.visible = autoGrindstoneNode;
+         this.autoGrindstoneModeButton.active = autoGrindstoneNode;
+         this.autoGrindstoneModeButton.setMessage(Component.literal(autoGrindstoneRepair ? "Mode: Repair" : "Mode: Remove Enchants"));
+         this.autoGrindstoneUseHeldButton.visible = autoGrindstoneNode;
+         this.autoGrindstoneUseHeldButton.active = autoGrindstoneNode;
+         this.autoGrindstonePickInputButton.visible = autoGrindstoneNode;
+         this.autoGrindstonePickInputButton.active = autoGrindstoneNode;
+         this.autoGrindstoneUseSameButton.visible = autoGrindstoneRepair;
+         this.autoGrindstoneUseSameButton.active = autoGrindstoneRepair;
+         this.autoGrindstonePickRepairButton.visible = autoGrindstoneRepair;
+         this.autoGrindstonePickRepairButton.active = autoGrindstoneRepair;
+         this.autoGrindstoneShiftButton.visible = autoGrindstoneNode;
+         this.autoGrindstoneShiftButton.active = autoGrindstoneNode;
+         this.autoGrindstoneShiftButton.setMessage(Component.literal(this.autoGrindstoneShiftEnabled(this.selectedNode) ? "Shift: On" : "Shift: Off"));
+         this.autoGrindstoneCloseButton.visible = autoGrindstoneNode;
+         this.autoGrindstoneCloseButton.active = autoGrindstoneNode;
+         this.autoGrindstoneCloseButton.setMessage(Component.literal(this.autoGrindstoneCloseEnabled(this.selectedNode) ? "Close: On" : "Close: Off"));
          this.modeButton.visible = depositWithdraw;
          this.modeButton.active = this.modeButton.visible;
          this.modeButton.setMessage(Component.literal(this.modeButton.visible ? "Mode: " + this.selectedNode.value : "Toggle Mode"));
@@ -1201,6 +1304,42 @@ final class MacroBuilderScreen extends Screen {
       }
    }
 
+   private void toggleAutoGrindstoneMode() {
+      if (this.isAutoGrindstoneNode(this.selectedNode)) {
+         this.normalizeAutoGrindstoneNode(this.selectedNode);
+         this.selectedNode.value = this.autoGrindstoneRepairMode(this.selectedNode) ? "disenchant" : "repair";
+         this.refreshProperties();
+      }
+   }
+
+   private void setAutoGrindstoneInputToHeld() {
+      if (this.isAutoGrindstoneNode(this.selectedNode)) {
+         this.selectedNode.value2 = "held";
+         this.refreshProperties();
+      }
+   }
+
+   private void setAutoGrindstoneRepairToSame() {
+      if (this.isAutoGrindstoneNode(this.selectedNode)) {
+         this.selectedNode.value3 = "same";
+         this.refreshProperties();
+      }
+   }
+
+   private void toggleAutoGrindstoneShift() {
+      if (this.isAutoGrindstoneNode(this.selectedNode)) {
+         this.selectedNode.value4 = Boolean.toString(!this.autoGrindstoneShiftEnabled(this.selectedNode));
+         this.refreshProperties();
+      }
+   }
+
+   private void toggleAutoGrindstoneClose() {
+      if (this.isAutoGrindstoneNode(this.selectedNode)) {
+         this.selectedNode.value5 = Boolean.toString(!this.autoGrindstoneCloseEnabled(this.selectedNode));
+         this.refreshProperties();
+      }
+   }
+
    private void toggleSelectedEnabled() {
       List<MacroModel.Node> nodes = this.movableSelection();
       if (nodes.isEmpty()) {
@@ -1287,6 +1426,10 @@ final class MacroBuilderScreen extends Screen {
       return node != null && "builder:inventory.autoEnchant".equals(node.type);
    }
 
+   private boolean isAutoGrindstoneNode(MacroModel.Node node) {
+      return node != null && "builder:inventory.autoGrindstone".equals(node.type);
+   }
+
    private boolean isItemOrSlotHasTagNode(MacroModel.Node node) {
       return node != null && "builder:inventory.itemOrSlotHasTag".equals(node.type);
    }
@@ -1331,6 +1474,61 @@ final class MacroBuilderScreen extends Screen {
 
    private boolean autoEnchantCloseEnabled(MacroModel.Node node) {
       return this.isTruthyText(node == null || node.value5 == null ? "" : node.value5.trim());
+   }
+
+   private boolean autoGrindstoneRepairMode(MacroModel.Node node) {
+      return "repair".equals(this.cleanAutoGrindstoneMode(node == null ? "" : node.value));
+   }
+
+   private boolean autoGrindstoneShiftEnabled(MacroModel.Node node) {
+      return node == null || node.value4 == null || node.value4.isBlank() || this.isTruthyText(node.value4);
+   }
+
+   private boolean autoGrindstoneCloseEnabled(MacroModel.Node node) {
+      return this.isTruthyText(node == null || node.value5 == null ? "" : node.value5.trim());
+   }
+
+   private String autoGrindstoneInputText(MacroModel.Node node) {
+      return this.cleanAutoGrindstoneSelector(node == null ? "" : node.value2, "held", false);
+   }
+
+   private String autoGrindstoneRepairText(MacroModel.Node node) {
+      return this.cleanAutoGrindstoneSelector(node == null ? "" : node.value3, "same", true);
+   }
+
+   private String cleanAutoGrindstoneMode(String value) {
+      String normalized = value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
+      return switch (normalized) {
+         case "repair", "combine", "fix" -> "repair";
+         default -> "disenchant";
+      };
+   }
+
+   private String cleanAutoGrindstoneSelector(String value, String fallback, boolean allowSame) {
+      String text = value == null ? "" : value.trim();
+      if (text.isBlank()) {
+         return fallback;
+      }
+
+      String normalized = text.toLowerCase(Locale.ROOT);
+      if (this.autoGrindstoneSpecialSelector(normalized, allowSame)) {
+         return normalized;
+      }
+
+      return MacroModel.normalizeItemId(text);
+   }
+
+   private boolean autoGrindstoneSpecialSelector(String value, boolean allowSame) {
+      return value.isBlank()
+         || value.equals("held")
+         || value.equals("hand")
+         || value.equals("mainhand")
+         || value.equals("main_hand")
+         || value.equals("selected")
+         || value.equals("any")
+         || value.equals("all")
+         || value.equals("auto")
+         || allowSame && (value.equals("same") || value.equals("match") || value.equals("matching") || value.equals("input"));
    }
 
    private String autoEnchantXpText(MacroModel.Node node) {
@@ -1415,6 +1613,37 @@ final class MacroBuilderScreen extends Screen {
       if (node.value5 == null || node.value5.isBlank()) {
          node.value5 = "false";
       }
+   }
+
+   private void normalizeAutoGrindstoneNode(MacroModel.Node node) {
+      if (!this.isAutoGrindstoneNode(node)) {
+         return;
+      }
+
+      if (this.isExplicitBooleanText(node.value)) {
+         String legacyShift = node.value;
+         String legacyClose = node.value2;
+         node.value = "disenchant";
+         node.value2 = "held";
+         node.value3 = "same";
+         node.value4 = Boolean.toString(this.isTruthyText(legacyShift));
+         node.value5 = Boolean.toString(this.isTruthyText(legacyClose));
+      }
+
+      node.value = this.cleanAutoGrindstoneMode(node.value);
+      node.value2 = this.cleanAutoGrindstoneSelector(node.value2, "held", false);
+      node.value3 = this.cleanAutoGrindstoneSelector(node.value3, "same", true);
+      if (node.value4 == null || node.value4.isBlank() || !this.isExplicitBooleanText(node.value4)) {
+         node.value4 = "true";
+      }
+
+      if (node.value5 == null || node.value5.isBlank() || !this.isExplicitBooleanText(node.value5)) {
+         node.value5 = "false";
+      }
+   }
+
+   private boolean isExplicitBooleanText(String value) {
+      return this.isTruthyText(value == null ? "" : value.trim()) || this.isFalseyText(value == null ? "" : value.trim());
    }
 
    private boolean hasAutoEnchantLegacyOptions(String options) {
@@ -1895,17 +2124,25 @@ final class MacroBuilderScreen extends Screen {
             context.drawString(this.font, this.fit(this.autoSettingsButtonText(), rightWidth), rightX + 14, RIGHT_PRIMARY_LABEL_Y + 12, -4204545);
          }
 
-         if (!descriptor.primaryLabel().isBlank()) {
+         if (!descriptor.primaryLabel().isBlank() && !this.isAutoGrindstoneNode(this.selectedNode)) {
             context.drawString(this.font, descriptor.primaryLabel(), rightX + 14, RIGHT_PRIMARY_LABEL_Y, -2565928);
          }
 
-         if (!descriptor.secondaryLabel().isBlank() && !this.isClickGuiItemNode(this.selectedNode)) {
+         if (!descriptor.secondaryLabel().isBlank() && !this.isClickGuiItemNode(this.selectedNode) && !this.isAutoGrindstoneNode(this.selectedNode)) {
             context.drawString(this.font, descriptor.secondaryLabel(), rightX + 14, RIGHT_SECONDARY_LABEL_Y, -2565928);
          }
 
          if (this.isAutoEnchantNode(this.selectedNode)) {
             context.drawString(this.font, "Enchant item", rightX + 14, RIGHT_AUTO_ENCHANT_ITEM_LABEL_Y, -2565928);
             context.drawString(this.font, "Lapis item", rightX + 14, RIGHT_AUTO_ENCHANT_LAPIS_LABEL_Y, -2565928);
+         }
+
+         if (this.isAutoGrindstoneNode(this.selectedNode)) {
+            context.drawString(this.font, "Mode", rightX + 14, RIGHT_GRINDSTONE_MODE_LABEL_Y, -2565928);
+            context.drawString(this.font, "Input item", rightX + 14, RIGHT_GRINDSTONE_INPUT_LABEL_Y, -2565928);
+            if (this.autoGrindstoneRepairMode(this.selectedNode)) {
+               context.drawString(this.font, "Repair item", rightX + 14, RIGHT_GRINDSTONE_REPAIR_LABEL_Y, -2565928);
+            }
          }
 
          context.drawString(this.font, "Component delay (blank = global)", rightX + 14, RIGHT_NODE_DELAY_LABEL_Y, -2565928);
@@ -2532,6 +2769,8 @@ final class MacroBuilderScreen extends Screen {
          || this.secondaryField != null && this.secondaryField.isFocused()
          || this.autoEnchantItemField != null && this.autoEnchantItemField.isFocused()
          || this.autoEnchantLapisField != null && this.autoEnchantLapisField.isFocused()
+         || this.autoGrindstoneInputField != null && this.autoGrindstoneInputField.isFocused()
+         || this.autoGrindstoneRepairField != null && this.autoGrindstoneRepairField.isFocused()
          || this.excludeSlotsField != null && this.excludeSlotsField.isFocused()
          || this.nodeDelayField != null && this.nodeDelayField.isFocused();
    }
@@ -2546,11 +2785,16 @@ final class MacroBuilderScreen extends Screen {
       if (this.selectedNode != null) {
          MacroModel.Descriptor descriptor = this.selectedNode.descriptor();
          int rightX = this.propertyLeft();
-         if (!descriptor.primaryLabel().isBlank() && this.isItemField(descriptor.primaryLabel())) {
+         if (this.isAutoGrindstoneNode(this.selectedNode)) {
+            this.drawItemPreview(context, this.autoGrindstoneInputField.getValue(), rightX + 14, RIGHT_GRINDSTONE_INPUT_BUTTON_Y);
+            if (this.autoGrindstoneRepairMode(this.selectedNode)) {
+               this.drawItemPreview(context, this.autoGrindstoneRepairField.getValue(), rightX + 14, RIGHT_GRINDSTONE_REPAIR_BUTTON_Y);
+            }
+         } else if (!descriptor.primaryLabel().isBlank() && this.isItemField(descriptor.primaryLabel())) {
             this.drawItemPreview(context, this.primaryField.getValue(), rightX + 14, RIGHT_PRIMARY_ITEM_Y);
          }
 
-         if (!descriptor.secondaryLabel().isBlank() && this.isItemField(descriptor.secondaryLabel())) {
+         if (!this.isAutoGrindstoneNode(this.selectedNode) && !descriptor.secondaryLabel().isBlank() && this.isItemField(descriptor.secondaryLabel())) {
             this.drawItemPreview(context, this.secondaryField.getValue(), rightX + 14, RIGHT_SECONDARY_ITEM_Y);
          }
       }
@@ -3156,7 +3400,13 @@ final class MacroBuilderScreen extends Screen {
          String close = this.autoEnchantCloseEnabled(node) ? " / close" : "";
          return "option " + node.value + " / XP " + this.autoEnchantXpText(node) + " / " + item + close;
       } else if ("builder:inventory.autoGrindstone".equals(node.type)) {
-         return (this.isTruthyText(node.value) ? "shift result" : "take result") + (this.isTruthyText(node.value2) ? " / close" : "");
+         this.normalizeAutoGrindstoneNode(node);
+         String text = this.autoGrindstoneRepairMode(node) ? "repair " + this.autoGrindstoneInputText(node) + " + " + this.autoGrindstoneRepairText(node) : "remove enchants / " + this.autoGrindstoneInputText(node);
+         if (this.autoGrindstoneCloseEnabled(node)) {
+            text += " / close";
+         }
+
+         return text;
       } else if ("builder:inventory.selectHotbarSlot".equals(node.type)) {
          return "slot " + node.value;
       } else if ("builder:inventory.dropSelectedItem".equals(node.type)) {
@@ -3169,7 +3419,7 @@ final class MacroBuilderScreen extends Screen {
          return node.value + " = " + node.value2;
       } else if ("builder:world.lookingAtBlock".equals(node.type)) {
          return node.value != null && !node.value.isBlank() ? node.value : "any block";
-      } else if ("builder:world.openNearestEnchantingTable".equals(node.type)) {
+      } else if ("builder:world.openNearestEnchantingTable".equals(node.type) || "builder:world.openNearestGrindstone".equals(node.type)) {
          return node.value + " blocks" + (this.isTruthyText(node.value2) ? " / move" : "");
       } else if ("builder:entity.nearby".equals(node.type)) {
          return node.value + " / " + node.value2;
@@ -3253,7 +3503,7 @@ final class MacroBuilderScreen extends Screen {
       } else if ("builder:inventory.autoEnchant".equals(descriptor.type())) {
          return secondary ? "30" : "1, 2, 3, best";
       } else if ("builder:inventory.autoGrindstone".equals(descriptor.type())) {
-         return secondary ? "true to close after taking result" : "true to shift-click result";
+         return secondary ? "held, selected, any, or minecraft:iron_sword" : "remove enchants or repair";
       } else if ("builder:player.stopAtXpLevel".equals(descriptor.type())) {
          return secondary ? "release or stop" : "30";
       } else if ("builder:misc.repeatMacro".equals(descriptor.type()) || "builder:misc.repeatSection".equals(descriptor.type())) {
@@ -3280,6 +3530,8 @@ final class MacroBuilderScreen extends Screen {
          return "move=true type=chest";
       } else if (secondary && "builder:world.openNearestEnchantingTable".equals(descriptor.type())) {
          return "move=true";
+      } else if (secondary && "builder:world.openNearestGrindstone".equals(descriptor.type())) {
+         return "move=true";
       } else {
          return secondary || !"official:entity.attack".equals(descriptor.type()) && !"official:entity.interact".equals(descriptor.type())
             ? ""
@@ -3304,6 +3556,10 @@ final class MacroBuilderScreen extends Screen {
          this.autoEnchantItemField.setFocused(false);
       } else if ("autoEnchantLapis".equals(target)) {
          this.autoEnchantLapisField.setFocused(false);
+      } else if ("autoGrindstoneInput".equals(target)) {
+         this.autoGrindstoneInputField.setFocused(false);
+      } else if ("autoGrindstoneRepair".equals(target)) {
+         this.autoGrindstoneRepairField.setFocused(false);
       } else {
          this.primaryField.setFocused(false);
       }
@@ -3333,6 +3589,16 @@ final class MacroBuilderScreen extends Screen {
                   this.autoEnchantLapisField.setValue(id);
                   if (this.selectedNode != null) {
                      this.selectedNode.value4 = id;
+                  }
+               } else if ("autoGrindstoneInput".equals(this.itemPickerTarget)) {
+                  this.autoGrindstoneInputField.setValue(id);
+                  if (this.selectedNode != null) {
+                     this.selectedNode.value2 = id;
+                  }
+               } else if ("autoGrindstoneRepair".equals(this.itemPickerTarget)) {
+                  this.autoGrindstoneRepairField.setValue(id);
+                  if (this.selectedNode != null) {
+                     this.selectedNode.value3 = id;
                   }
                } else if (this.itemPickerSecondary) {
                   this.secondaryField.setValue(id);

@@ -161,25 +161,40 @@ Stop At XP Level
 
 ## Auto Enchant Then Grindstone
 
-This needs the matching GUI already open.
+Use this when you want the macro to open the nearby table/grindstone and handle the item work.
 
 ```text
 Macro Entry Point
-  started -> Auto Enchant
+  started -> Open Nearest Enchanting Table
+
+Open Nearest Enchanting Table
+  Radius: 8
+  Move: true
+  completed -> Auto Enchant
 
 Auto Enchant
   Option 1-3: 3
   Min XP level: 30
-  completed -> Auto Grindstone
+  Enchant item: held
+  Lapis item: minecraft:lapis_lazuli
+  Close: On
+  completed -> Open Nearest Grindstone
   failed -> Local Message
 
+Open Nearest Grindstone
+  Radius: 8
+  Move: true
+  completed -> Auto Grindstone
+
 Auto Grindstone
-  Shift-click result: true
-  Close GUI: false
+  Mode: Remove Enchants
+  Input item: held
+  Shift: On
+  Close: On
   completed -> Repeat Macro
 ```
 
-`Auto Enchant` requires an item in the enchanting slot and enough lapis. `Auto Grindstone` waits for the grindstone output slot, then takes the result.
+For repair instead of disenchanting, switch `Auto Grindstone` to `Repair`, set `Input item` to `held`, and set `Repair item` to `same`. Keep the second damaged matching item in inventory.
 
 ## Buy GUI Items Under A Price
 

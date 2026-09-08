@@ -1208,6 +1208,9 @@ final class MacroRunner {
                         case "builder:world.openNearestEnchantingTable":
                            this.runOpenNearestEnchantingTable(client, node);
                            break;
+                        case "builder:world.openNearestGrindstone":
+                           this.runOpenNearestGrindstone(client, node);
+                           break;
                         case "builder:world.autoBoneMeal":
                            this.runAutoBoneMeal(client, node);
                            break;
@@ -1545,6 +1548,7 @@ final class MacroRunner {
             "builder:world.farmArea",
             "builder:world.openNearestContainer",
             "builder:world.openNearestEnchantingTable",
+            "builder:world.openNearestGrindstone",
             "builder:world.autoBoneMeal",
             "builder:world.mineArea",
             "official:entity.attack",
@@ -2143,12 +2147,32 @@ final class MacroRunner {
       } else if (client.gameMode == null || client.player == null) {
          this.fail(client, node, "Failed: Auto Grindstone cannot use the current game mode.");
       } else {
-         Boolean shiftClick = parseBooleanOrDefault(node.value, true);
-         Boolean closeGui = parseBooleanOrDefault(node.value2, false);
-         if (shiftClick == null) {
-            this.fail(client, node, "Failed: Auto Grindstone shift-click value must be true or false.");
-         } else if (closeGui == null) {
-            this.fail(client, node, "Failed: Auto Grindstone close GUI value must be true or false.");
+         MacroRunner.AutoGrindstoneOptions options = autoGrindstoneOptions(node);
+         if (options == null) {
+            this.fail(client, node, "Failed: Auto Grindstone needs mode repair/remove and valid item settings.");
+         } else if (!containerSlotHasItem(handler, 0)) {
+            if (this.moveGrindstoneInputToSlot(client, handler, options.inputSelector(), 0, ItemStack.EMPTY, -1)) {
+               this.lastStatus = "Auto Grindstone: loaded input item.";
+            } else {
+               this.fail(client, node, "Failed: Auto Grindstone needs the input item in inventory or item=held.");
+            }
+         } else if (options.repair() && !containerSlotHasItem(handler, 1)) {
+            ItemStack firstInput = handler.getSlot(0).getItem();
+            if (this.moveGrindstoneInputToSlot(client, handler, options.repairSelector(), 1, firstInput, -1)) {
+               this.lastStatus = "Auto Grindstone: loaded repair item.";
+            } else {
+               this.fail(client, node, "Failed: Auto Grindstone repair needs a second matching item.");
+            }
+         } else if (!options.repair() && containerSlotHasItem(handler, 1)) {
+            if (this.activeTicks % 5 == 1) {
+               client.gameMode.handleContainerInput(handler.containerId, 1, 0, ContainerInput.QUICK_MOVE, client.player);
+            }
+
+            if (this.activeTicks > SCREEN_TIMEOUT_TICKS) {
+               this.fail(client, node, "Failed: Auto Grindstone could not clear the repair slot.");
+            } else {
+               this.lastStatus = "Auto Grindstone: clearing repair slot.";
+            }
          } else if (!containerSlotHasItem(handler, 2)) {
             if (this.activeTicks > SCREEN_TIMEOUT_TICKS) {
                this.fail(client, node, "Failed: Auto Grindstone needs a result item in the output slot.");
@@ -2159,12 +2183,12 @@ final class MacroRunner {
             if (this.activeTicks == 1) {
                Slot result = handler.getSlot(2);
                client.gameMode.handleContainerInput(
-                  handler.containerId, result.index, 0, shiftClick ? ContainerInput.QUICK_MOVE : ContainerInput.PICKUP, client.player
+                  handler.containerId, result.index, 0, options.shiftClick() ? ContainerInput.QUICK_MOVE : ContainerInput.PICKUP, client.player
                );
             }
 
             if (this.activeTicks >= CLOSE_SETTLE_TICKS) {
-               if (closeGui) {
+               if (options.closeGui()) {
                   client.player.closeContainer();
                }
 
@@ -2517,6 +2541,43 @@ final class MacroRunner {
             }
          } else {
             this.fail(client, node, "Failed: no nearby enchanting table was found.");
+         }
+      }
+   }
+
+   private void runOpenNearestGrindstone(Minecraft client, MacroModel.Node node) {
+      MacroRunner.ContainerSearchOptions options = this.containerSearchOptions(node.value, node.value2);
+      if (options == null) {
+         this.fail(client, node, "Failed: Open Nearest Grindstone needs radius 1-16 and move true/false.");
+      } else if (activeContainerHandler(client) instanceof GrindstoneMenu) {
+         this.releaseMovementKeys(client);
+         this.complete(client, node, "completed");
+      } else if (activeContainerHandler(client) != null) {
+         this.fail(client, node, "Failed: close the current GUI before opening a grindstone.");
+      } else {
+         BlockPos grindstone = this.nearestBlockWithId(client, options.radius(), "minecraft:grindstone");
+         if (grindstone != null && client.gameMode != null) {
+            this.lookAt(client, Vec3.atCenterOf(grindstone));
+            if (canReachBlock(client, grindstone)) {
+               this.releaseMovementKeys(client);
+               if (this.activeTicks % 5 == 1) {
+                  this.openBlockAt(client, grindstone);
+               }
+
+               if (this.activeTicks > 300) {
+                  this.fail(client, node, "Failed: nearest grindstone did not open.");
+               }
+            } else if (!options.move()) {
+               this.fail(client, node, "Failed: nearest grindstone is out of reach.");
+            } else {
+               this.moveTowardBlock(client, grindstone);
+               if (this.activeTicks > 300) {
+                  this.releaseMovementKeys(client);
+                  this.fail(client, node, "Failed: nearest grindstone stayed out of reach.");
+               }
+            }
+         } else {
+            this.fail(client, node, "Failed: no nearby grindstone was found.");
          }
       }
    }
@@ -4578,6 +4639,14 @@ final class MacroRunner {
       return sourceSlotIndex >= 0 && this.pickupMoveStack(client, handler, sourceSlotIndex, 0, 1, handler.getSlot(sourceSlotIndex).getItem());
    }
 
+   private boolean moveGrindstoneInputToSlot(
+      Minecraft client, AbstractContainerMenu handler, String selector, int targetSlotIndex, ItemStack matchingStack, int ignoredSourceSlotIndex
+   ) {
+      int sourceSlotIndex = this.firstGrindstoneInputMenuSlot(client, handler, selector, matchingStack, targetSlotIndex, ignoredSourceSlotIndex);
+      return sourceSlotIndex >= 0
+         && this.pickupMoveStack(client, handler, sourceSlotIndex, targetSlotIndex, targetSlotIndex + 1, handler.getSlot(sourceSlotIndex).getItem());
+   }
+
    private boolean moveItemToMenuSlot(Minecraft client, AbstractContainerMenu handler, String itemId, int targetSlotIndex) {
       int sourceSlotIndex = this.firstMatchingPlayerMenuSlot(handler, itemId);
       return sourceSlotIndex >= 0
@@ -4603,6 +4672,53 @@ final class MacroRunner {
                ItemStack stack = handler.getSlot(index).getItem();
                if (!stack.isEmpty() && targetSlot.mayPlace(stack)) {
                   if (anyItem || heldItem && !heldStack.isEmpty() && ItemStack.isSameItemSameComponents(stack, heldStack) || !itemId.isBlank() && stackMatches(stack, itemId)) {
+                     return index;
+                  }
+               }
+            }
+
+            return -1;
+         }
+      }
+   }
+
+   private int firstGrindstoneInputMenuSlot(
+      Minecraft client, AbstractContainerMenu handler, String selector, ItemStack matchingStack, int targetSlotIndex, int ignoredSourceSlotIndex
+   ) {
+      if (client.player == null || handler.slots.isEmpty() || targetSlotIndex < 0 || targetSlotIndex >= handler.slots.size()) {
+         return -1;
+      } else {
+         String normalizedSelector = selector == null ? "" : selector.trim().toLowerCase(Locale.ROOT);
+         boolean anyItem = normalizedSelector.isBlank() || normalizedSelector.equals("any") || normalizedSelector.equals("all") || normalizedSelector.equals("auto");
+         boolean heldItem = normalizedSelector.equals("held")
+            || normalizedSelector.equals("hand")
+            || normalizedSelector.equals("mainhand")
+            || normalizedSelector.equals("main_hand")
+            || normalizedSelector.equals("selected");
+         boolean sameItem = normalizedSelector.equals("same")
+            || normalizedSelector.equals("match")
+            || normalizedSelector.equals("matching")
+            || normalizedSelector.equals("input");
+         String itemId = anyItem || heldItem || sameItem ? "" : MacroModel.normalizeItemId(normalizedSelector);
+         if (!itemId.isBlank() && !isKnownItemId(itemId)) {
+            return -1;
+         } else {
+            ItemStack heldStack = client.player.getMainHandItem();
+            Slot targetSlot = handler.getSlot(targetSlotIndex);
+            int firstPlayerSlot = firstPlayerInventorySlot(handler);
+
+            for (int index = firstPlayerSlot; index < handler.slots.size(); index++) {
+               if (index == ignoredSourceSlotIndex) {
+                  continue;
+               }
+
+               ItemStack stack = handler.getSlot(index).getItem();
+               if (!stack.isEmpty() && targetSlot.mayPlace(stack)) {
+                  boolean matchesAny = anyItem;
+                  boolean matchesHeld = heldItem && !heldStack.isEmpty() && ItemStack.isSameItemSameComponents(stack, heldStack);
+                  boolean matchesSame = sameItem && matchingStack != null && !matchingStack.isEmpty() && ItemStack.isSameItemSameComponents(stack, matchingStack);
+                  boolean matchesId = !itemId.isBlank() && stackMatches(stack, itemId);
+                  if (matchesAny || matchesHeld || matchesSame || matchesId) {
                      return index;
                   }
                }
@@ -5505,6 +5621,75 @@ final class MacroRunner {
       }
    }
 
+   private static MacroRunner.AutoGrindstoneOptions autoGrindstoneOptions(MacroModel.Node node) {
+      Boolean legacyShiftClick = parseExplicitBoolean(node.value);
+      if (legacyShiftClick != null) {
+         Boolean legacyClose = parseBooleanOrDefault(node.value2, false);
+         return legacyClose == null
+            ? null
+            : new MacroRunner.AutoGrindstoneOptions(false, "held", "same", legacyShiftClick, legacyClose);
+      } else {
+         String mode = grindstoneMode(node.value);
+         if (mode == null) {
+            return null;
+         } else {
+            String inputSelector = cleanGrindstoneInputSelector(node.value2, "held", false);
+            String repairSelector = cleanGrindstoneInputSelector(node.value3, "same", true);
+            Boolean shiftClick = parseBooleanOrDefault(node.value4, true);
+            Boolean closeGui = parseBooleanOrDefault(node.value5, false);
+            if (inputSelector == null || repairSelector == null || shiftClick == null || closeGui == null) {
+               return null;
+            }
+
+            return new MacroRunner.AutoGrindstoneOptions("repair".equals(mode), inputSelector, repairSelector, shiftClick, closeGui);
+         }
+      }
+   }
+
+   private static String grindstoneMode(String value) {
+      String normalized = value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+      normalized = normalized.replace('-', '_').replace(' ', '_');
+      return switch (normalized) {
+         case "", "disenchant", "remove", "remove_enchant", "remove_enchants", "unenchant", "clean" -> "disenchant";
+         case "repair", "combine", "fix" -> "repair";
+         default -> null;
+      };
+   }
+
+   private static String cleanGrindstoneInputSelector(String value, String fallback, boolean allowSame) {
+      String selector = value == null || value.isBlank() ? fallback : value.trim();
+      String normalized = selector.toLowerCase(Locale.ROOT);
+      if (grindstoneInputSelectorIsSpecial(normalized, allowSame)) {
+         return normalized;
+      }
+
+      String itemId = MacroModel.normalizeItemId(selector);
+      return isKnownItemId(itemId) ? itemId : null;
+   }
+
+   private static boolean grindstoneInputSelectorIsSpecial(String selector, boolean allowSame) {
+      String normalized = selector == null ? "" : selector.trim().toLowerCase(Locale.ROOT);
+      return normalized.isBlank()
+         || normalized.equals("held")
+         || normalized.equals("hand")
+         || normalized.equals("mainhand")
+         || normalized.equals("main_hand")
+         || normalized.equals("selected")
+         || normalized.equals("any")
+         || normalized.equals("all")
+         || normalized.equals("auto")
+         || allowSame
+            && (normalized.equals("same") || normalized.equals("match") || normalized.equals("matching") || normalized.equals("input"));
+   }
+
+   private static Boolean parseExplicitBoolean(String value) {
+      if (value == null || value.isBlank()) {
+         return null;
+      }
+
+      return parseBooleanOrDefault(value, false);
+   }
+
    private static boolean enchantItemSelectorIsSpecial(String selector) {
       String normalized = selector == null ? "" : selector.trim().toLowerCase(Locale.ROOT);
       return normalized.isBlank()
@@ -6090,6 +6275,9 @@ final class MacroRunner {
    }
 
    private record AutoEnchantOptions(int option, int minimumLevel, String itemSelector, String lapisItem, boolean autoLoad, boolean closeGui) {
+   }
+
+   private record AutoGrindstoneOptions(boolean repair, String inputSelector, String repairSelector, boolean shiftClick, boolean closeGui) {
    }
 
    private record BoneMealOptions(boolean refill, int radius, BlockPos target) {

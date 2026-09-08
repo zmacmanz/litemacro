@@ -77,6 +77,7 @@ final class MacroModel {
    static final String WORLD_FARM_AREA = "builder:world.farmArea";
    static final String WORLD_OPEN_NEAREST_CONTAINER = "builder:world.openNearestContainer";
    static final String WORLD_OPEN_NEAREST_ENCHANTING_TABLE = "builder:world.openNearestEnchantingTable";
+   static final String WORLD_OPEN_NEAREST_GRINDSTONE = "builder:world.openNearestGrindstone";
    static final String WORLD_AUTO_BONE_MEAL = "builder:world.autoBoneMeal";
    static final String WORLD_BLOCK_IS = "builder:world.blockIs";
    static final String LOOKING_AT_BLOCK = "builder:world.lookingAtBlock";
@@ -268,9 +269,9 @@ final class MacroModel {
          -3040666,
          COMPLETED_OR_FAILED,
          true,
-         "Shift-click result",
-         "Close GUI",
-         "true"
+         "Mode",
+         "Input item",
+         "disenchant"
       ),
       new MacroModel.Descriptor("official:inventory.openInventory", "Open Inventory", "Inventory", -3040666, COMPLETED_OR_FAILED, true, "", "", ""),
       new MacroModel.Descriptor("official:inventory.closeOpenContainer", "Close GUI", "Inventory", -2069387, COMPLETED_OR_FAILED, true, "", "", ""),
@@ -302,6 +303,17 @@ final class MacroModel {
       new MacroModel.Descriptor(
          "builder:world.openNearestEnchantingTable",
          "Open Nearest Enchanting Table",
+         "World",
+         -11094334,
+         COMPLETED_OR_FAILED,
+         true,
+         "Radius 1-16",
+         "Move true/false",
+         "8"
+      ),
+      new MacroModel.Descriptor(
+         "builder:world.openNearestGrindstone",
+         "Open Nearest Grindstone",
          "World",
          -11094334,
          COMPLETED_OR_FAILED,
@@ -923,7 +935,7 @@ final class MacroModel {
          case "official:inventory.isOpenContainerFull" -> "True when open GUI has no empty slots";
          case "builder:inventory.openContainerHasItem" -> "Checks for an item in open GUI";
          case "builder:inventory.autoEnchant" -> "Loads item/lapis when possible and clicks an enchanting table option";
-         case "builder:inventory.autoGrindstone" -> "Takes the grindstone result from the open GUI";
+         case "builder:inventory.autoGrindstone" -> "Loads items, repairs or removes enchants, then takes the grindstone result";
          case "official:inventory.openInventory" -> "Opens the player inventory";
          case "official:inventory.closeOpenContainer" -> "Closes the current GUI or chest";
          case "builder:inventory.selectHotbarSlot" -> "Selects a numbered hotbar slot";
@@ -936,6 +948,7 @@ final class MacroModel {
          case "builder:world.farmArea" -> "Harvests crops between two XYZ points and can move";
          case "builder:world.openNearestContainer" -> "Finds and opens a selected container type";
          case "builder:world.openNearestEnchantingTable" -> "Finds and opens the nearest enchanting table";
+         case "builder:world.openNearestGrindstone" -> "Finds and opens the nearest grindstone";
          case "builder:world.autoBoneMeal" -> "Uses bone meal and can refill from nearby containers";
          case "builder:world.blockIs" -> "Checks block id at coordinates";
          case "builder:world.lookingAtBlock" -> "Checks the block you are looking at";
@@ -1354,6 +1367,8 @@ final class MacroModel {
          return "true";
       } else if ("builder:inventory.autoEnchant".equals(type)) {
          return "held";
+      } else if ("builder:inventory.autoGrindstone".equals(type)) {
+         return "same";
       } else {
          return "official:inventory.clickOpenContainerSlot".equals(type)
             ? "left"
@@ -1376,13 +1391,15 @@ final class MacroModel {
    private static String defaultValue4(String type) {
       if ("builder:inventory.autoEnchant".equals(type)) {
          return "minecraft:lapis_lazuli";
+      } else if ("builder:inventory.autoGrindstone".equals(type)) {
+         return "true";
       } else {
          return "official:inventory.chestDepositItems".equals(type) || "official:inventory.dropItems".equals(type) ? "false" : "";
       }
    }
 
    private static String defaultValue5(String type) {
-      return "";
+      return "builder:inventory.autoGrindstone".equals(type) ? "false" : "";
    }
 
    private static String doubleString(JsonElement value, String fallback) {
@@ -1462,7 +1479,7 @@ final class MacroModel {
          } else if ("builder:inventory.autoEnchant".equals(this.type)) {
             return "30";
          } else if ("builder:inventory.autoGrindstone".equals(this.type)) {
-            return "false";
+            return "held";
          } else if ("official:inventory.hotbarSelect".equals(this.type) || "official:inventory.hotbarUse".equals(this.type)) {
             return "1";
          } else if ("official:inventory.dropItems".equals(this.type)) {
@@ -1488,6 +1505,8 @@ final class MacroModel {
          } else if ("builder:world.openNearestContainer".equals(this.type)) {
             return "move=true type=chest";
          } else if ("builder:world.openNearestEnchantingTable".equals(this.type)) {
+            return "move=true";
+         } else if ("builder:world.openNearestGrindstone".equals(this.type)) {
             return "move=true";
          } else if ("builder:world.autoBoneMeal".equals(this.type)) {
             return "refill radius=8";

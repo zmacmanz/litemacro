@@ -1,0 +1,178 @@
+{
+  "format": "litemacro-v1",
+  "name": "Mob Farm XP 30 Grindstone Repair Loop",
+  "stepDelayMs": 0,
+  "alwaysOn": false,
+  "autoStartMode": "off",
+  "autoStartFilter": "",
+  "randomDelayEnabled": false,
+  "randomDelayMinMs": 250,
+  "randomDelayMaxMs": 1250,
+  "nextIndex": 11,
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "official:start",
+      "x": 80,
+      "y": 220,
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "started": "node-2"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "builder:player.xpLevelAtLeast",
+      "x": 320,
+      "y": 220,
+      "value": "30",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "node-5",
+        "false": "node-3",
+        "failed": "node-9"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "builder:player.autoClick",
+      "x": 560,
+      "y": 340,
+      "value": "left",
+      "value2": "count=10 cps=8",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-4",
+        "failed": "node-9"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "official:misc.wait",
+      "x": 800,
+      "y": 340,
+      "value": "250",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-2"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "builder:world.openNearestGrindstone",
+      "x": 560,
+      "y": 105,
+      "value": "8",
+      "value2": "move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-6",
+        "failed": "node-9"
+      }
+    },
+    {
+      "id": "node-6",
+      "type": "builder:inventory.autoGrindstone",
+      "x": 860,
+      "y": 105,
+      "value": "repair",
+      "value2": "held",
+      "value3": "same",
+      "value4": "true",
+      "value5": "true",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-7",
+        "failed": "node-9"
+      }
+    },
+    {
+      "id": "node-7",
+      "type": "builder:localMessage",
+      "x": 1160,
+      "y": 105,
+      "value": "Grindstone repair finished. Back to grinding.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-4"
+      }
+    },
+    {
+      "id": "node-8",
+      "type": "builder:flow.note",
+      "x": 80,
+      "y": 430,
+      "value": "Mob farm XP 30 grindstone repair setup:\n\nHold the damaged item you want repaired.\nKeep a second matching damaged item in inventory.\nPlace a grindstone within 8 blocks.\nStand where left clicks hit the mobs.\n\nWhen XP reaches 30, the macro opens the nearest grindstone, puts the held item in slot 1, puts the same matching item in slot 2, shift-clicks the result, closes the GUI, then returns to grinding.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "stickyNoteText": "Mob farm XP 30 grindstone repair setup:\n\nHold the damaged item you want repaired.\nKeep a second matching damaged item in inventory.\nPlace a grindstone within 8 blocks.\nStand where left clicks hit the mobs.\n\nWhen XP reaches 30, the macro opens the nearest grindstone, puts the held item in slot 1, puts the same matching item in slot 2, shift-clicks the result, closes the GUI, then returns to grinding.",
+      "stickyNoteWidth": 560,
+      "stickyNoteHeight": 230,
+      "outputs": {}
+    },
+    {
+      "id": "node-9",
+      "type": "builder:localMessage",
+      "x": 1160,
+      "y": 310,
+      "value": "Grindstone repair needs: grindstone within 8 blocks, held damaged item, and a second matching damaged item in inventory.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-10"
+      }
+    },
+    {
+      "id": "node-10",
+      "type": "builder:flow.endConnection",
+      "x": 1480,
+      "y": 310,
+      "value": "end branch",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    }
+  ]
+}

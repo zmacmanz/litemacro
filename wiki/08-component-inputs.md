@@ -166,7 +166,7 @@ kicked
 | `Open GUI Is Full` | Empty | Empty | Sends `true` when the open GUI has no empty slots. |
 | `Open GUI Has Item` | Item ID | Minimum count | `minecraft:bone` and `64` |
 | `Auto Enchant` | Option 1-3 | Minimum XP level | `3` and `30` |
-| `Auto Grindstone` | Shift-click result true/false | Close GUI true/false | `true` and `false` |
+| `Auto Grindstone` | Mode: remove enchants or repair | Input item selector | `remove enchants` and `held` |
 | `Open Inventory` | Empty | Empty | Opens your inventory. |
 | `Close GUI` | Empty | Empty | Closes the open GUI. |
 | `Select Hotbar Slot` | Slot 1-9 | Empty | `1` |
@@ -202,10 +202,12 @@ Auto Enchant Field 2: minimum XP level, such as 30
 Auto grindstone:
 
 ```text
-Open a grindstone first.
-Put the item in the grindstone input slot.
-Auto Grindstone Field 1: true to shift-click the output, false to pick it up
-Auto Grindstone Field 2: true to close the GUI after taking the result
+Use Open Nearest Grindstone first if you want the macro to open the GUI.
+Mode button: Remove Enchants or Repair
+Input item: held, selected, any, or an item ID
+Repair item: same, held, any, or an item ID
+Shift: On takes the result with shift-click
+Close: On closes the grindstone after taking the result
 ```
 
 ### World
@@ -219,6 +221,7 @@ Auto Grindstone Field 2: true to close the GUI after taking the result
 | `Jump And Place Block` | Select block/item | Empty | `minecraft:dirt` |
 | `Farm Area` | Radius or From X Y Z | To X Y Z plus options | `8`, or `10 64 10` and `25 79 25 replant move=true` |
 | `Open Nearest Container` | Radius 1-16 | Move/type | `8` and `move=true type=chest` |
+| `Open Nearest Grindstone` | Radius 1-16 | Move true/false | `8` and `move=true` |
 | `Auto Bone Meal` | Item ID | Options | `minecraft:bone_meal` and `refill radius=8` |
 | `Block At Location Is` | X Y Z | Block ID | `100 64 100` and `minecraft:stone` |
 | `Looking At Block` | Block ID or blank | Empty | `minecraft:chest` |

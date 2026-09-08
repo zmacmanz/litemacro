@@ -157,7 +157,7 @@ World, entity, low-level movement/look/mouse, disconnect, sign update, and event
 
 `Auto Bone Meal` uses the selected item id, usually `minecraft:bone_meal`, on the block you are looking at. Its options support `refill radius=8`, `no refill`, and `target=X Y Z`; refill opens the nearest container and withdraws the selected item when the hotbar is empty.
 
-`Auto Enchant` clicks option 1, 2, or 3 in an open enchanting table when the item, lapis, and XP level are ready. `Auto Grindstone` takes the output from an open grindstone GUI and can shift-click the result or close the GUI afterward. `Stop At XP Level` waits until the player reaches a target level, then releases held actions or stops the macro.
+`Auto Enchant` clicks option 1, 2, or 3 in an open enchanting table when the item, lapis, and XP level are ready. `Open Nearest Grindstone` finds and opens a nearby grindstone, and `Auto Grindstone` can remove enchants or repair matching items by loading the configured inventory items and taking the result. `Stop At XP Level` waits until the player reaches a target level, then releases held actions or stops the macro.
 
 `Mine Area` mines inside the box between two XYZ points. Set `From X Y Z` in the first field and `To X Y Z / tool low / move` in the second field, for example `10 64 10` and `25 79 25 tool=10 move=true`. With `move=true`, it walks toward blocks in the selected area before mining. With `move=false`, it sends `failed` when the next block is out of reach. The `tool_low` output runs when the held tool has that many durability points left. For safety, each side of the mine box is capped at 16 blocks, so larger mines must be split into multiple Mine Area components.
 
@@ -165,7 +165,7 @@ Build info:
 
 ```text
 Name: Litemacro
-Version: 1.0.59
+Version: 1.0.60
 Built for: letgio
 Build date: 2026-05-09
 Minecraft compatibility: 26.1.x
