@@ -82,6 +82,7 @@ import net.minecraft.world.scores.Scoreboard;
 
 final class MacroRunner {
    private static final int PLAYER_INVENTORY_SLOT_COUNT = 36;
+   private static final int OUTSIDE_CONTAINER_SLOT = -999;
    private static final int SCREEN_TIMEOUT_TICKS = 100;
    private static final int CLOSE_SETTLE_TICKS = 4;
    private static final int BOW_DRAW_TICKS = 25;
@@ -117,6 +118,8 @@ final class MacroRunner {
    private int activeTicks;
    private boolean activeEnchantClicked;
    private int activeEnchantClickTick;
+   private boolean activeGrindstoneResultClicked;
+   private int activeGrindstoneResultClickTick;
    private int stepDelayTicksRemaining;
    private String lastStatus = "Stopped";
    private float lastHealth = Float.NaN;
@@ -2140,6 +2143,11 @@ final class MacroRunner {
    }
 
    private void runAutoGrindstone(Minecraft client, MacroModel.Node node) {
+      if (this.activeTicks == 1) {
+         this.activeGrindstoneResultClicked = false;
+         this.activeGrindstoneResultClickTick = 0;
+      }
+
       AbstractContainerMenu handler = activeContainerHandler(client);
       if (!(handler instanceof GrindstoneMenu)) {
          this.fail(client, node, "Failed: Auto Grindstone needs an open Grindstone GUI.");
@@ -2179,19 +2187,54 @@ final class MacroRunner {
                this.lastStatus = "Auto Grindstone: waiting for result.";
             }
          } else {
-            if (this.activeTicks == 1) {
+            if (!this.activeGrindstoneResultClicked) {
                Slot result = handler.getSlot(2);
-               client.gameMode.handleInventoryMouseClick(
-                  handler.containerId, result.index, 0, options.shiftClick() ? ClickType.QUICK_MOVE : ClickType.PICKUP, client.player
-               );
-            }
+               if ("drop".equals(options.resultAction())) {
+                  client.gameMode.handleInventoryMouseClick(handler.containerId, result.index, 0, ClickType.PICKUP, client.player);
+                  client.gameMode.handleInventoryMouseClick(handler.containerId, OUTSIDE_CONTAINER_SLOT, 0, ClickType.PICKUP, client.player);
+                  this.lastStatus = "Auto Grindstone: dropping result.";
+               } else {
+                  ItemStack resultStack = result.getItem();
+                  if (!this.playerInventoryCanAccept(handler, firstPlayerInventorySlot(handler), resultStack)) {
+                     this.fail(client, node, "Failed: Auto Grindstone needs inventory space for the result or Result: Drop.");
+                     return;
+                  }
 
-            if (this.activeTicks >= CLOSE_SETTLE_TICKS) {
-               if (options.closeGui()) {
-                  client.player.closeContainer();
+                  client.gameMode.handleInventoryMouseClick(handler.containerId, result.index, 0, ClickType.QUICK_MOVE, client.player);
+                  this.lastStatus = "Auto Grindstone: moving result to inventory.";
                }
 
-               this.complete(client, node, "completed");
+               this.activeGrindstoneResultClicked = true;
+               this.activeGrindstoneResultClickTick = this.activeTicks;
+            }
+
+            if (this.activeGrindstoneResultClicked && this.activeTicks - this.activeGrindstoneResultClickTick >= CLOSE_SETTLE_TICKS) {
+               if (!handler.getCarried().isEmpty()) {
+                  if ("drop".equals(options.resultAction())) {
+                     client.gameMode.handleInventoryMouseClick(handler.containerId, OUTSIDE_CONTAINER_SLOT, 0, ClickType.PICKUP, client.player);
+                     this.lastStatus = "Auto Grindstone: clearing carried result.";
+                  } else if (this.moveCarriedToPlayerInventory(client, handler)) {
+                     this.lastStatus = "Auto Grindstone: putting carried result away.";
+                  } else {
+                     this.fail(client, node, "Failed: Auto Grindstone could not put the carried result away.");
+                  }
+               } else if (containerSlotHasItem(handler, 2)) {
+                  if (this.activeTicks > SCREEN_TIMEOUT_TICKS) {
+                     this.fail(client, node, "Failed: Auto Grindstone result did not move.");
+                  } else {
+                     if (this.activeTicks - this.activeGrindstoneResultClickTick >= 10) {
+                        this.activeGrindstoneResultClicked = false;
+                     }
+
+                     this.lastStatus = "Auto Grindstone: waiting for result to move.";
+                  }
+               } else {
+                  if (options.closeGui()) {
+                     client.player.closeContainer();
+                  }
+
+                  this.complete(client, node, "completed");
+               }
             }
          }
       }
@@ -4760,6 +4803,25 @@ final class MacroRunner {
       }
    }
 
+   private boolean moveCarriedToPlayerInventory(Minecraft client, AbstractContainerMenu handler) {
+      if (client.gameMode == null || client.player == null || handler == null) {
+         return false;
+      }
+
+      ItemStack carried = handler.getCarried();
+      if (carried.isEmpty()) {
+         return true;
+      }
+
+      int targetSlotIndex = this.firstAcceptingSlotIndex(handler, firstPlayerInventorySlot(handler), handler.slots.size(), carried);
+      if (targetSlotIndex < 0) {
+         return false;
+      }
+
+      client.gameMode.handleInventoryMouseClick(handler.containerId, targetSlotIndex, 0, ClickType.PICKUP, client.player);
+      return true;
+   }
+
    private int firstAcceptingSlotIndex(AbstractContainerMenu handler, int start, int end, ItemStack stack) {
       for (int index = Math.max(0, start); index < Math.min(end, handler.slots.size()); index++) {
          Slot slot = (Slot)handler.slots.get(index);
@@ -5626,7 +5688,7 @@ final class MacroRunner {
          Boolean legacyClose = parseBooleanOrDefault(node.value2, false);
          return legacyClose == null
             ? null
-            : new MacroRunner.AutoGrindstoneOptions(false, "held", "same", legacyShiftClick, legacyClose);
+            : new MacroRunner.AutoGrindstoneOptions(false, "held", "same", "inventory", legacyClose);
       } else {
          String mode = grindstoneMode(node.value);
          if (mode == null) {
@@ -5634,15 +5696,24 @@ final class MacroRunner {
          } else {
             String inputSelector = cleanGrindstoneInputSelector(node.value2, "held", false);
             String repairSelector = cleanGrindstoneInputSelector(node.value3, "same", true);
-            Boolean shiftClick = parseBooleanOrDefault(node.value4, true);
+            String resultAction = grindstoneResultAction(node.value4);
             Boolean closeGui = parseBooleanOrDefault(node.value5, false);
-            if (inputSelector == null || repairSelector == null || shiftClick == null || closeGui == null) {
+            if (inputSelector == null || repairSelector == null || resultAction == null || closeGui == null) {
                return null;
             }
 
-            return new MacroRunner.AutoGrindstoneOptions("repair".equals(mode), inputSelector, repairSelector, shiftClick, closeGui);
+            return new MacroRunner.AutoGrindstoneOptions("repair".equals(mode), inputSelector, repairSelector, resultAction, closeGui);
          }
       }
+   }
+
+   private static String grindstoneResultAction(String value) {
+      String normalized = value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
+      return switch (normalized) {
+         case "", "true", "false", "on", "off", "yes", "no", "shift", "shift_click", "quick_move", "inventory", "inv", "keep", "back", "move_back", "pickup", "cursor", "hold" -> "inventory";
+         case "drop", "throw", "toss" -> "drop";
+         default -> null;
+      };
    }
 
    private static String grindstoneMode(String value) {
@@ -6276,7 +6347,7 @@ final class MacroRunner {
    private record AutoEnchantOptions(int option, int minimumLevel, String itemSelector, String lapisItem, boolean autoLoad, boolean closeGui) {
    }
 
-   private record AutoGrindstoneOptions(boolean repair, String inputSelector, String repairSelector, boolean shiftClick, boolean closeGui) {
+   private record AutoGrindstoneOptions(boolean repair, String inputSelector, String repairSelector, String resultAction, boolean closeGui) {
    }
 
    private record BoneMealOptions(boolean refill, int radius, BlockPos target) {

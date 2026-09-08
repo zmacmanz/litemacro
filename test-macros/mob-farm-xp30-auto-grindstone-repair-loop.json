@@ -102,7 +102,7 @@
       "value": "repair",
       "value2": "held",
       "value3": "same",
-      "value4": "true",
+      "value4": "inventory",
       "value5": "true",
       "delayMs": -1,
       "enabled": true,

@@ -189,7 +189,7 @@ Open Nearest Grindstone
 Auto Grindstone
   Mode: Remove Enchants
   Input item: held
-  Shift: On
+  Result: Inv
   Close: On
   completed -> Repeat Macro
 ```

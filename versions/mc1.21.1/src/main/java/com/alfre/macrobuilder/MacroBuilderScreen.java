@@ -348,7 +348,7 @@ final class MacroBuilderScreen extends Screen {
             .build()
       );
       this.autoGrindstoneShiftButton = (Button)this.addRenderableWidget(
-         Button.builder(Component.literal("Shift: On"), button -> this.toggleAutoGrindstoneShift())
+         Button.builder(Component.literal("Result: Inv"), button -> this.toggleAutoGrindstoneShift())
             .bounds(rightX + 14, RIGHT_GRINDSTONE_TOGGLE_Y, splitButtonWidth, 20)
             .build()
       );
@@ -1090,7 +1090,7 @@ final class MacroBuilderScreen extends Screen {
          this.autoGrindstonePickRepairButton.active = autoGrindstoneRepair;
          this.autoGrindstoneShiftButton.visible = autoGrindstoneNode;
          this.autoGrindstoneShiftButton.active = autoGrindstoneNode;
-         this.autoGrindstoneShiftButton.setMessage(Component.literal(this.autoGrindstoneShiftEnabled(this.selectedNode) ? "Shift: On" : "Shift: Off"));
+         this.autoGrindstoneShiftButton.setMessage(Component.literal("drop".equals(this.autoGrindstoneResultAction(this.selectedNode)) ? "Result: Drop" : "Result: Inv"));
          this.autoGrindstoneCloseButton.visible = autoGrindstoneNode;
          this.autoGrindstoneCloseButton.active = autoGrindstoneNode;
          this.autoGrindstoneCloseButton.setMessage(Component.literal(this.autoGrindstoneCloseEnabled(this.selectedNode) ? "Close: On" : "Close: Off"));
@@ -1328,7 +1328,7 @@ final class MacroBuilderScreen extends Screen {
 
    private void toggleAutoGrindstoneShift() {
       if (this.isAutoGrindstoneNode(this.selectedNode)) {
-         this.selectedNode.value4 = Boolean.toString(!this.autoGrindstoneShiftEnabled(this.selectedNode));
+         this.selectedNode.value4 = "drop".equals(this.autoGrindstoneResultAction(this.selectedNode)) ? "inventory" : "drop";
          this.refreshProperties();
       }
    }
@@ -1480,8 +1480,8 @@ final class MacroBuilderScreen extends Screen {
       return "repair".equals(this.cleanAutoGrindstoneMode(node == null ? "" : node.value));
    }
 
-   private boolean autoGrindstoneShiftEnabled(MacroModel.Node node) {
-      return node == null || node.value4 == null || node.value4.isBlank() || this.isTruthyText(node.value4);
+   private String autoGrindstoneResultAction(MacroModel.Node node) {
+      return this.cleanAutoGrindstoneResultAction(node == null ? "" : node.value4);
    }
 
    private boolean autoGrindstoneCloseEnabled(MacroModel.Node node) {
@@ -1516,6 +1516,14 @@ final class MacroBuilderScreen extends Screen {
       }
 
       return MacroModel.normalizeItemId(text);
+   }
+
+   private String cleanAutoGrindstoneResultAction(String value) {
+      String normalized = value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
+      return switch (normalized) {
+         case "drop", "throw", "toss" -> "drop";
+         default -> "inventory";
+      };
    }
 
    private boolean autoGrindstoneSpecialSelector(String value, boolean allowSame) {
@@ -1633,9 +1641,7 @@ final class MacroBuilderScreen extends Screen {
       node.value = this.cleanAutoGrindstoneMode(node.value);
       node.value2 = this.cleanAutoGrindstoneSelector(node.value2, "held", false);
       node.value3 = this.cleanAutoGrindstoneSelector(node.value3, "same", true);
-      if (node.value4 == null || node.value4.isBlank() || !this.isExplicitBooleanText(node.value4)) {
-         node.value4 = "true";
-      }
+      node.value4 = this.cleanAutoGrindstoneResultAction(node.value4);
 
       if (node.value5 == null || node.value5.isBlank() || !this.isExplicitBooleanText(node.value5)) {
          node.value5 = "false";
@@ -3402,6 +3408,10 @@ final class MacroBuilderScreen extends Screen {
       } else if ("builder:inventory.autoGrindstone".equals(node.type)) {
          this.normalizeAutoGrindstoneNode(node);
          String text = this.autoGrindstoneRepairMode(node) ? "repair " + this.autoGrindstoneInputText(node) + " + " + this.autoGrindstoneRepairText(node) : "remove enchants / " + this.autoGrindstoneInputText(node);
+         if ("drop".equals(this.autoGrindstoneResultAction(node))) {
+            text += " / drop";
+         }
+
          if (this.autoGrindstoneCloseEnabled(node)) {
             text += " / close";
          }

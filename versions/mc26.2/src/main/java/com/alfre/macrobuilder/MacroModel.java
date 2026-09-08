@@ -1392,7 +1392,7 @@ final class MacroModel {
       if ("builder:inventory.autoEnchant".equals(type)) {
          return "minecraft:lapis_lazuli";
       } else if ("builder:inventory.autoGrindstone".equals(type)) {
-         return "true";
+         return "inventory";
       } else {
          return "official:inventory.chestDepositItems".equals(type) || "official:inventory.dropItems".equals(type) ? "false" : "";
       }

@@ -206,7 +206,8 @@ Use Open Nearest Grindstone first if you want the macro to open the GUI.
 Mode button: Remove Enchants or Repair
 Input item: held, selected, any, or an item ID
 Repair item: same, held, any, or an item ID
-Shift: On takes the result with shift-click
+Result: Inv moves the output back into inventory
+Result: Drop throws the output out instead
 Close: On closes the grindstone after taking the result
 ```
 
