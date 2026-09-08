@@ -76,6 +76,7 @@ final class MacroModel {
    static final String WORLD_JUMP_AND_PLACE_BLOCK = "official:world.jumpAndPlaceBlock";
    static final String WORLD_FARM_AREA = "builder:world.farmArea";
    static final String WORLD_OPEN_NEAREST_CONTAINER = "builder:world.openNearestContainer";
+   static final String WORLD_OPEN_NEAREST_ENCHANTING_TABLE = "builder:world.openNearestEnchantingTable";
    static final String WORLD_AUTO_BONE_MEAL = "builder:world.autoBoneMeal";
    static final String WORLD_BLOCK_IS = "builder:world.blockIs";
    static final String LOOKING_AT_BLOCK = "builder:world.lookingAtBlock";
@@ -250,7 +251,15 @@ final class MacroModel {
          "minecraft:bone_block"
       ),
       new MacroModel.Descriptor(
-         "builder:inventory.autoEnchant", "Auto Enchant", "Inventory", -3040666, COMPLETED_OR_FAILED, true, "Option 1-3", "Min XP level", "3"
+         "builder:inventory.autoEnchant",
+         "Auto Enchant",
+         "Inventory",
+         -3040666,
+         COMPLETED_OR_FAILED,
+         true,
+         "Option 1-3",
+         "Min XP / item/lapis/close",
+         "3"
       ),
       new MacroModel.Descriptor(
          "builder:inventory.autoGrindstone",
@@ -289,6 +298,17 @@ final class MacroModel {
       ),
       new MacroModel.Descriptor(
          "builder:world.openNearestContainer", "Open Nearest Container", "World", -11094334, COMPLETED_OR_FAILED, true, "Radius 1-16", "Move/type", "8"
+      ),
+      new MacroModel.Descriptor(
+         "builder:world.openNearestEnchantingTable",
+         "Open Nearest Enchanting Table",
+         "World",
+         -11094334,
+         COMPLETED_OR_FAILED,
+         true,
+         "Radius 1-16",
+         "Move true/false",
+         "8"
       ),
       new MacroModel.Descriptor(
          "builder:world.autoBoneMeal", "Auto Bone Meal", "World", -11094334, COMPLETED_OR_FAILED, true, "Item id", "Options", "minecraft:bone_meal"
@@ -902,7 +922,7 @@ final class MacroModel {
          case "official:inventory.hasOpenContainer" -> "True when a GUI or chest is open";
          case "official:inventory.isOpenContainerFull" -> "True when open GUI has no empty slots";
          case "builder:inventory.openContainerHasItem" -> "Checks for an item in open GUI";
-         case "builder:inventory.autoEnchant" -> "Clicks an enchanting table option when item, lapis, and XP are ready";
+         case "builder:inventory.autoEnchant" -> "Loads item/lapis when possible and clicks an enchanting table option";
          case "builder:inventory.autoGrindstone" -> "Takes the grindstone result from the open GUI";
          case "official:inventory.openInventory" -> "Opens the player inventory";
          case "official:inventory.closeOpenContainer" -> "Closes the current GUI or chest";
@@ -915,6 +935,7 @@ final class MacroModel {
          case "official:world.jumpAndPlaceBlock" -> "Jumps and places below player";
          case "builder:world.farmArea" -> "Harvests crops between two XYZ points and can move";
          case "builder:world.openNearestContainer" -> "Finds and opens a selected container type";
+         case "builder:world.openNearestEnchantingTable" -> "Finds and opens the nearest enchanting table";
          case "builder:world.autoBoneMeal" -> "Uses bone meal and can refill from nearby containers";
          case "builder:world.blockIs" -> "Checks block id at coordinates";
          case "builder:world.lookingAtBlock" -> "Checks the block you are looking at";
@@ -1433,7 +1454,7 @@ final class MacroModel {
          } else if ("builder:inventory.itemDurability".equals(this.type)) {
             return "lower 20";
          } else if ("builder:inventory.autoEnchant".equals(this.type)) {
-            return "1";
+            return "30 item=held lapis=minecraft:lapis_lazuli close=true";
          } else if ("builder:inventory.autoGrindstone".equals(this.type)) {
             return "false";
          } else if ("official:inventory.hotbarSelect".equals(this.type) || "official:inventory.hotbarUse".equals(this.type)) {
@@ -1460,6 +1481,8 @@ final class MacroModel {
             return "0 64 0 replant deposit move=true";
          } else if ("builder:world.openNearestContainer".equals(this.type)) {
             return "move=true type=chest";
+         } else if ("builder:world.openNearestEnchantingTable".equals(this.type)) {
+            return "move=true";
          } else if ("builder:world.autoBoneMeal".equals(this.type)) {
             return "refill radius=8";
          } else if ("builder:world.blockIs".equals(this.type)) {

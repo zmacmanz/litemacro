@@ -1,0 +1,178 @@
+{
+  "format": "litemacro-v1",
+  "name": "Mob Farm XP 30 Enchant Loop",
+  "stepDelayMs": 0,
+  "alwaysOn": false,
+  "autoStartMode": "off",
+  "autoStartFilter": "",
+  "randomDelayEnabled": false,
+  "randomDelayMinMs": 250,
+  "randomDelayMaxMs": 1250,
+  "nextIndex": 11,
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "official:start",
+      "x": 70,
+      "y": 220,
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "started": "node-2"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "builder:player.xpLevelAtLeast",
+      "x": 300,
+      "y": 220,
+      "value": "30",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "node-5",
+        "false": "node-3",
+        "failed": "node-9"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "builder:player.autoClick",
+      "x": 545,
+      "y": 335,
+      "value": "left",
+      "value2": "count=10 cps=8",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-4",
+        "failed": "node-9"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "official:misc.wait",
+      "x": 780,
+      "y": 335,
+      "value": "250",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-2"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "builder:world.openNearestEnchantingTable",
+      "x": 545,
+      "y": 95,
+      "value": "8",
+      "value2": "move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-6",
+        "failed": "node-9"
+      }
+    },
+    {
+      "id": "node-6",
+      "type": "builder:inventory.autoEnchant",
+      "x": 830,
+      "y": 95,
+      "value": "3",
+      "value2": "30 item=held lapis=minecraft:lapis_lazuli close=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-7",
+        "failed": "node-9"
+      }
+    },
+    {
+      "id": "node-7",
+      "type": "builder:localMessage",
+      "x": 1115,
+      "y": 95,
+      "value": "Enchanted at XP 30. Back to grinding.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-4"
+      }
+    },
+    {
+      "id": "node-8",
+      "type": "builder:flow.note",
+      "x": 70,
+      "y": 420,
+      "value": "Mob farm XP 30 enchant loop setup:\n\nStand where your clicks hit the mobs.\nHold the item you want to enchant, or change Auto Enchant to item=minecraft:diamond_sword / item=minecraft:book / item=any.\nKeep lapis in your inventory.\nPlace an enchanting table within 8 blocks.\n\nUnder level 30: Auto Click keeps grinding.\nAt level 30: the macro opens the nearest enchanting table, loads the held item and lapis, clicks option 3, closes the GUI, then returns to grinding.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "stickyNoteText": "Mob farm XP 30 enchant loop setup:\n\nStand where your clicks hit the mobs.\nHold the item you want to enchant, or change Auto Enchant to item=minecraft:diamond_sword / item=minecraft:book / item=any.\nKeep lapis in your inventory.\nPlace an enchanting table within 8 blocks.\n\nUnder level 30: Auto Click keeps grinding.\nAt level 30: the macro opens the nearest enchanting table, loads the held item and lapis, clicks option 3, closes the GUI, then returns to grinding.",
+      "stickyNoteWidth": 500,
+      "stickyNoteHeight": 210,
+      "outputs": {}
+    },
+    {
+      "id": "node-9",
+      "type": "builder:localMessage",
+      "x": 1115,
+      "y": 300,
+      "value": "XP 30 enchant loop needs: mobs in click reach, XP data, held enchantable item, lapis, and an enchanting table within 8 blocks.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-10"
+      }
+    },
+    {
+      "id": "node-10",
+      "type": "builder:flow.endConnection",
+      "x": 1430,
+      "y": 300,
+      "value": "end branch",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    }
+  ]
+}

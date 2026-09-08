@@ -116,6 +116,8 @@ final class MacroRunner {
    private String currentNodeId;
    private String activeNodeId;
    private int activeTicks;
+   private boolean activeEnchantClicked;
+   private int activeEnchantClickTick;
    private int stepDelayTicksRemaining;
    private String lastStatus = "Stopped";
    private float lastHealth = Float.NaN;
@@ -1203,6 +1205,9 @@ final class MacroRunner {
                         case "builder:world.openNearestContainer":
                            this.runOpenNearestContainer(client, node);
                            break;
+                        case "builder:world.openNearestEnchantingTable":
+                           this.runOpenNearestEnchantingTable(client, node);
+                           break;
                         case "builder:world.autoBoneMeal":
                            this.runAutoBoneMeal(client, node);
                            break;
@@ -1539,6 +1544,7 @@ final class MacroRunner {
             "official:world.jumpAndPlaceBlock",
             "builder:world.farmArea",
             "builder:world.openNearestContainer",
+            "builder:world.openNearestEnchantingTable",
             "builder:world.autoBoneMeal",
             "builder:world.mineArea",
             "official:entity.attack",
@@ -2070,34 +2076,60 @@ final class MacroRunner {
       } else if (client.gameMode == null || client.player == null || client.player.connection == null) {
          this.fail(client, node, "Failed: Auto Enchant cannot use the current game mode.");
       } else {
-         Integer option = parseEnchantOption(node.value);
-         Integer minimumLevel = parseIntOrNull(node.value2);
-         if (option == null) {
-            this.fail(client, node, "Failed: Auto Enchant option must be 1, 2, or 3.");
-         } else if (minimumLevel == null || minimumLevel < 0) {
-            this.fail(client, node, "Failed: Auto Enchant minimum level must be 0 or higher.");
-         } else if (!containerSlotHasItem(handler, 0)) {
-            this.fail(client, node, "Failed: Auto Enchant needs an item in the enchanting slot.");
+         if (this.activeTicks == 1) {
+            this.activeEnchantClicked = false;
+            this.activeEnchantClickTick = 0;
+         }
+
+         MacroRunner.AutoEnchantOptions options = autoEnchantOptions(node);
+         if (options == null) {
+            this.fail(client, node, "Failed: Auto Enchant needs option 1-3 and XP level 0 or higher.");
          } else {
-            int buttonId = option - 1;
+            int buttonId = options.option() - 1;
             int cost = menu.costs[buttonId];
             int lapisCost = buttonId + 1;
             boolean creative = client.player.getAbilities().instabuild;
-            if (cost <= 0) {
-               this.fail(client, node, "Failed: Auto Enchant option " + option + " is not available.");
+            if (options.autoLoad() && !containerSlotHasItem(handler, 0)) {
+               if (this.moveEnchantingInputToTable(client, handler, options.itemSelector())) {
+                  this.lastStatus = "Auto Enchant: loaded item.";
+               } else {
+                  this.fail(client, node, "Failed: Auto Enchant needs an enchantable item in inventory or item=held.");
+               }
+            } else if (options.autoLoad() && !creative && !containerSlotHasAtLeast(handler, 1, lapisCost)) {
+               if (this.moveItemToMenuSlot(client, handler, options.lapisItem(), 1)) {
+                  this.lastStatus = "Auto Enchant: loaded lapis.";
+               } else {
+                  this.fail(client, node, "Failed: Auto Enchant needs " + options.lapisItem() + " in inventory.");
+               }
+            } else if (!containerSlotHasItem(handler, 0)) {
+               this.fail(client, node, "Failed: Auto Enchant needs an item in the enchanting slot.");
+            } else if (!creative && !containerSlotHasAtLeast(handler, 1, lapisCost)) {
+               this.fail(client, node, "Failed: Auto Enchant option " + options.option() + " needs " + lapisCost + " lapis.");
+            } else if (cost <= 0) {
+               if (this.activeTicks > SCREEN_TIMEOUT_TICKS) {
+                  this.fail(client, node, "Failed: Auto Enchant option " + options.option() + " is not available.");
+               } else {
+                  this.lastStatus = "Auto Enchant: waiting for option " + options.option() + ".";
+               }
             } else if (!creative && menu.getGoldCount() < lapisCost) {
-               this.fail(client, node, "Failed: Auto Enchant option " + option + " needs " + lapisCost + " lapis.");
-            } else if (!creative && client.player.experienceLevel < Math.max(cost, minimumLevel)) {
-               this.fail(client, node, "Failed: Auto Enchant needs XP level " + Math.max(cost, minimumLevel) + ".");
+               this.fail(client, node, "Failed: Auto Enchant option " + options.option() + " needs " + lapisCost + " lapis.");
+            } else if (!creative && client.player.experienceLevel < Math.max(cost, options.minimumLevel())) {
+               this.fail(client, node, "Failed: Auto Enchant needs XP level " + Math.max(cost, options.minimumLevel()) + ".");
             } else {
-               if (this.activeTicks == 1) {
+               if (!this.activeEnchantClicked) {
                   client.player.connection.send(new ServerboundContainerButtonClickPacket(handler.containerId, buttonId));
+                  this.activeEnchantClicked = true;
+                  this.activeEnchantClickTick = this.activeTicks;
                }
 
-               if (this.activeTicks >= CLOSE_SETTLE_TICKS) {
+               if (this.activeEnchantClicked && this.activeTicks - this.activeEnchantClickTick >= CLOSE_SETTLE_TICKS) {
+                  if (options.closeGui()) {
+                     client.player.closeContainer();
+                  }
+
                   this.complete(client, node, "completed");
                } else {
-                  this.lastStatus = "Auto Enchant: option " + option + ".";
+                  this.lastStatus = "Auto Enchant: option " + options.option() + ".";
                }
             }
          }
@@ -2448,6 +2480,43 @@ final class MacroRunner {
             }
          } else {
             this.fail(client, node, "Failed: no nearby " + options.type() + " container was found.");
+         }
+      }
+   }
+
+   private void runOpenNearestEnchantingTable(Minecraft client, MacroModel.Node node) {
+      MacroRunner.ContainerSearchOptions options = this.containerSearchOptions(node.value, node.value2);
+      if (options == null) {
+         this.fail(client, node, "Failed: Open Nearest Enchanting Table needs radius 1-16 and move true/false.");
+      } else if (activeContainerHandler(client) instanceof EnchantmentMenu) {
+         this.releaseMovementKeys(client);
+         this.complete(client, node, "completed");
+      } else if (activeContainerHandler(client) != null) {
+         this.fail(client, node, "Failed: close the current GUI before opening an enchanting table.");
+      } else {
+         BlockPos table = this.nearestBlockWithId(client, options.radius(), "minecraft:enchanting_table");
+         if (table != null && client.gameMode != null) {
+            this.lookAt(client, Vec3.atCenterOf(table));
+            if (canReachBlock(client, table)) {
+               this.releaseMovementKeys(client);
+               if (this.activeTicks % 5 == 1) {
+                  this.openBlockAt(client, table);
+               }
+
+               if (this.activeTicks > 300) {
+                  this.fail(client, node, "Failed: nearest enchanting table did not open.");
+               }
+            } else if (!options.move()) {
+               this.fail(client, node, "Failed: nearest enchanting table is out of reach.");
+            } else {
+               this.moveTowardBlock(client, table);
+               if (this.activeTicks > 300) {
+                  this.releaseMovementKeys(client);
+                  this.fail(client, node, "Failed: nearest enchanting table stayed out of reach.");
+               }
+            }
+         } else {
+            this.fail(client, node, "Failed: no nearby enchanting table was found.");
          }
       }
    }
@@ -4305,6 +4374,25 @@ final class MacroRunner {
       return nearest;
    }
 
+   private BlockPos nearestBlockWithId(Minecraft client, int radius, String targetBlockId) {
+      BlockPos center = client.player.blockPosition();
+      BlockPos nearest = null;
+      double nearestDistance = Double.MAX_VALUE;
+
+      for (BlockPos mutable : BlockPos.betweenClosed(center.offset(-radius, -2, -radius), center.offset(radius, 2, radius))) {
+         BlockPos pos = mutable.immutable();
+         if (client.level.isLoaded(pos) && blockId(client.level.getBlockState(pos)).equals(targetBlockId)) {
+            double distance = client.player.distanceToSqr(Vec3.atCenterOf(pos));
+            if (distance < nearestDistance) {
+               nearestDistance = distance;
+               nearest = pos;
+            }
+         }
+      }
+
+      return nearest;
+   }
+
    private static boolean isContainerBlock(BlockState state) {
       return isContainerBlock(state, "any");
    }
@@ -4475,6 +4563,71 @@ final class MacroRunner {
 
    private static boolean containerSlotHasItem(AbstractContainerMenu handler, int slotIndex) {
       return handler != null && slotIndex >= 0 && slotIndex < handler.slots.size() && !handler.getSlot(slotIndex).getItem().isEmpty();
+   }
+
+   private static boolean containerSlotHasAtLeast(AbstractContainerMenu handler, int slotIndex, int count) {
+      return handler != null
+         && slotIndex >= 0
+         && slotIndex < handler.slots.size()
+         && !handler.getSlot(slotIndex).getItem().isEmpty()
+         && handler.getSlot(slotIndex).getItem().getCount() >= count;
+   }
+
+   private boolean moveEnchantingInputToTable(Minecraft client, AbstractContainerMenu handler, String selector) {
+      int sourceSlotIndex = this.firstEnchantingInputMenuSlot(client, handler, selector);
+      return sourceSlotIndex >= 0 && this.pickupMoveStack(client, handler, sourceSlotIndex, 0, 1, handler.getSlot(sourceSlotIndex).getItem());
+   }
+
+   private boolean moveItemToMenuSlot(Minecraft client, AbstractContainerMenu handler, String itemId, int targetSlotIndex) {
+      int sourceSlotIndex = this.firstMatchingPlayerMenuSlot(handler, itemId);
+      return sourceSlotIndex >= 0
+         && this.pickupMoveStack(client, handler, sourceSlotIndex, targetSlotIndex, targetSlotIndex + 1, handler.getSlot(sourceSlotIndex).getItem());
+   }
+
+   private int firstEnchantingInputMenuSlot(Minecraft client, AbstractContainerMenu handler, String selector) {
+      if (client.player == null || handler.slots.isEmpty()) {
+         return -1;
+      } else {
+         String normalizedSelector = selector == null ? "" : selector.trim().toLowerCase(Locale.ROOT);
+         boolean anyItem = normalizedSelector.isBlank() || normalizedSelector.equals("any") || normalizedSelector.equals("all") || normalizedSelector.equals("auto");
+         boolean heldItem = normalizedSelector.equals("held") || normalizedSelector.equals("hand") || normalizedSelector.equals("mainhand") || normalizedSelector.equals("main_hand");
+         String itemId = anyItem || heldItem ? "" : MacroModel.normalizeItemId(normalizedSelector);
+         if (!itemId.isBlank() && !isKnownItemId(itemId)) {
+            return -1;
+         } else {
+            ItemStack heldStack = client.player.getMainHandItem();
+            Slot targetSlot = handler.getSlot(0);
+            int firstPlayerSlot = firstPlayerInventorySlot(handler);
+
+            for (int index = firstPlayerSlot; index < handler.slots.size(); index++) {
+               ItemStack stack = handler.getSlot(index).getItem();
+               if (!stack.isEmpty() && targetSlot.mayPlace(stack)) {
+                  if (anyItem || heldItem && !heldStack.isEmpty() && ItemStack.isSameItemSameComponents(stack, heldStack) || !itemId.isBlank() && stackMatches(stack, itemId)) {
+                     return index;
+                  }
+               }
+            }
+
+            return -1;
+         }
+      }
+   }
+
+   private int firstMatchingPlayerMenuSlot(AbstractContainerMenu handler, String itemId) {
+      if (!isKnownItemId(itemId)) {
+         return -1;
+      } else {
+         int firstPlayerSlot = firstPlayerInventorySlot(handler);
+
+         for (int index = firstPlayerSlot; index < handler.slots.size(); index++) {
+            ItemStack stack = handler.getSlot(index).getItem();
+            if (!stack.isEmpty() && stackMatches(stack, itemId)) {
+               return index;
+            }
+         }
+
+         return -1;
+      }
    }
 
    private boolean pickupMoveStack(Minecraft client, AbstractContainerMenu handler, int sourceSlotIndex, int targetStart, int targetEnd, ItemStack stack) {
@@ -5312,6 +5465,64 @@ final class MacroRunner {
       return option != null && option >= 1 && option <= 3 ? option : null;
    }
 
+   private static MacroRunner.AutoEnchantOptions autoEnchantOptions(MacroModel.Node node) {
+      Integer option = parseEnchantOption(node.value);
+      if (option == null) {
+         return null;
+      } else {
+         String options = node.value2 == null ? "" : node.value2.trim();
+         Integer minimumLevel = leadingInteger(options);
+         if (minimumLevel == null) {
+            minimumLevel = optionInt(options, "level=", optionInt(options, "min=", optionInt(options, "xp=", 1)));
+         }
+
+         if (minimumLevel < 0) {
+            return null;
+         } else {
+            String itemSelector = optionString(options, "item=", "held").trim();
+            String lapisItem = MacroModel.normalizeItemId(optionString(options, "lapis=", "minecraft:lapis_lazuli"));
+            String normalizedOptions = options.toLowerCase(Locale.ROOT);
+            boolean autoLoad = optionBoolean(options, "load=", true)
+               && !normalizedOptions.contains("manual")
+               && !normalizedOptions.contains("no_load")
+               && !normalizedOptions.contains("noload");
+            boolean closeGui = optionBoolean(options, "close=", false);
+            if (!isKnownItemId(lapisItem)) {
+               return null;
+            } else if (enchantItemSelectorIsSpecial(itemSelector)) {
+               return new MacroRunner.AutoEnchantOptions(option, minimumLevel, itemSelector, lapisItem, autoLoad, closeGui);
+            } else {
+               String itemId = MacroModel.normalizeItemId(itemSelector);
+               return isKnownItemId(itemId) ? new MacroRunner.AutoEnchantOptions(option, minimumLevel, itemId, lapisItem, autoLoad, closeGui) : null;
+            }
+         }
+      }
+   }
+
+   private static boolean enchantItemSelectorIsSpecial(String selector) {
+      String normalized = selector == null ? "" : selector.trim().toLowerCase(Locale.ROOT);
+      return normalized.isBlank()
+         || normalized.equals("held")
+         || normalized.equals("hand")
+         || normalized.equals("mainhand")
+         || normalized.equals("main_hand")
+         || normalized.equals("any")
+         || normalized.equals("all")
+         || normalized.equals("auto");
+   }
+
+   private static Integer leadingInteger(String value) {
+      if (value != null && !value.isBlank()) {
+         for (String token : value.split("[,\\s]+")) {
+            if (!token.isBlank()) {
+               return parseIntOrNull(token);
+            }
+         }
+      }
+
+      return null;
+   }
+
    private static boolean shouldStopMacroAtXpLevel(String value) {
       String normalized = value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
       return normalized.equals("stop") || normalized.equals("macro") || normalized.equals("stop macro");
@@ -5742,6 +5953,19 @@ final class MacroRunner {
       }
    }
 
+   private static String optionString(String options, String prefix, String fallback) {
+      if (options != null && !options.isBlank()) {
+         for (String token : options.split("[,\\s]+")) {
+            String normalized = token.trim().toLowerCase(Locale.ROOT);
+            if (normalized.startsWith(prefix)) {
+               return token.substring(prefix.length());
+            }
+         }
+      }
+
+      return fallback;
+   }
+
    private static boolean moveOption(String options, boolean fallback) {
       boolean prefixed = optionBoolean(options, "move=", fallback);
       if (prefixed == fallback && options != null && !options.isBlank()) {
@@ -5845,6 +6069,9 @@ final class MacroRunner {
    }
 
    private record AutoClickOptions(boolean hold, int count, int durationMs, int intervalMs) {
+   }
+
+   private record AutoEnchantOptions(int option, int minimumLevel, String itemSelector, String lapisItem, boolean autoLoad, boolean closeGui) {
    }
 
    private record BoneMealOptions(boolean refill, int radius, BlockPos target) {
