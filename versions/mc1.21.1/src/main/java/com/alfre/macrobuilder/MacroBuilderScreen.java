@@ -47,24 +47,26 @@ final class MacroBuilderScreen extends Screen {
    private static final int PALETTE_GROUP_HEIGHT = 22;
    private static final int PALETTE_ITEM_HEIGHT = 34;
    private static final int ITEM_PICKER_CELL = 26;
-   private static final int RIGHT_STATUS_Y = 48;
-   private static final int RIGHT_COMPONENT_Y = 110;
-   private static final int RIGHT_NODE_DELAY_LABEL_Y = 164;
-   private static final int RIGHT_NODE_DELAY_FIELD_Y = 178;
-   private static final int RIGHT_PRIMARY_LABEL_Y = 224;
-   private static final int RIGHT_PRIMARY_FIELD_Y = 238;
-   private static final int RIGHT_PRIMARY_ITEM_Y = 264;
-   private static final int RIGHT_SECONDARY_LABEL_Y = 290;
-   private static final int RIGHT_SECONDARY_FIELD_Y = 304;
-   private static final int RIGHT_SECONDARY_ITEM_Y = 330;
-   private static final int RIGHT_MODE_Y = 354;
-   private static final int RIGHT_EXTRA_LABEL_Y = 400;
-   private static final int RIGHT_EXTRA_FIELD_Y = 414;
-   private static final int RIGHT_EXTRA_HINT_Y = 438;
-   private static final int RIGHT_CONNECTION_LABEL_Y = 454;
-   private static final int RIGHT_CONNECTION_BUTTON_Y = 472;
-   private static final int RIGHT_ACTION_BUTTON_Y = 500;
-   private static final int RIGHT_CONNECTION_LIST_Y = 526;
+   private static final int RIGHT_AUTO_BUTTON_Y = 48;
+   private static final int RIGHT_COMPONENT_Y = 80;
+   private static final int RIGHT_NODE_DELAY_LABEL_Y = 126;
+   private static final int RIGHT_NODE_DELAY_FIELD_Y = 140;
+   private static final int RIGHT_ENABLE_BUTTON_Y = 166;
+   private static final int RIGHT_PRIMARY_LABEL_Y = 192;
+   private static final int RIGHT_PRIMARY_FIELD_Y = 206;
+   private static final int RIGHT_PRIMARY_ITEM_Y = 232;
+   private static final int RIGHT_SECONDARY_LABEL_Y = 256;
+   private static final int RIGHT_SECONDARY_FIELD_Y = 270;
+   private static final int RIGHT_SECONDARY_ITEM_Y = 296;
+   private static final int RIGHT_MODE_Y = 320;
+   private static final int RIGHT_TOGGLE_ROW_Y = 342;
+   private static final int RIGHT_EXTRA_LABEL_Y = 366;
+   private static final int RIGHT_EXTRA_FIELD_Y = 380;
+   private static final int RIGHT_EXTRA_HINT_Y = 404;
+   private static final int RIGHT_CONNECTION_LABEL_Y = 424;
+   private static final int RIGHT_CONNECTION_BUTTON_Y = 442;
+   private static final int RIGHT_ACTION_BUTTON_Y = 470;
+   private static final int RIGHT_CONNECTION_LIST_Y = 496;
    private static final int MIN_LAYOUT_WIDTH = 960;
    private static final int MIN_LAYOUT_HEIGHT = 540;
    private static final int CONTEXT_MENU_WIDTH = 136;
@@ -233,66 +235,66 @@ final class MacroBuilderScreen extends Screen {
          Button.builder(Component.literal("Rand"), button -> this.openRandomDelaySettings()).bounds(this.globalDelayButtonX() + 40, TOP_BUTTON_Y, 42, TOP_BUTTON_HEIGHT).build()
       );
       this.autoSettingsButton = (Button)this.addRenderableWidget(
-          Button.builder(Component.literal("Auto: Off"), button -> this.openAutoSettings()).bounds(rightX + 14, 82, rightWidth, 20).build()
+          Button.builder(Component.literal("Auto: Off"), button -> this.openAutoSettings()).bounds(rightX + 14, RIGHT_AUTO_BUTTON_Y, rightWidth, 20).build()
       );
       this.enabledButton = (Button)this.addRenderableWidget(
-         Button.builder(Component.literal("Enabled: On"), button -> this.toggleSelectedEnabled()).bounds(rightX + 14, 202, rightWidth, 20).build()
+         Button.builder(Component.literal("Enabled: On"), button -> this.toggleSelectedEnabled()).bounds(rightX + 14, RIGHT_ENABLE_BUTTON_Y, rightWidth, 20).build()
       );
-      this.primaryField = new EditBox(this.font, rightX + 14, 238, rightWidth, 20, Component.empty());
+      this.primaryField = new EditBox(this.font, rightX + 14, RIGHT_PRIMARY_FIELD_Y, rightWidth, 20, Component.empty());
       this.primaryField.setMaxLength(2048);
       this.addRenderableWidget(this.primaryField);
-      this.secondaryField = new EditBox(this.font, rightX + 14, 304, rightWidth, 20, Component.empty());
+      this.secondaryField = new EditBox(this.font, rightX + 14, RIGHT_SECONDARY_FIELD_Y, rightWidth, 20, Component.empty());
       this.secondaryField.setMaxLength(2048);
       this.addRenderableWidget(this.secondaryField);
-      this.excludeSlotsField = new EditBox(this.font, rightX + 14, 414, rightWidth, 20, Component.empty());
+      this.excludeSlotsField = new EditBox(this.font, rightX + 14, RIGHT_EXTRA_FIELD_Y, rightWidth, 20, Component.empty());
       this.excludeSlotsField.setMaxLength(128);
       this.addRenderableWidget(this.excludeSlotsField);
-      this.nodeDelayField = new EditBox(this.font, rightX + 14, 178, rightWidth, 20, Component.empty());
+      this.nodeDelayField = new EditBox(this.font, rightX + 14, RIGHT_NODE_DELAY_FIELD_Y, rightWidth, 20, Component.empty());
       this.nodeDelayField.setMaxLength(8);
       this.addRenderableWidget(this.nodeDelayField);
       this.primaryItemButton = (Button)this.addRenderableWidget(
-         Button.builder(Component.literal("Pick Item"), button -> this.openItemPicker(false)).bounds(rightX + 14, 264, rightWidth, 20).build()
+         Button.builder(Component.literal("Pick Item"), button -> this.openItemPicker(false)).bounds(rightX + 14, RIGHT_PRIMARY_ITEM_Y, rightWidth, 20).build()
       );
       this.secondaryItemButton = (Button)this.addRenderableWidget(
-         Button.builder(Component.literal("Pick Item"), button -> this.openItemPicker(true)).bounds(rightX + 14, 330, rightWidth, 20).build()
+         Button.builder(Component.literal("Pick Item"), button -> this.openItemPicker(true)).bounds(rightX + 14, RIGHT_SECONDARY_ITEM_Y, rightWidth, 20).build()
       );
       this.modeButton = (Button)this.addRenderableWidget(
-         Button.builder(Component.literal("Toggle Mode"), button -> this.toggleDepositMode()).bounds(rightX + 14, 354, Math.max(78, (rightWidth - 8) / 2), 20).build()
+         Button.builder(Component.literal("Toggle Mode"), button -> this.toggleDepositMode()).bounds(rightX + 14, RIGHT_MODE_Y, Math.max(78, (rightWidth - 8) / 2), 20).build()
       );
       this.shiftClickButton = (Button)this.addRenderableWidget(
          Button.builder(Component.literal("Shift: On"), button -> this.toggleDepositWithdrawShiftClick())
-            .bounds(rightX + 22 + Math.max(78, (rightWidth - 8) / 2), 354, Math.max(78, rightWidth - Math.max(78, (rightWidth - 8) / 2) - 8), 20)
+            .bounds(rightX + 22 + Math.max(78, (rightWidth - 8) / 2), RIGHT_MODE_Y, Math.max(78, rightWidth - Math.max(78, (rightWidth - 8) / 2) - 8), 20)
             .build()
       );
       this.fastDepositButton = (Button)this.addRenderableWidget(
-         Button.builder(Component.literal("Fast: Off"), button -> this.toggleFastDeposit()).bounds(rightX + 14, 376, rightWidth, 20).build()
+         Button.builder(Component.literal("Fast: Off"), button -> this.toggleFastDeposit()).bounds(rightX + 14, RIGHT_TOGGLE_ROW_Y, rightWidth, 20).build()
       );
       this.clickButtonButton = (Button)this.addRenderableWidget(
-         Button.builder(Component.literal("Button: Left"), button -> this.toggleClickGuiButton()).bounds(rightX + 14, 376, rightWidth, 20).build()
+         Button.builder(Component.literal("Button: Left"), button -> this.toggleClickGuiButton()).bounds(rightX + 14, RIGHT_TOGGLE_ROW_Y, rightWidth, 20).build()
       );
       this.repeatIndefinitelyButton = (Button)this.addRenderableWidget(
-         Button.builder(Component.literal("Repeat: Count"), button -> this.toggleRepeatIndefinitely()).bounds(rightX + 14, 376, rightWidth, 20).build()
+         Button.builder(Component.literal("Repeat: Count"), button -> this.toggleRepeatIndefinitely()).bounds(rightX + 14, RIGHT_TOGGLE_ROW_Y, rightWidth, 20).build()
       );
       this.setNextButton = (Button)this.addRenderableWidget(
-         Button.builder(Component.literal("Done"), button -> this.startConnection(this.defaultOutputKey())).bounds(rightX + 14, 472, 58, 20).build()
+         Button.builder(Component.literal("Done"), button -> this.startConnection(this.defaultOutputKey())).bounds(rightX + 14, RIGHT_CONNECTION_BUTTON_Y, 58, 20).build()
       );
       this.setTrueButton = (Button)this.addRenderableWidget(
-         Button.builder(Component.literal("True"), button -> this.startConnection(this.firstBranchOutput())).bounds(rightX + 14, 472, 58, 20).build()
+         Button.builder(Component.literal("True"), button -> this.startConnection(this.firstBranchOutput())).bounds(rightX + 14, RIGHT_CONNECTION_BUTTON_Y, 58, 20).build()
       );
       this.setFalseButton = (Button)this.addRenderableWidget(
-         Button.builder(Component.literal("False"), button -> this.startConnection(this.secondBranchOutput())).bounds(rightX + 78, 472, 58, 20).build()
+         Button.builder(Component.literal("False"), button -> this.startConnection(this.secondBranchOutput())).bounds(rightX + 78, RIGHT_CONNECTION_BUTTON_Y, 58, 20).build()
       );
       this.setToolLowButton = (Button)this.addRenderableWidget(
-         Button.builder(Component.literal("Low"), button -> this.startConnection(this.specialOutputKey())).bounds(rightX + 82, 472, 58, 20).build()
+         Button.builder(Component.literal("Low"), button -> this.startConnection(this.specialOutputKey())).bounds(rightX + 82, RIGHT_CONNECTION_BUTTON_Y, 58, 20).build()
       );
       this.setFailedButton = (Button)this.addRenderableWidget(
-         Button.builder(Component.literal("Fail"), button -> this.startConnection(this.thirdBranchOutput())).bounds(rightX + 146, 472, 58, 20).build()
+         Button.builder(Component.literal("Fail"), button -> this.startConnection(this.thirdBranchOutput())).bounds(rightX + 146, RIGHT_CONNECTION_BUTTON_Y, 58, 20).build()
       );
       this.clearConnectionsButton = (Button)this.addRenderableWidget(
-         Button.builder(Component.literal("Clear"), button -> this.clearConnections()).bounds(rightX + 14, 500, 82, 20).build()
+         Button.builder(Component.literal("Clear"), button -> this.clearConnections()).bounds(rightX + 14, RIGHT_ACTION_BUTTON_Y, 82, 20).build()
       );
          this.deleteButton = (Button)this.addRenderableWidget(
-            Button.builder(Component.literal("Delete"), button -> this.deleteSelected()).bounds(rightX + 104, 500, 82, 20).build()
+             Button.builder(Component.literal("Delete"), button -> this.deleteSelected()).bounds(rightX + 104, RIGHT_ACTION_BUTTON_Y, 82, 20).build()
          );
          this.refreshProperties();
       } finally {
@@ -1517,7 +1519,6 @@ final class MacroBuilderScreen extends Screen {
       int paletteWidth = this.paletteWidth();
       int rightX = this.propertyLeft();
       int rightWidth = this.propertiesWidth();
-      int propertyInnerWidth = this.propertyInnerWidth();
       context.fill(0, 0, this.width, TOP_BAR_HEIGHT, -15328737);
       context.fill(0, TOP_BAR_HEIGHT, paletteWidth, this.height, -14867926);
       context.fill(rightX, TOP_BAR_HEIGHT, this.width, this.height, -14867926);
@@ -1525,8 +1526,6 @@ final class MacroBuilderScreen extends Screen {
       context.drawString(this.font, "Components", 14, 48, -1);
       context.drawString(this.font, "Delay", this.globalDelayLabelX(), 14, -2565928);
       context.drawString(this.font, "Name", rightX + 14, 14, -2565928);
-      context.drawString(this.font, "Run On: Local Player", rightX + 14, 48, -4204545);
-      context.drawString(this.font, this.fit(this.runner.status(), propertyInnerWidth), rightX + 14, 64, -3092272);
       context.drawString(this.font, "Zoom " + (int)Math.round(this.zoom * 100.0) + "%", this.canvasLeft() + 10, this.height - 18, -5327166);
       this.paletteScroll = clamp(this.paletteScroll, 0, this.maxPaletteScroll());
       int y = this.paletteListTop() - this.paletteScroll;
@@ -1618,38 +1617,37 @@ final class MacroBuilderScreen extends Screen {
       int rightX = this.propertyLeft();
       int rightWidth = this.propertyInnerWidth();
       if (this.selectedNode == null) {
-         context.drawString(this.font, "No component selected", rightX + 14, 110, -5327166);
+         context.drawString(this.font, "No component selected", rightX + 14, RIGHT_COMPONENT_Y, -5327166);
       } else {
          MacroModel.Descriptor descriptor = this.selectedNode.descriptor();
          String title = this.selectedNodes.size() > 1 ? this.selectedNodes.size() + " components selected" : descriptor.label();
-         context.drawString(this.font, this.fit(title, rightWidth), rightX + 14, 110, -1);
-         this.drawWrappedText(context, descriptor.description(), rightX + 14, 122, rightWidth, -7366491, 3);
+         context.drawString(this.font, this.fit(title, rightWidth), rightX + 14, RIGHT_COMPONENT_Y, -1);
+         this.drawWrappedText(context, descriptor.description(), rightX + 14, RIGHT_COMPONENT_Y + 12, rightWidth, -7366491, 3);
          if (this.isNoteNode(this.selectedNode)) {
             return;
          }
 
          if ("official:start".equals(this.selectedNode.type)) {
-            context.drawString(this.font, "Start Settings", rightX + 14, 140, -2565928);
-            context.drawString(this.font, this.fit(this.autoSettingsButtonText(), rightWidth), rightX + 14, 152, -4204545);
-            context.drawString(this.font, "Edit with the Auto button above.", rightX + 14, 188, -7366491);
+            context.drawString(this.font, "Start Settings", rightX + 14, RIGHT_PRIMARY_LABEL_Y, -2565928);
+            context.drawString(this.font, this.fit(this.autoSettingsButtonText(), rightWidth), rightX + 14, RIGHT_PRIMARY_LABEL_Y + 12, -4204545);
          }
 
          if (!descriptor.primaryLabel().isBlank()) {
-            context.drawString(this.font, descriptor.primaryLabel(), rightX + 14, 224, -2565928);
+            context.drawString(this.font, descriptor.primaryLabel(), rightX + 14, RIGHT_PRIMARY_LABEL_Y, -2565928);
          }
 
          if (!descriptor.secondaryLabel().isBlank() && !this.isClickGuiItemNode(this.selectedNode)) {
-            context.drawString(this.font, descriptor.secondaryLabel(), rightX + 14, 290, -2565928);
+            context.drawString(this.font, descriptor.secondaryLabel(), rightX + 14, RIGHT_SECONDARY_LABEL_Y, -2565928);
          }
 
-         context.drawString(this.font, "Component delay (blank = global)", rightX + 14, 164, -2565928);
+         context.drawString(this.font, "Component delay (blank = global)", rightX + 14, RIGHT_NODE_DELAY_LABEL_Y, -2565928);
          if (this.hasExcludeSlotField(this.selectedNode)) {
-            context.drawString(this.font, "Exclude slots", rightX + 14, 400, -2565928);
-            context.drawString(this.font, "0-8 hotbar, 9-35 inventory", rightX + 14, 438, -7366491);
+            context.drawString(this.font, "Exclude slots", rightX + 14, RIGHT_EXTRA_LABEL_Y, -2565928);
+            context.drawString(this.font, "0-8 hotbar, 9-35 inventory", rightX + 14, RIGHT_EXTRA_HINT_Y, -7366491);
          }
 
-         context.drawString(this.font, "Connections", rightX + 14, 454, -2565928);
-         int y = 526;
+         context.drawString(this.font, "Connections", rightX + 14, RIGHT_CONNECTION_LABEL_Y, -2565928);
+         int y = RIGHT_CONNECTION_LIST_Y;
 
          for (String output : descriptor.outputs()) {
             if (y > this.height - 18) {
@@ -2279,11 +2277,11 @@ final class MacroBuilderScreen extends Screen {
          MacroModel.Descriptor descriptor = this.selectedNode.descriptor();
          int rightX = this.propertyLeft();
          if (!descriptor.primaryLabel().isBlank() && this.isItemField(descriptor.primaryLabel())) {
-            this.drawItemPreview(context, this.primaryField.getValue(), rightX + 14, 264);
+            this.drawItemPreview(context, this.primaryField.getValue(), rightX + 14, RIGHT_PRIMARY_ITEM_Y);
          }
 
          if (!descriptor.secondaryLabel().isBlank() && this.isItemField(descriptor.secondaryLabel())) {
-            this.drawItemPreview(context, this.secondaryField.getValue(), rightX + 14, 330);
+            this.drawItemPreview(context, this.secondaryField.getValue(), rightX + 14, RIGHT_SECONDARY_ITEM_Y);
          }
       }
    }
@@ -2968,7 +2966,7 @@ final class MacroBuilderScreen extends Screen {
 
    private String fieldSuggestion(MacroModel.Descriptor descriptor, boolean secondary) {
       if ("builder:world.mineArea".equals(descriptor.type())) {
-         return secondary ? "0 64 0 tool=10 move=true" : "0 64 0";
+         return secondary ? "10 79 10 tool=10 move=true" : "0 64 0";
       } else if ("builder:world.farmArea".equals(descriptor.type())) {
          return secondary ? "0 64 0 replant deposit move=true" : "0 64 0";
       } else if ("official:inventory.clickOpenContainerSlot".equals(descriptor.type())) {

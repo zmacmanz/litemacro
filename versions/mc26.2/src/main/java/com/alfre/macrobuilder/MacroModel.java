@@ -278,7 +278,7 @@ final class MacroModel {
          "official:world.mineBlock", "Mine Block", "World", -11094334, COMPLETED_OR_FAILED, true, "Target X Y Z", "Select tool true/false", ""
       ),
       new MacroModel.Descriptor(
-         "builder:world.mineArea", "Mine Area", "World", -11094334, COMPLETED_TOOL_LOW_OR_FAILED, true, "From X Y Z", "To X Y Z / tool low / move", "0 64 0"
+         "builder:world.mineArea", "Mine Area", "World", -11094334, COMPLETED_TOOL_LOW_OR_FAILED, true, "From corner X Y Z", "To corner X Y Z + options", "0 64 0"
       ),
       new MacroModel.Descriptor("official:world.placeBlock", "Place Block", "World", -11094334, COMPLETED_OR_FAILED, true, "Target X Y Z", "Select block", ""),
       new MacroModel.Descriptor(
@@ -910,7 +910,7 @@ final class MacroModel {
          case "builder:inventory.dropSelectedItem" -> "Drops the held hotbar item";
          case "official:world.interactWithBlock" -> "Clicks or attacks a target block";
          case "official:world.mineBlock" -> "Mines a target block";
-         case "builder:world.mineArea" -> "Mines between two XYZ points with a tool-low output";
+         case "builder:world.mineArea" -> "Mines up to a 16x16x16 box between two corner positions";
          case "official:world.placeBlock" -> "Places a selected block on target";
          case "official:world.jumpAndPlaceBlock" -> "Jumps and places below player";
          case "builder:world.farmArea" -> "Harvests crops between two XYZ points and can move";
@@ -1455,7 +1455,7 @@ final class MacroModel {
          } else if ("official:world.mineBlock".equals(this.type) || "official:world.placeBlock".equals(this.type)) {
             return "true";
          } else if ("builder:world.mineArea".equals(this.type)) {
-            return "0 64 0 tool=10 move=true";
+            return "10 79 10 tool=10 move=true";
          } else if ("builder:world.farmArea".equals(this.type)) {
             return "0 64 0 replant deposit move=true";
          } else if ("builder:world.openNearestContainer".equals(this.type)) {
