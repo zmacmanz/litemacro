@@ -5478,14 +5478,20 @@ final class MacroRunner {
          if (minimumLevel < 0) {
             return null;
          } else {
-            String itemSelector = optionString(options, "item=", "held").trim();
-            String lapisItem = MacroModel.normalizeItemId(optionString(options, "lapis=", "minecraft:lapis_lazuli"));
+            String itemSelector = optionPresent(options, "item=") ? "" : (node.value3 == null ? "" : node.value3.trim());
+            if (itemSelector.isBlank()) {
+               itemSelector = optionString(options, "item=", "held").trim();
+            }
+
+            String lapisText = optionPresent(options, "lapis=") ? "" : (node.value4 == null ? "" : node.value4.trim());
+            String lapisItem = MacroModel.normalizeItemId(lapisText.isBlank() ? optionString(options, "lapis=", "minecraft:lapis_lazuli") : lapisText);
             String normalizedOptions = options.toLowerCase(Locale.ROOT);
             boolean autoLoad = optionBoolean(options, "load=", true)
                && !normalizedOptions.contains("manual")
                && !normalizedOptions.contains("no_load")
                && !normalizedOptions.contains("noload");
-            boolean closeGui = optionBoolean(options, "close=", false);
+            Boolean closeSetting = parseBooleanOrDefault(node.value5, false);
+            boolean closeGui = optionPresent(options, "close=") ? optionBoolean(options, "close=", false) : closeSetting != null && closeSetting;
             if (!isKnownItemId(lapisItem)) {
                return null;
             } else if (enchantItemSelectorIsSpecial(itemSelector)) {
@@ -5963,6 +5969,18 @@ final class MacroRunner {
       }
 
       return fallback;
+   }
+
+   private static boolean optionPresent(String options, String prefix) {
+      if (options != null && !options.isBlank()) {
+         for (String token : options.split("[,\\s]+")) {
+            if (token.trim().toLowerCase(Locale.ROOT).startsWith(prefix)) {
+               return true;
+            }
+         }
+      }
+
+      return false;
    }
 
    private static boolean moveOption(String options, boolean fallback) {

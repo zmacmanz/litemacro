@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -60,6 +61,12 @@ final class MacroBuilderScreen extends Screen {
    private static final int RIGHT_SECONDARY_LABEL_Y = 256;
    private static final int RIGHT_SECONDARY_FIELD_Y = 270;
    private static final int RIGHT_SECONDARY_ITEM_Y = 296;
+   private static final int RIGHT_AUTO_ENCHANT_ITEM_LABEL_Y = 296;
+   private static final int RIGHT_AUTO_ENCHANT_ITEM_FIELD_Y = 310;
+   private static final int RIGHT_AUTO_ENCHANT_ITEM_BUTTON_Y = 334;
+   private static final int RIGHT_AUTO_ENCHANT_LAPIS_LABEL_Y = 360;
+   private static final int RIGHT_AUTO_ENCHANT_LAPIS_FIELD_Y = 374;
+   private static final int RIGHT_AUTO_ENCHANT_LAPIS_BUTTON_Y = 398;
    private static final int RIGHT_MODE_Y = 320;
    private static final int RIGHT_TOGGLE_ROW_Y = 342;
    private static final int RIGHT_EXTRA_LABEL_Y = 366;
@@ -84,6 +91,8 @@ final class MacroBuilderScreen extends Screen {
    private EditBox delayField;
    private EditBox primaryField;
    private EditBox secondaryField;
+   private EditBox autoEnchantItemField;
+   private EditBox autoEnchantLapisField;
    private EditBox excludeSlotsField;
    private EditBox nodeDelayField;
    private Button setNextButton;
@@ -104,6 +113,10 @@ final class MacroBuilderScreen extends Screen {
    private Button repeatIndefinitelyButton;
    private Button primaryItemButton;
    private Button secondaryItemButton;
+   private Button autoEnchantUseHeldButton;
+   private Button autoEnchantPickItemButton;
+   private Button autoEnchantPickLapisButton;
+   private Button autoEnchantCloseButton;
    private Button copyComponentButton;
    private Button pasteComponentButton;
    private Button moreActionsButton;
@@ -128,6 +141,7 @@ final class MacroBuilderScreen extends Screen {
    private int paletteScroll;
    private boolean itemPickerOpen;
    private boolean itemPickerSecondary;
+   private String itemPickerTarget = "primary";
    private boolean itemSearchFocused;
    private int itemPickerScroll;
    private String itemSearchText = "";
@@ -248,6 +262,12 @@ final class MacroBuilderScreen extends Screen {
       this.secondaryField = new EditBox(this.font, rightX + 14, RIGHT_SECONDARY_FIELD_Y, rightWidth, 20, Component.empty());
       this.secondaryField.setMaxLength(2048);
       this.addRenderableWidget(this.secondaryField);
+      this.autoEnchantItemField = new EditBox(this.font, rightX + 14, RIGHT_AUTO_ENCHANT_ITEM_FIELD_Y, rightWidth, 20, Component.empty());
+      this.autoEnchantItemField.setMaxLength(128);
+      this.addRenderableWidget(this.autoEnchantItemField);
+      this.autoEnchantLapisField = new EditBox(this.font, rightX + 14, RIGHT_AUTO_ENCHANT_LAPIS_FIELD_Y, rightWidth, 20, Component.empty());
+      this.autoEnchantLapisField.setMaxLength(128);
+      this.addRenderableWidget(this.autoEnchantLapisField);
       this.excludeSlotsField = new EditBox(this.font, rightX + 14, RIGHT_EXTRA_FIELD_Y, rightWidth, 20, Component.empty());
       this.excludeSlotsField.setMaxLength(128);
       this.addRenderableWidget(this.excludeSlotsField);
@@ -259,6 +279,26 @@ final class MacroBuilderScreen extends Screen {
       );
       this.secondaryItemButton = (Button)this.addRenderableWidget(
          Button.builder(Component.literal("Pick Item"), button -> this.openItemPicker(true)).bounds(rightX + 14, RIGHT_SECONDARY_ITEM_Y, rightWidth, 20).build()
+      );
+      int splitButtonWidth = Math.max(72, (rightWidth - 8) / 2);
+      int trailingButtonWidth = Math.max(64, rightWidth - splitButtonWidth - 8);
+      this.autoEnchantUseHeldButton = (Button)this.addRenderableWidget(
+         Button.builder(Component.literal("Use Held"), button -> this.setAutoEnchantItemToHeld()).bounds(rightX + 14, RIGHT_AUTO_ENCHANT_ITEM_BUTTON_Y, splitButtonWidth, 20).build()
+      );
+      this.autoEnchantPickItemButton = (Button)this.addRenderableWidget(
+         Button.builder(Component.literal("Pick Item"), button -> this.openItemPicker("autoEnchantItem"))
+            .bounds(rightX + 22 + splitButtonWidth, RIGHT_AUTO_ENCHANT_ITEM_BUTTON_Y, trailingButtonWidth, 20)
+            .build()
+      );
+      this.autoEnchantPickLapisButton = (Button)this.addRenderableWidget(
+         Button.builder(Component.literal("Pick Lapis"), button -> this.openItemPicker("autoEnchantLapis"))
+            .bounds(rightX + 14, RIGHT_AUTO_ENCHANT_LAPIS_BUTTON_Y, splitButtonWidth, 20)
+            .build()
+      );
+      this.autoEnchantCloseButton = (Button)this.addRenderableWidget(
+         Button.builder(Component.literal("Close: Off"), button -> this.toggleAutoEnchantClose())
+            .bounds(rightX + 22 + splitButtonWidth, RIGHT_AUTO_ENCHANT_LAPIS_BUTTON_Y, trailingButtonWidth, 20)
+            .build()
       );
       this.modeButton = (Button)this.addRenderableWidget(
          Button.builder(Component.literal("Toggle Mode"), button -> this.toggleDepositMode()).bounds(rightX + 14, RIGHT_MODE_Y, Math.max(78, (rightWidth - 8) / 2), 20).build()
@@ -843,7 +883,14 @@ final class MacroBuilderScreen extends Screen {
          this.model.setStepDelayMs(this.parseDelayMs(this.delayField.getValue()));
       }
 
-      if (this.selectedNode != null && !this.isNoteNode(this.selectedNode) && this.primaryField != null && this.secondaryField != null && this.excludeSlotsField != null && this.nodeDelayField != null) {
+      if (this.selectedNode != null
+         && !this.isNoteNode(this.selectedNode)
+         && this.primaryField != null
+         && this.secondaryField != null
+         && this.autoEnchantItemField != null
+         && this.autoEnchantLapisField != null
+         && this.excludeSlotsField != null
+         && this.nodeDelayField != null) {
          this.selectedNode.delayMs = this.parseNodeDelayMs(this.nodeDelayField.getValue());
          MacroModel.Descriptor descriptor = this.selectedNode.descriptor();
          if (!descriptor.primaryLabel().isBlank()) {
@@ -852,6 +899,12 @@ final class MacroBuilderScreen extends Screen {
 
          if (!descriptor.secondaryLabel().isBlank() && !this.isClickGuiItemNode(this.selectedNode)) {
             this.selectedNode.value2 = this.secondaryField.getValue();
+         }
+
+         if (this.isAutoEnchantNode(this.selectedNode)) {
+            this.selectedNode.value2 = this.cleanAutoEnchantXp(this.secondaryField.getValue());
+            this.selectedNode.value3 = this.cleanAutoEnchantItem(this.autoEnchantItemField.getValue());
+            this.selectedNode.value4 = this.cleanAutoEnchantLapis(this.autoEnchantLapisField.getValue());
          }
 
          if (this.hasExcludeSlotField(this.selectedNode)) {
@@ -865,10 +918,20 @@ final class MacroBuilderScreen extends Screen {
    }
 
    private void refreshProperties() {
-      if (this.primaryField != null && this.secondaryField != null && this.excludeSlotsField != null && this.nodeDelayField != null) {
+      if (this.primaryField != null
+         && this.secondaryField != null
+         && this.autoEnchantItemField != null
+         && this.autoEnchantLapisField != null
+         && this.excludeSlotsField != null
+         && this.nodeDelayField != null) {
          boolean hasSelection = this.selectedNode != null;
          MacroModel.Descriptor descriptor = hasSelection ? this.selectedNode.descriptor() : null;
          boolean noteNode = hasSelection && this.isNoteNode(this.selectedNode);
+         boolean autoEnchantNode = hasSelection && this.isAutoEnchantNode(this.selectedNode);
+         if (autoEnchantNode) {
+            this.normalizeAutoEnchantNode(this.selectedNode);
+         }
+
          boolean hasPrimary = hasSelection && !noteNode && !descriptor.primaryLabel().isBlank();
          boolean hasSecondary = hasSelection && !noteNode && !descriptor.secondaryLabel().isBlank();
          boolean clickGuiItem = hasSelection && this.isClickGuiItemNode(this.selectedNode);
@@ -892,6 +955,8 @@ final class MacroBuilderScreen extends Screen {
          String normalOutput = hasSelection ? this.primaryOutputKey(descriptor) : "completed";
          String primaryText = hasPrimary && this.selectedNode.value != null ? this.selectedNode.value : "";
          String secondaryText = hasSecondary && this.selectedNode.value2 != null ? this.selectedNode.value2 : "";
+         String autoEnchantItemText = autoEnchantNode ? this.autoEnchantItemText(this.selectedNode) : "";
+         String autoEnchantLapisText = autoEnchantNode ? this.autoEnchantLapisText(this.selectedNode) : "";
          String excludeSlotsText = hasExcludeSlots ? this.excludeSlotText(this.selectedNode) : "";
          this.primaryField.visible = hasPrimary;
          this.primaryField.active = hasPrimary;
@@ -901,6 +966,14 @@ final class MacroBuilderScreen extends Screen {
          this.secondaryField.active = hasSecondary;
          this.secondaryField.setValue(secondaryText);
          this.secondaryField.setSuggestion(hasSecondary && secondaryText.isBlank() ? this.fieldSuggestion(descriptor, true) : "");
+         this.autoEnchantItemField.visible = autoEnchantNode;
+         this.autoEnchantItemField.active = autoEnchantNode;
+         this.autoEnchantItemField.setValue(autoEnchantItemText);
+         this.autoEnchantItemField.setSuggestion(autoEnchantNode && autoEnchantItemText.isBlank() ? "held, any, or minecraft:book" : "");
+         this.autoEnchantLapisField.visible = autoEnchantNode;
+         this.autoEnchantLapisField.active = autoEnchantNode;
+         this.autoEnchantLapisField.setValue(autoEnchantLapisText);
+         this.autoEnchantLapisField.setSuggestion(autoEnchantNode && autoEnchantLapisText.isBlank() ? "minecraft:lapis_lazuli" : "");
          this.excludeSlotsField.visible = hasExcludeSlots;
          this.excludeSlotsField.active = hasExcludeSlots;
          this.excludeSlotsField.setValue(excludeSlotsText);
@@ -909,12 +982,21 @@ final class MacroBuilderScreen extends Screen {
          this.nodeDelayField.active = this.nodeDelayField.visible;
          this.nodeDelayField.setValue(hasSelection && this.selectedNode.delayMs >= 0 ? Integer.toString(this.selectedNode.delayMs) : "");
          this.nodeDelayField.setSuggestion("");
-         boolean primaryItem = hasPrimary && this.isItemField(descriptor.primaryLabel());
-         boolean secondaryItem = hasSecondary && this.isItemField(descriptor.secondaryLabel());
+         boolean primaryItem = hasPrimary && !autoEnchantNode && this.isItemField(descriptor.primaryLabel());
+         boolean secondaryItem = hasSecondary && !autoEnchantNode && this.isItemField(descriptor.secondaryLabel());
          this.primaryItemButton.visible = primaryItem;
          this.primaryItemButton.active = primaryItem;
          this.secondaryItemButton.visible = secondaryItem;
          this.secondaryItemButton.active = secondaryItem;
+         this.autoEnchantUseHeldButton.visible = autoEnchantNode;
+         this.autoEnchantUseHeldButton.active = autoEnchantNode;
+         this.autoEnchantPickItemButton.visible = autoEnchantNode;
+         this.autoEnchantPickItemButton.active = autoEnchantNode;
+         this.autoEnchantPickLapisButton.visible = autoEnchantNode;
+         this.autoEnchantPickLapisButton.active = autoEnchantNode;
+         this.autoEnchantCloseButton.visible = autoEnchantNode;
+         this.autoEnchantCloseButton.active = autoEnchantNode;
+         this.autoEnchantCloseButton.setMessage(Component.literal(this.autoEnchantCloseEnabled(this.selectedNode) ? "Close: On" : "Close: Off"));
          this.modeButton.visible = depositWithdraw;
          this.modeButton.active = this.modeButton.visible;
          this.modeButton.setMessage(Component.literal(this.modeButton.visible ? "Mode: " + this.selectedNode.value : "Toggle Mode"));
@@ -1109,6 +1191,20 @@ final class MacroBuilderScreen extends Screen {
       }
    }
 
+   private void setAutoEnchantItemToHeld() {
+      if (this.isAutoEnchantNode(this.selectedNode)) {
+         this.selectedNode.value3 = "held";
+         this.refreshProperties();
+      }
+   }
+
+   private void toggleAutoEnchantClose() {
+      if (this.isAutoEnchantNode(this.selectedNode)) {
+         this.selectedNode.value5 = Boolean.toString(!this.autoEnchantCloseEnabled(this.selectedNode));
+         this.refreshProperties();
+      }
+   }
+
    private void toggleSelectedEnabled() {
       List<MacroModel.Node> nodes = this.movableSelection();
       if (nodes.isEmpty()) {
@@ -1191,6 +1287,10 @@ final class MacroBuilderScreen extends Screen {
       return node != null && "official:inventory.clickOpenContainerSlot".equals(node.type);
    }
 
+   private boolean isAutoEnchantNode(MacroModel.Node node) {
+      return node != null && "builder:inventory.autoEnchant".equals(node.type);
+   }
+
    private boolean isItemOrSlotHasTagNode(MacroModel.Node node) {
       return node != null && "builder:inventory.itemOrSlotHasTag".equals(node.type);
    }
@@ -1231,6 +1331,169 @@ final class MacroBuilderScreen extends Screen {
    private String clickGuiButtonText(MacroModel.Node node) {
       String value = node == null || node.value3 == null ? "" : node.value3.trim();
       return "right".equalsIgnoreCase(value) || "1".equals(value) || "use".equalsIgnoreCase(value) ? "Right" : "Left";
+   }
+
+   private boolean autoEnchantCloseEnabled(MacroModel.Node node) {
+      return this.isTruthyText(node == null || node.value5 == null ? "" : node.value5.trim());
+   }
+
+   private String autoEnchantXpText(MacroModel.Node node) {
+      String text = node == null || node.value2 == null ? "" : node.value2.trim();
+      if (text.isBlank()) {
+         return "30";
+      }
+
+      Integer leading = this.leadingInteger(text);
+      if (leading != null) {
+         return Integer.toString(leading);
+      }
+
+      Integer optionLevel = this.autoEnchantOptionInt(
+         text, "level=", this.autoEnchantOptionInt(text, "min=", this.autoEnchantOptionInt(text, "xp=", null))
+      );
+      return optionLevel == null ? text : Integer.toString(optionLevel);
+   }
+
+   private String autoEnchantItemText(MacroModel.Node node) {
+      String text = node == null || node.value3 == null ? "" : node.value3.trim();
+      if (!text.isBlank()) {
+         return text;
+      }
+
+      return this.autoEnchantOptionString(node == null ? "" : node.value2, "item=", "held");
+   }
+
+   private String autoEnchantLapisText(MacroModel.Node node) {
+      String text = node == null || node.value4 == null ? "" : node.value4.trim();
+      if (!text.isBlank()) {
+         return text;
+      }
+
+      return this.autoEnchantOptionString(node == null ? "" : node.value2, "lapis=", "minecraft:lapis_lazuli");
+   }
+
+   private String cleanAutoEnchantXp(String value) {
+      String text = value == null ? "" : value.trim();
+      if (text.isBlank()) {
+         return "30";
+      }
+
+      Integer leading = this.leadingInteger(text);
+      if (leading != null) {
+         return Integer.toString(leading);
+      }
+
+      Integer optionLevel = this.autoEnchantOptionInt(
+         text, "level=", this.autoEnchantOptionInt(text, "min=", this.autoEnchantOptionInt(text, "xp=", null))
+      );
+      return optionLevel == null ? text : Integer.toString(optionLevel);
+   }
+
+   private String cleanAutoEnchantItem(String value) {
+      String text = value == null ? "" : value.trim();
+      return text.isBlank() ? "held" : text;
+   }
+
+   private String cleanAutoEnchantLapis(String value) {
+      String text = value == null ? "" : value.trim();
+      return text.isBlank() ? "minecraft:lapis_lazuli" : text;
+   }
+
+   private void normalizeAutoEnchantNode(MacroModel.Node node) {
+      if (!this.isAutoEnchantNode(node)) {
+         return;
+      }
+
+      String options = node.value2 == null ? "" : node.value2.trim();
+      boolean legacyOptions = this.hasAutoEnchantLegacyOptions(options);
+      if (legacyOptions) {
+         node.value2 = this.autoEnchantXpText(node);
+         node.value3 = this.autoEnchantOptionString(options, "item=", this.cleanAutoEnchantItem(node.value3));
+         node.value4 = this.autoEnchantOptionString(options, "lapis=", this.cleanAutoEnchantLapis(node.value4));
+         node.value5 = Boolean.toString(this.autoEnchantOptionBoolean(options, "close=", this.autoEnchantCloseEnabled(node)));
+      }
+
+      node.value2 = this.cleanAutoEnchantXp(node.value2);
+      node.value3 = this.cleanAutoEnchantItem(node.value3);
+      node.value4 = this.cleanAutoEnchantLapis(node.value4);
+      if (node.value5 == null || node.value5.isBlank()) {
+         node.value5 = "false";
+      }
+   }
+
+   private boolean hasAutoEnchantLegacyOptions(String options) {
+      if (options == null || options.isBlank()) {
+         return false;
+      }
+
+      String normalized = options.toLowerCase(Locale.ROOT);
+      return normalized.contains("item=")
+         || normalized.contains("lapis=")
+         || normalized.contains("close=")
+         || normalized.contains("load=")
+         || normalized.contains("manual")
+         || normalized.contains("no_load")
+         || normalized.contains("noload");
+   }
+
+   private Integer leadingInteger(String value) {
+      if (value != null && !value.isBlank()) {
+         for (String token : value.split("[,\\s]+")) {
+            if (!token.isBlank()) {
+               try {
+                  return Integer.parseInt(token.trim());
+               } catch (NumberFormatException ignored) {
+                  return null;
+               }
+            }
+         }
+      }
+
+      return null;
+   }
+
+   private boolean autoEnchantOptionBoolean(String options, String prefix, boolean fallback) {
+      if (options != null && !options.isBlank()) {
+         for (String token : options.split("[,\\s]+")) {
+            String normalized = token.trim().toLowerCase(Locale.ROOT);
+            if (normalized.startsWith(prefix)) {
+               String value = normalized.substring(prefix.length());
+               return this.isTruthyText(value) || !this.isFalseyText(value) && fallback;
+            }
+         }
+      }
+
+      return fallback;
+   }
+
+   private Integer autoEnchantOptionInt(String options, String prefix, Integer fallback) {
+      if (options != null && !options.isBlank()) {
+         for (String token : options.split("[,\\s]+")) {
+            String normalized = token.trim().toLowerCase(Locale.ROOT);
+            if (normalized.startsWith(prefix)) {
+               try {
+                  return Integer.parseInt(normalized.substring(prefix.length()));
+               } catch (NumberFormatException ignored) {
+                  return fallback;
+               }
+            }
+         }
+      }
+
+      return fallback;
+   }
+
+   private String autoEnchantOptionString(String options, String prefix, String fallback) {
+      if (options != null && !options.isBlank()) {
+         for (String token : options.split("[,\\s]+")) {
+            String normalized = token.trim().toLowerCase(Locale.ROOT);
+            if (normalized.startsWith(prefix)) {
+               return token.substring(prefix.length());
+            }
+         }
+      }
+
+      return fallback;
    }
 
    private String autoSettingsButtonText() {
@@ -1642,6 +1905,11 @@ final class MacroBuilderScreen extends Screen {
 
          if (!descriptor.secondaryLabel().isBlank() && !this.isClickGuiItemNode(this.selectedNode)) {
             context.text(this.font, descriptor.secondaryLabel(), rightX + 14, RIGHT_SECONDARY_LABEL_Y, -2565928);
+         }
+
+         if (this.isAutoEnchantNode(this.selectedNode)) {
+            context.text(this.font, "Enchant item", rightX + 14, RIGHT_AUTO_ENCHANT_ITEM_LABEL_Y, -2565928);
+            context.text(this.font, "Lapis item", rightX + 14, RIGHT_AUTO_ENCHANT_LAPIS_LABEL_Y, -2565928);
          }
 
          context.text(this.font, "Component delay (blank = global)", rightX + 14, RIGHT_NODE_DELAY_LABEL_Y, -2565928);
@@ -2266,6 +2534,8 @@ final class MacroBuilderScreen extends Screen {
          || this.delayField != null && this.delayField.isFocused()
          || this.primaryField != null && this.primaryField.isFocused()
          || this.secondaryField != null && this.secondaryField.isFocused()
+         || this.autoEnchantItemField != null && this.autoEnchantItemField.isFocused()
+         || this.autoEnchantLapisField != null && this.autoEnchantLapisField.isFocused()
          || this.excludeSlotsField != null && this.excludeSlotsField.isFocused()
          || this.nodeDelayField != null && this.nodeDelayField.isFocused();
    }
@@ -2887,7 +3157,10 @@ final class MacroBuilderScreen extends Screen {
       } else if ("builder:inventory.openContainerHasItem".equals(node.type)) {
          return node.value + " x" + node.value2;
       } else if ("builder:inventory.autoEnchant".equals(node.type)) {
-         return "option " + node.value + " / " + (node.value2 == null || node.value2.isBlank() ? "level 1" : node.value2);
+         this.normalizeAutoEnchantNode(node);
+         String item = this.autoEnchantItemText(node);
+         String close = this.autoEnchantCloseEnabled(node) ? " / close" : "";
+         return "option " + node.value + " / XP " + this.autoEnchantXpText(node) + " / " + item + close;
       } else if ("builder:inventory.autoGrindstone".equals(node.type)) {
          return (this.isTruthyText(node.value) ? "shift result" : "take result") + (this.isTruthyText(node.value2) ? " / close" : "");
       } else if ("builder:inventory.selectHotbarSlot".equals(node.type)) {
@@ -2984,7 +3257,7 @@ final class MacroBuilderScreen extends Screen {
       } else if ("builder:inventory.itemDurability".equals(descriptor.type())) {
          return secondary ? "lower 20 or higher 80" : "held, slot 1, or gui slots 0-53";
       } else if ("builder:inventory.autoEnchant".equals(descriptor.type())) {
-         return secondary ? "30 item=held lapis=minecraft:lapis_lazuli close=true" : "1, 2, 3, best";
+         return secondary ? "30" : "1, 2, 3, best";
       } else if ("builder:inventory.autoGrindstone".equals(descriptor.type())) {
          return secondary ? "true to close after taking result" : "true to shift-click result";
       } else if ("builder:player.stopAtXpLevel".equals(descriptor.type())) {
@@ -3021,13 +3294,22 @@ final class MacroBuilderScreen extends Screen {
    }
 
    private void openItemPicker(boolean secondary) {
+      this.openItemPicker(secondary ? "secondary" : "primary");
+   }
+
+   private void openItemPicker(String target) {
       this.itemPickerOpen = true;
-      this.itemPickerSecondary = secondary;
+      this.itemPickerTarget = target;
+      this.itemPickerSecondary = "secondary".equals(target);
       this.itemSearchFocused = true;
       this.itemPickerScroll = 0;
       this.itemSearchText = "";
-      if (secondary) {
+      if ("secondary".equals(target)) {
          this.secondaryField.setFocused(false);
+      } else if ("autoEnchantItem".equals(target)) {
+         this.autoEnchantItemField.setFocused(false);
+      } else if ("autoEnchantLapis".equals(target)) {
+         this.autoEnchantLapisField.setFocused(false);
       } else {
          this.primaryField.setFocused(false);
       }
@@ -3048,7 +3330,17 @@ final class MacroBuilderScreen extends Screen {
             MacroBuilderScreen.ItemEntry entry = this.itemPickerEntryAt((int)click.x(), (int)click.y());
             if (entry != null) {
                String id = entry.id().toString();
-               if (this.itemPickerSecondary) {
+               if ("autoEnchantItem".equals(this.itemPickerTarget)) {
+                  this.autoEnchantItemField.setValue(id);
+                  if (this.selectedNode != null) {
+                     this.selectedNode.value3 = id;
+                  }
+               } else if ("autoEnchantLapis".equals(this.itemPickerTarget)) {
+                  this.autoEnchantLapisField.setValue(id);
+                  if (this.selectedNode != null) {
+                     this.selectedNode.value4 = id;
+                  }
+               } else if (this.itemPickerSecondary) {
                   this.secondaryField.setValue(id);
                   if (this.selectedNode != null) {
                      this.selectedNode.value2 = id;

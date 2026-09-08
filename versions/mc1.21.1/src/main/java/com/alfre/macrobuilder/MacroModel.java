@@ -257,8 +257,8 @@ final class MacroModel {
          -3040666,
          COMPLETED_OR_FAILED,
          true,
-         "Option 1-3",
-         "Min XP / item/lapis/close",
+         "Enchant option",
+         "Minimum XP level",
          "3"
       ),
       new MacroModel.Descriptor(
@@ -1352,6 +1352,8 @@ final class MacroModel {
    private static String defaultValue3(String type) {
       if ("official:inventory.chestDepositItems".equals(type) || "official:inventory.chestWithdrawItems".equals(type)) {
          return "true";
+      } else if ("builder:inventory.autoEnchant".equals(type)) {
+         return "held";
       } else {
          return "official:inventory.clickOpenContainerSlot".equals(type)
             ? "left"
@@ -1372,7 +1374,11 @@ final class MacroModel {
    }
 
    private static String defaultValue4(String type) {
-      return "official:inventory.chestDepositItems".equals(type) || "official:inventory.dropItems".equals(type) ? "false" : "";
+      if ("builder:inventory.autoEnchant".equals(type)) {
+         return "minecraft:lapis_lazuli";
+      } else {
+         return "official:inventory.chestDepositItems".equals(type) || "official:inventory.dropItems".equals(type) ? "false" : "";
+      }
    }
 
    private static String defaultValue5(String type) {
@@ -1454,7 +1460,7 @@ final class MacroModel {
          } else if ("builder:inventory.itemDurability".equals(this.type)) {
             return "lower 20";
          } else if ("builder:inventory.autoEnchant".equals(this.type)) {
-            return "30 item=held lapis=minecraft:lapis_lazuli close=true";
+            return "30";
          } else if ("builder:inventory.autoGrindstone".equals(this.type)) {
             return "false";
          } else if ("official:inventory.hotbarSelect".equals(this.type) || "official:inventory.hotbarUse".equals(this.type)) {
