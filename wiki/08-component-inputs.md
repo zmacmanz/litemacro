@@ -126,6 +126,7 @@ failed    -> local message or recovery path
 | `Repeat Macro` | Count or forever | Empty | `forever` |
 | `Repeat` | Count or forever | Empty | `3` |
 | `Idle Until` | Condition | Filter | `chat` and `sold` |
+| `Stop At XP Level` | Target level | `release` or `stop` | `30` and `release` |
 | `End Connection` | Empty | Empty | Ends this branch without failing the macro. |
 | `Note` | Text | Empty | `Repair path starts here` |
 | `Stop Macro` | Empty | Empty | Stops the current macro run. |
@@ -164,6 +165,8 @@ kicked
 | `Has Open GUI` | Empty | Empty | Sends `true` when a GUI is open. |
 | `Open GUI Is Full` | Empty | Empty | Sends `true` when the open GUI has no empty slots. |
 | `Open GUI Has Item` | Item ID | Minimum count | `minecraft:bone` and `64` |
+| `Auto Enchant` | Option 1-3 | Minimum XP level | `3` and `30` |
+| `Auto Grindstone` | Shift-click result true/false | Close GUI true/false | `true` and `false` |
 | `Open Inventory` | Empty | Empty | Opens your inventory. |
 | `Close GUI` | Empty | Empty | Closes the open GUI. |
 | `Select Hotbar Slot` | Slot 1-9 | Empty | `1` |
@@ -184,6 +187,25 @@ Price examples:
 $price <= 5000
 $price 2k-5k
 $price <= 10m
+```
+
+Auto enchanting:
+
+```text
+Open an enchanting table first.
+Put the item in the left slot.
+Put lapis in the lapis slot.
+Auto Enchant Field 1: 1, 2, 3, or best
+Auto Enchant Field 2: minimum XP level, such as 30
+```
+
+Auto grindstone:
+
+```text
+Open a grindstone first.
+Put the item in the grindstone input slot.
+Auto Grindstone Field 1: true to shift-click the output, false to pick it up
+Auto Grindstone Field 2: true to close the GUI after taking the result
 ```
 
 ### World

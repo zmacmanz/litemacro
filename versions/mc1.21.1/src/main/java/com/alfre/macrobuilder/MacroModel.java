@@ -38,6 +38,7 @@ final class MacroModel {
    static final String LEGACY_ITEM_IN_INVENTORY = "builder:inventory.hasItem";
    static final String HEALTH_BELOW = "builder:player.healthBelow";
    static final String XP_LEVEL_AT_LEAST = "builder:player.xpLevelAtLeast";
+   static final String STOP_AT_XP_LEVEL = "builder:player.stopAtXpLevel";
    static final String PLAYER_AT_LOCATION = "official:player.isAtLocation";
    static final String PLAYER_SET_CROUCH = "official:player.setCrouch";
    static final String PLAYER_JUMP = "official:player.jump";
@@ -54,6 +55,8 @@ final class MacroModel {
    static final String ITEM_DURABILITY = "builder:inventory.itemDurability";
    static final String EMPTY_SLOTS_AT_LEAST = "builder:inventory.emptySlotsAtLeast";
    static final String OPEN_CONTAINER_HAS_ITEM = "builder:inventory.openContainerHasItem";
+   static final String AUTO_ENCHANT = "builder:inventory.autoEnchant";
+   static final String AUTO_GRINDSTONE = "builder:inventory.autoGrindstone";
    static final String CLICK_OPEN_CONTAINER_SLOT = "official:inventory.clickOpenContainerSlot";
    static final String HOTBAR_SELECT = "official:inventory.hotbarSelect";
    static final String HOTBAR_USE = "official:inventory.hotbarUse";
@@ -144,6 +147,9 @@ final class MacroModel {
       new MacroModel.Descriptor("builder:player.healthBelow", "Health Below", "Logic", -2069387, TRUE_FALSE_OR_FAILED, true, "Health value", "", "10"),
       new MacroModel.Descriptor("builder:player.foodBelow", "Food Below", "Logic", -2069387, TRUE_FALSE_OR_FAILED, true, "Food value 0-20", "", "6"),
       new MacroModel.Descriptor("builder:player.xpLevelAtLeast", "XP Level At Least", "Logic", -4794025, TRUE_FALSE_OR_FAILED, true, "Level", "", "1"),
+      new MacroModel.Descriptor(
+         "builder:player.stopAtXpLevel", "Stop At XP Level", "Flow", -7366491, COMPLETED_OR_FAILED, true, "Target level", "Mode: release/stop", "30"
+      ),
       new MacroModel.Descriptor("builder:player.onGround", "Player On Ground", "Logic", -1726398, TRUE_FALSE_OR_FAILED, true, "", "", ""),
       new MacroModel.Descriptor("builder:player.inWater", "Player In Water", "Logic", -1726398, TRUE_FALSE_OR_FAILED, true, "", "", ""),
       new MacroModel.Descriptor(
@@ -242,6 +248,20 @@ final class MacroModel {
          "Item id",
          "Minimum count",
          "minecraft:bone_block"
+      ),
+      new MacroModel.Descriptor(
+         "builder:inventory.autoEnchant", "Auto Enchant", "Inventory", -3040666, COMPLETED_OR_FAILED, true, "Option 1-3", "Min XP level", "3"
+      ),
+      new MacroModel.Descriptor(
+         "builder:inventory.autoGrindstone",
+         "Auto Grindstone",
+         "Inventory",
+         -3040666,
+         COMPLETED_OR_FAILED,
+         true,
+         "Shift-click result",
+         "Close GUI",
+         "true"
       ),
       new MacroModel.Descriptor("official:inventory.openInventory", "Open Inventory", "Inventory", -3040666, COMPLETED_OR_FAILED, true, "", "", ""),
       new MacroModel.Descriptor("official:inventory.closeOpenContainer", "Close GUI", "Inventory", -2069387, COMPLETED_OR_FAILED, true, "", "", ""),
@@ -861,6 +881,7 @@ final class MacroModel {
          case "builder:player.healthBelow" -> "True when health is at or below value";
          case "builder:player.foodBelow" -> "True when hunger is at or below value";
          case "builder:player.xpLevelAtLeast" -> "True when XP level is high enough";
+         case "builder:player.stopAtXpLevel" -> "Waits for XP level, then releases held actions or stops the macro";
          case "builder:player.onGround" -> "True when player is touching ground";
          case "builder:player.inWater" -> "True when player is in water";
          case "official:player.isAtLocation" -> "Checks if player is near coordinates";
@@ -881,6 +902,8 @@ final class MacroModel {
          case "official:inventory.hasOpenContainer" -> "True when a GUI or chest is open";
          case "official:inventory.isOpenContainerFull" -> "True when open GUI has no empty slots";
          case "builder:inventory.openContainerHasItem" -> "Checks for an item in open GUI";
+         case "builder:inventory.autoEnchant" -> "Clicks an enchanting table option when item, lapis, and XP are ready";
+         case "builder:inventory.autoGrindstone" -> "Takes the grindstone result from the open GUI";
          case "official:inventory.openInventory" -> "Opens the player inventory";
          case "official:inventory.closeOpenContainer" -> "Closes the current GUI or chest";
          case "builder:inventory.selectHotbarSlot" -> "Selects a numbered hotbar slot";
@@ -1409,6 +1432,10 @@ final class MacroModel {
             return "minecraft:logs";
          } else if ("builder:inventory.itemDurability".equals(this.type)) {
             return "lower 20";
+         } else if ("builder:inventory.autoEnchant".equals(this.type)) {
+            return "1";
+         } else if ("builder:inventory.autoGrindstone".equals(this.type)) {
+            return "false";
          } else if ("official:inventory.hotbarSelect".equals(this.type) || "official:inventory.hotbarUse".equals(this.type)) {
             return "1";
          } else if ("official:inventory.dropItems".equals(this.type)) {

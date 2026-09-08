@@ -2842,6 +2842,9 @@ final class MacroBuilderScreen extends Screen {
          return "food <= " + node.value;
       } else if ("builder:player.xpLevelAtLeast".equals(node.type)) {
          return "level >= " + node.value;
+      } else if ("builder:player.stopAtXpLevel".equals(node.type)) {
+         String mode = node.value2 == null || node.value2.isBlank() ? "release" : node.value2;
+         return "level " + node.value + " / " + mode;
       } else if ("official:player.isAtLocation".equals(node.type)) {
          return node.value + " / " + node.value2;
       } else if ("official:entity.player_nearby".equals(node.type)) {
@@ -2879,6 +2882,10 @@ final class MacroBuilderScreen extends Screen {
          return "empty >= " + node.value;
       } else if ("builder:inventory.openContainerHasItem".equals(node.type)) {
          return node.value + " x" + node.value2;
+      } else if ("builder:inventory.autoEnchant".equals(node.type)) {
+         return "option " + node.value + " / level " + node.value2;
+      } else if ("builder:inventory.autoGrindstone".equals(node.type)) {
+         return (this.isTruthyText(node.value) ? "shift result" : "take result") + (this.isTruthyText(node.value2) ? " / close" : "");
       } else if ("builder:inventory.selectHotbarSlot".equals(node.type)) {
          return "slot " + node.value;
       } else if ("builder:inventory.dropSelectedItem".equals(node.type)) {
@@ -2970,6 +2977,12 @@ final class MacroBuilderScreen extends Screen {
          return secondary ? "Delivered or $1-10T" : "held, slot 1, or gui slots 0-53";
       } else if ("builder:inventory.itemDurability".equals(descriptor.type())) {
          return secondary ? "lower 20 or higher 80" : "held, slot 1, or gui slots 0-53";
+      } else if ("builder:inventory.autoEnchant".equals(descriptor.type())) {
+         return secondary ? "0, 1, 15, or 30" : "1, 2, 3, best";
+      } else if ("builder:inventory.autoGrindstone".equals(descriptor.type())) {
+         return secondary ? "true to close after taking result" : "true to shift-click result";
+      } else if ("builder:player.stopAtXpLevel".equals(descriptor.type())) {
+         return secondary ? "release or stop" : "30";
       } else if ("builder:misc.repeatMacro".equals(descriptor.type()) || "builder:misc.repeatSection".equals(descriptor.type())) {
          return secondary ? "" : "3 or forever";
       } else if ("builder:misc.idleUntil".equals(descriptor.type())) {

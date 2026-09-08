@@ -37,7 +37,9 @@ import java.util.regex.PatternSyntaxException;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.ConnectScreen;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
@@ -59,6 +61,8 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.EnchantmentMenu;
+import net.minecraft.world.inventory.GrindstoneMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -1030,6 +1034,7 @@ final class MacroRunner {
                      this.skipDisabledNode(client, node);
                   } else {
                      try {
+                     this.closePassiveGameplayScreenIfNeeded(client, node.type);
                      String exception = node.type;
                      switch (exception) {
                         case "official:start":
@@ -1094,6 +1099,9 @@ final class MacroRunner {
                               client, node, intAtLeast(client.player.experienceLevel, node.value), "Failed: XP Level At Least needs a whole number."
                            );
                            break;
+                        case "builder:player.stopAtXpLevel":
+                           this.runStopAtXpLevel(client, node);
+                           break;
                         case "builder:player.onGround":
                            this.completeCondition(client, node, client.player.onGround(), "");
                            break;
@@ -1132,6 +1140,12 @@ final class MacroRunner {
                            break;
                         case "official:inventory.chestDepositItems":
                            this.runChestDepositItems(client, node);
+                           break;
+                        case "builder:inventory.autoEnchant":
+                           this.runAutoEnchant(client, node);
+                           break;
+                        case "builder:inventory.autoGrindstone":
+                           this.runAutoGrindstone(client, node);
                            break;
                         case "builder:inventory.heldItemIs":
                            this.completeCondition(client, node, this.heldItemIs(client, node), "Failed: Held Item Is needs a valid item id.");
@@ -1486,7 +1500,49 @@ final class MacroRunner {
          return false;
       }
 
-      return client.screen == null || client.screen instanceof TitleScreen || client.player == null || client.level == null;
+      Screen screen = client.screen;
+      return screen == null || screen instanceof TitleScreen || screen instanceof ChatScreen || screen.isPauseScreen() || client.player == null || client.level == null;
+   }
+
+   private void closePassiveGameplayScreenIfNeeded(Minecraft client, String type) {
+      if (needsClearGameplayScreen(type) && client != null) {
+         Screen screen = client.screen;
+         if (screen instanceof ChatScreen || screen != null && screen.isPauseScreen()) {
+            client.setScreen(null);
+         }
+      }
+   }
+
+   private static boolean needsClearGameplayScreen(String type) {
+      return switch (type) {
+         case "official:player.respawn",
+            "official:player.move",
+            "official:player.look",
+            "official:player.setMouseButton",
+            "official:player.shootBow",
+            "official:player.setCrouch",
+            "builder:player.setSprint",
+            "official:player.jump",
+            "builder:player.autoClick",
+            "builder:player.pressKey",
+            "builder:player.stopAtXpLevel",
+            "official:inventory.hotbarSelect",
+            "official:inventory.hotbarUse",
+            "official:inventory.dropItems",
+            "builder:inventory.selectHotbarSlot",
+            "builder:inventory.dropSelectedItem",
+            "official:world.interactWithBlock",
+            "official:world.mineBlock",
+            "official:world.placeBlock",
+            "official:world.jumpAndPlaceBlock",
+            "builder:world.farmArea",
+            "builder:world.openNearestContainer",
+            "builder:world.autoBoneMeal",
+            "builder:world.mineArea",
+            "official:entity.attack",
+            "official:entity.interact" -> true;
+         default -> false;
+      };
    }
 
    void recordChatMessage(String message) {
@@ -2002,6 +2058,101 @@ final class MacroRunner {
                this.fail(client, node, "Failed: no open GUI was available for Withdraw Items.");
             }
          }
+      }
+   }
+
+   private void runAutoEnchant(Minecraft client, MacroModel.Node node) {
+      AbstractContainerMenu handler = activeContainerHandler(client);
+      if (!(handler instanceof EnchantmentMenu menu)) {
+         this.fail(client, node, "Failed: Auto Enchant needs an open Enchanting Table GUI.");
+      } else if (client.gameMode == null || client.player == null) {
+         this.fail(client, node, "Failed: Auto Enchant cannot use the current game mode.");
+      } else {
+         Integer option = parseEnchantOption(node.value);
+         Integer minimumLevel = parseIntOrNull(node.value2);
+         if (option == null) {
+            this.fail(client, node, "Failed: Auto Enchant option must be 1, 2, or 3.");
+         } else if (minimumLevel == null || minimumLevel < 0) {
+            this.fail(client, node, "Failed: Auto Enchant minimum level must be 0 or higher.");
+         } else if (!containerSlotHasItem(handler, 0)) {
+            this.fail(client, node, "Failed: Auto Enchant needs an item in the enchanting slot.");
+         } else {
+            int buttonId = option - 1;
+            int cost = menu.costs[buttonId];
+            int lapisCost = buttonId + 1;
+            boolean creative = client.player.getAbilities().instabuild;
+            if (cost <= 0) {
+               this.fail(client, node, "Failed: Auto Enchant option " + option + " is not available.");
+            } else if (!creative && menu.getGoldCount() < lapisCost) {
+               this.fail(client, node, "Failed: Auto Enchant option " + option + " needs " + lapisCost + " lapis.");
+            } else if (!creative && client.player.experienceLevel < Math.max(cost, minimumLevel)) {
+               this.fail(client, node, "Failed: Auto Enchant needs XP level " + Math.max(cost, minimumLevel) + ".");
+            } else {
+               if (this.activeTicks == 1) {
+                  client.gameMode.handleInventoryButtonClick(handler.containerId, buttonId);
+               }
+
+               if (this.activeTicks >= CLOSE_SETTLE_TICKS) {
+                  this.complete(client, node, "completed");
+               } else {
+                  this.lastStatus = "Auto Enchant: option " + option + ".";
+               }
+            }
+         }
+      }
+   }
+
+   private void runAutoGrindstone(Minecraft client, MacroModel.Node node) {
+      AbstractContainerMenu handler = activeContainerHandler(client);
+      if (!(handler instanceof GrindstoneMenu)) {
+         this.fail(client, node, "Failed: Auto Grindstone needs an open Grindstone GUI.");
+      } else if (client.gameMode == null || client.player == null) {
+         this.fail(client, node, "Failed: Auto Grindstone cannot use the current game mode.");
+      } else {
+         Boolean shiftClick = parseBooleanOrDefault(node.value, true);
+         Boolean closeGui = parseBooleanOrDefault(node.value2, false);
+         if (shiftClick == null) {
+            this.fail(client, node, "Failed: Auto Grindstone shift-click value must be true or false.");
+         } else if (closeGui == null) {
+            this.fail(client, node, "Failed: Auto Grindstone close GUI value must be true or false.");
+         } else if (!containerSlotHasItem(handler, 2)) {
+            if (this.activeTicks > SCREEN_TIMEOUT_TICKS) {
+               this.fail(client, node, "Failed: Auto Grindstone needs a result item in the output slot.");
+            } else {
+               this.lastStatus = "Auto Grindstone: waiting for result.";
+            }
+         } else {
+            if (this.activeTicks == 1) {
+               Slot result = handler.getSlot(2);
+               client.gameMode.handleInventoryMouseClick(
+                  handler.containerId, result.index, 0, shiftClick ? ClickType.QUICK_MOVE : ClickType.PICKUP, client.player
+               );
+            }
+
+            if (this.activeTicks >= CLOSE_SETTLE_TICKS) {
+               if (closeGui) {
+                  client.player.closeContainer();
+               }
+
+               this.complete(client, node, "completed");
+            }
+         }
+      }
+   }
+
+   private void runStopAtXpLevel(Minecraft client, MacroModel.Node node) {
+      Integer targetLevel = parseIntOrNull(node.value);
+      if (targetLevel == null || targetLevel < 0) {
+         this.fail(client, node, "Failed: Stop At XP Level needs a level of 0 or higher.");
+      } else if (client.player.experienceLevel >= targetLevel) {
+         this.releaseHeldKeys(client);
+         if (shouldStopMacroAtXpLevel(node.value2)) {
+            this.stop(client, "Stopped: XP level " + targetLevel + " reached.");
+         } else {
+            this.complete(client, node, "completed");
+         }
+      } else {
+         this.lastStatus = "Waiting for XP level " + targetLevel + " (" + client.player.experienceLevel + ").";
       }
    }
 
@@ -4318,6 +4469,10 @@ final class MacroRunner {
       return Boolean.parseBoolean(node == null || node.value4 == null ? "" : node.value4.trim());
    }
 
+   private static boolean containerSlotHasItem(AbstractContainerMenu handler, int slotIndex) {
+      return handler != null && slotIndex >= 0 && slotIndex < handler.slots.size() && !handler.getSlot(slotIndex).getItem().isEmpty();
+   }
+
    private boolean pickupMoveStack(Minecraft client, AbstractContainerMenu handler, int sourceSlotIndex, int targetStart, int targetEnd, ItemStack stack) {
       int targetSlotIndex = this.firstAcceptingSlotIndex(handler, targetStart, targetEnd, stack);
       if (targetSlotIndex < 0) {
@@ -5139,6 +5294,23 @@ final class MacroRunner {
       } else {
          return "1".equals(normalized) || "right".equals(normalized) || "use".equals(normalized) || "right click".equals(normalized) ? 1 : null;
       }
+   }
+
+   private static Integer parseEnchantOption(String value) {
+      String normalized = value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+      normalized = switch (normalized) {
+         case "", "best", "highest", "top", "max" -> "3";
+         case "middle", "mid" -> "2";
+         case "low", "lowest", "bottom" -> "1";
+         default -> normalized;
+      };
+      Integer option = parseIntOrNull(normalized);
+      return option != null && option >= 1 && option <= 3 ? option : null;
+   }
+
+   private static boolean shouldStopMacroAtXpLevel(String value) {
+      String normalized = value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+      return normalized.equals("stop") || normalized.equals("macro") || normalized.equals("stop macro");
    }
 
    private void setMouseButtonDown(Minecraft client, int button, boolean down) {

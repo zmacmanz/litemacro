@@ -137,6 +137,50 @@ Chat / Command
 
 Use `If Chat Same` when you only want to check the latest chat line once. Use `Idle Until` when you want the macro to wait.
 
+## Hold An Action Until XP Level
+
+Use this for grinding until a target level is reached.
+
+```text
+Macro Entry Point
+  started -> Mouse Button
+
+Mouse Button
+  State: press
+  Button: left
+  completed -> Stop At XP Level
+
+Stop At XP Level
+  Target level: 30
+  Mode: release
+  completed -> next step
+  failed -> Local Message
+```
+
+`release` lets the macro continue after it lets go of held movement, attack, use, crouch, sprint, and jump keys. Use `stop` if reaching the level should end the whole macro.
+
+## Auto Enchant Then Grindstone
+
+This needs the matching GUI already open.
+
+```text
+Macro Entry Point
+  started -> Auto Enchant
+
+Auto Enchant
+  Option 1-3: 3
+  Min XP level: 30
+  completed -> Auto Grindstone
+  failed -> Local Message
+
+Auto Grindstone
+  Shift-click result: true
+  Close GUI: false
+  completed -> Repeat Macro
+```
+
+`Auto Enchant` requires an item in the enchanting slot and enough lapis. `Auto Grindstone` waits for the grindstone output slot, then takes the result.
+
 ## Buy GUI Items Under A Price
 
 Use `Item/Slot Has Tag` or `Click GUI Item` with a price rule.

@@ -24,6 +24,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.KeyMapping.Category;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.input.KeyEvent;
@@ -156,7 +157,10 @@ public final class MacroBuilderClient implements ClientModInitializer {
    }
 
    private static boolean canOpenMacroList(Minecraft client) {
-      if (client == null || client.screen instanceof MacroListScreen || client.screen instanceof MacroBuilderScreen) {
+      if (client == null
+         || client.screen instanceof MacroListScreen
+         || client.screen instanceof MacroBuilderScreen
+         || client.screen instanceof MacroMarketplaceScreen) {
          return false;
       }
 
@@ -164,11 +168,15 @@ public final class MacroBuilderClient implements ClientModInitializer {
    }
 
    private static boolean isNonLitemacroMenu(Minecraft client, Screen screen) {
-      if (client == null || screen == null || screen instanceof MacroListScreen || screen instanceof MacroBuilderScreen) {
+      if (client == null
+         || screen == null
+         || screen instanceof MacroListScreen
+         || screen instanceof MacroBuilderScreen
+         || screen instanceof MacroMarketplaceScreen) {
          return false;
       }
 
-      return client.player == null || client.level == null || screen instanceof TitleScreen;
+      return client.player == null || client.level == null || screen instanceof TitleScreen || screen instanceof ChatScreen || screen.isPauseScreen();
    }
 
    private static void openMacroList(Minecraft client) {
@@ -176,7 +184,12 @@ public final class MacroBuilderClient implements ClientModInitializer {
    }
 
    private static void openMacroList(Minecraft client, boolean force) {
-      if ((force && client != null && !(client.screen instanceof MacroListScreen) && !(client.screen instanceof MacroBuilderScreen)) || canOpenMacroList(client)) {
+      if ((force
+               && client != null
+               && !(client.screen instanceof MacroListScreen)
+               && !(client.screen instanceof MacroBuilderScreen)
+               && !(client.screen instanceof MacroMarketplaceScreen))
+            || canOpenMacroList(client)) {
          client.setScreen(new MacroListScreen(RUNNER));
       }
    }
