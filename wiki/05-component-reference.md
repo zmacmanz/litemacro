@@ -103,7 +103,7 @@ Inventory slots usually use:
 | --- | --- |
 | `Interact With Block` | Right-clicks or attacks a target block. Useful for anvils and containers. |
 | `Mine Block` | Mines a target block. |
-| `Mine Area` | Mines between two XYZ points, with a `tool_low` output. Each side can be up to 16 blocks, so split bigger areas into multiple components. |
+| `Mine Area` | Mines between two XYZ points, with a `tool_low` output. Each side can be up to 16 blocks. Single unreachable or unbreakable blocks are skipped so the macro can keep going. |
 | `Place Block` | Places a selected block on a target. |
 | `Jump And Place Block` | Jumps and places below the player. |
 | `Farm Area` | Harvests crops between two XYZ points and can move. |

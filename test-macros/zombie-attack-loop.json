@@ -1,0 +1,146 @@
+{
+  "format": "litemacro-v1",
+  "name": "Test - Zombie Attack Loop",
+  "stepDelayMs": 0,
+  "alwaysOn": false,
+  "autoStartMode": "off",
+  "autoStartFilter": "",
+  "randomDelayEnabled": false,
+  "randomDelayMinMs": 250,
+  "randomDelayMaxMs": 1250,
+  "nextIndex": 10,
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "official:start",
+      "x": 80,
+      "y": 140,
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "started": "node-3"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "builder:flow.note",
+      "x": 80,
+      "y": 330,
+      "value": "Zombie attack loop setup:\n\nStand where zombies can reach your hit range.\nEntity Nearby checks for minecraft:zombie within 6 blocks.\nAttack Entity uses move=false so the player does not walk into a grinder.\nChange minecraft:zombie to minecraft:blaze, minecraft:skeleton, or another mob if needed.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "stickyNoteText": "Zombie attack loop setup:\n\nStand where zombies can reach your hit range.\nEntity Nearby checks for minecraft:zombie within 6 blocks.\nAttack Entity uses move=false so the player does not walk into a grinder.\nChange minecraft:zombie to minecraft:blaze, minecraft:skeleton, or another mob if needed.",
+      "stickyNoteWidth": 520,
+      "stickyNoteHeight": 190,
+      "outputs": {}
+    },
+    {
+      "id": "node-3",
+      "type": "builder:entity.nearby",
+      "x": 320,
+      "y": 140,
+      "value": "minecraft:zombie",
+      "value2": "6",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "node-4",
+        "false": "node-5",
+        "failed": "node-8"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "official:entity.attack",
+      "x": 590,
+      "y": 90,
+      "value": "minecraft:zombie",
+      "value2": "false",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-6",
+        "failed": "node-8"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "official:misc.wait",
+      "x": 590,
+      "y": 220,
+      "value": "1000",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-3",
+        "failed": "node-8"
+      }
+    },
+    {
+      "id": "node-6",
+      "type": "official:misc.wait",
+      "x": 860,
+      "y": 90,
+      "value": "700",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-3",
+        "failed": "node-8"
+      }
+    },
+    {
+      "id": "node-8",
+      "type": "builder:localMessage",
+      "x": 860,
+      "y": 240,
+      "value": "Zombie attack loop stopped. Check mob filter, distance, and whether you are in a world.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-9"
+      }
+    },
+    {
+      "id": "node-9",
+      "type": "builder:flow.endConnection",
+      "x": 1170,
+      "y": 240,
+      "value": "end branch",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    }
+  ]
+}

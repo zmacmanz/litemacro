@@ -63,11 +63,12 @@ tool=0      do not stop for low tool durability
 tool=10     send the tool_low output when the held tool has 10 durability left
 ```
 
-Limits:
+Limits and behavior:
 
 - Max size is `16x16x16` for one `Mine Area`.
 - Bigger mines must be split into multiple `Mine Area` components.
-- If one block does not break after about 15 seconds, the component fails so the macro does not get stuck forever.
+- If one block is protected, unreachable, or will not break, Litemacro skips that block and keeps checking the rest of the area.
+- If the whole area is unloaded and `move=true`, Litemacro walks toward the area for a limited time. If it still cannot load the area, the component fails instead of walking forever.
 
 Outputs:
 

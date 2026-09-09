@@ -13,13 +13,13 @@ Fix:
 
 ## Mine Area Stops After Some Time
 
-`Mine Area` stops when it reaches one of its safety exits.
+`Mine Area` keeps working through single bad blocks, but it still stops when it reaches a real safety exit.
 
 Common reasons:
 
 - `tool=10` is enabled and your held tool has 10 durability left. Connect `tool_low` to a repair/swap path, or use `tool=0` to disable this check.
-- One block did not break after about 15 seconds. This usually means the block is protected, unbreakable, too slow for the tool, or the server rejected the break.
-- The next block is out of reach and `move=false` is set.
+- One block did not break or could not be reached. Current builds skip that block and continue, so check the status text for skipped blocks.
+- The next block is out of reach and `move=false` is set. Use `move=true` if the macro should walk toward blocks.
 - The selected area is bigger than `16x16x16`. Split the mine into multiple `Mine Area` components.
 - The area is not loaded and the macro cannot move close enough.
 - The component finished the selected area and no next component is connected.

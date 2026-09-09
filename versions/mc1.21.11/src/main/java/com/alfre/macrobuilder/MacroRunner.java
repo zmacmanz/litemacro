@@ -85,6 +85,8 @@ final class MacroRunner {
    private static final int OUTSIDE_CONTAINER_SLOT = -999;
    private static final int SCREEN_TIMEOUT_TICKS = 100;
    private static final int CLOSE_SETTLE_TICKS = 4;
+   private static final int MINE_AREA_MOVE_TIMEOUT_TICKS = 600;
+   private static final int MINE_AREA_BREAK_TIMEOUT_TICKS = 400;
    private static final int BOW_DRAW_TICKS = 25;
    private static final int ENTITY_REACH_DISTANCE = 3;
    private static final int TELEPORT_DISTANCE_SQUARED = 64;
@@ -152,6 +154,8 @@ final class MacroRunner {
    private boolean activeFarmHarvested;
    private BlockPos activeMineAreaPos;
    private int activeMineAreaTicks;
+   private int activeMineAreaTravelTicks;
+   private final Set<BlockPos> activeMineAreaSkippedBlocks = new HashSet<>();
    private BlockPos activeJumpPlaceSupportPos;
    private String lastOpenContainerTagFilter = "";
    private String lastOpenContainerTagNextNodeId = "";
@@ -2715,6 +2719,7 @@ final class MacroRunner {
          if (this.activeMineAreaPos == null || client.level.getBlockState(this.activeMineAreaPos).isAir()) {
             this.activeMineAreaPos = this.nextMineAreaBlock(client, options);
             this.activeMineAreaTicks = 0;
+            this.activeMineAreaTravelTicks = 0;
             if (this.activeMineAreaPos == null) {
                if (this.moveToUnloadedArea(client, node, options)) {
                   return;
@@ -2729,23 +2734,26 @@ final class MacroRunner {
          if (!canReachBlock(client, this.activeMineAreaPos)) {
             this.activeMineAreaTicks = 0;
             if (!options.move()) {
-               this.releaseHeldKeys(client);
-               this.fail(client, node, "Failed: Mine Area target is out of reach.");
+               this.skipMineAreaBlock(client, "Mine Area: skipped out-of-reach block.");
             } else {
+               this.activeMineAreaTravelTicks++;
                this.moveTowardBlock(client, this.activeMineAreaPos);
-               if (this.activeTicks > 300) {
-                  this.releaseHeldKeys(client);
-                  this.fail(client, node, "Failed: Mine Area could not reach the target.");
+               if (this.activeMineAreaTravelTicks > MINE_AREA_MOVE_TIMEOUT_TICKS) {
+                  this.skipMineAreaBlock(client, "Mine Area: skipped unreachable block.");
+               } else {
+                  this.lastStatus = "Mine Area: moving to " + blockPosText(this.activeMineAreaPos) + ".";
                }
             }
          } else {
             this.releaseMovementKeys(client);
+            this.activeMineAreaTravelTicks = 0;
             this.activeMineAreaTicks++;
             this.lookAt(client, Vec3.atCenterOf(this.activeMineAreaPos));
+            Direction hitDirection = this.mineAreaHitDirection(client, this.activeMineAreaPos);
             if (this.activeMineAreaTicks == 1) {
-               client.gameMode.startDestroyBlock(this.activeMineAreaPos, Direction.UP);
+               client.gameMode.startDestroyBlock(this.activeMineAreaPos, hitDirection);
             } else {
-               client.gameMode.continueDestroyBlock(this.activeMineAreaPos, Direction.UP);
+               client.gameMode.continueDestroyBlock(this.activeMineAreaPos, hitDirection);
             }
 
             client.player.swing(InteractionHand.MAIN_HAND);
@@ -2753,13 +2761,24 @@ final class MacroRunner {
                this.activeMineAreaPos = null;
                this.activeMineAreaTicks = 0;
             } else {
-               if (this.activeMineAreaTicks > 300) {
-                  this.releaseHeldKeys(client);
-                  this.fail(client, node, "Failed: Mine Area timed out before the block broke.");
+               if (this.activeMineAreaTicks > MINE_AREA_BREAK_TIMEOUT_TICKS) {
+                  this.skipMineAreaBlock(client, "Mine Area: skipped block that would not break.");
                }
             }
          }
       }
+   }
+
+   private void skipMineAreaBlock(Minecraft client, String status) {
+      this.releaseMovementKeys(client);
+      if (this.activeMineAreaPos != null) {
+         this.activeMineAreaSkippedBlocks.add(this.activeMineAreaPos);
+      }
+
+      this.activeMineAreaPos = null;
+      this.activeMineAreaTicks = 0;
+      this.activeMineAreaTravelTicks = 0;
+      this.lastStatus = status;
    }
 
    private void runEntityAction(Minecraft client, MacroModel.Node node, boolean attack) {
@@ -4098,6 +4117,8 @@ final class MacroRunner {
    private void clearMineAreaState() {
       this.activeMineAreaPos = null;
       this.activeMineAreaTicks = 0;
+      this.activeMineAreaTravelTicks = 0;
+      this.activeMineAreaSkippedBlocks.clear();
    }
 
    private MacroRunner.FarmOptions farmOptions(MacroModel.Node node) {
@@ -4271,13 +4292,17 @@ final class MacroRunner {
       return max.getX() - min.getX() + 1 + "x" + (max.getY() - min.getY() + 1) + "x" + (max.getZ() - min.getZ() + 1);
    }
 
+   private static String blockPosText(BlockPos pos) {
+      return pos.getX() + " " + pos.getY() + " " + pos.getZ();
+   }
+
    private BlockPos nextMineAreaBlock(Minecraft client, MacroRunner.MineAreaOptions options) {
       BlockPos nearest = null;
       double nearestDistance = Double.MAX_VALUE;
 
       for (BlockPos mutable : BlockPos.betweenClosed(options.min(), options.max())) {
          BlockPos pos = mutable.immutable();
-         if (client.level.isLoaded(pos) && !client.level.getBlockState(pos).isAir()) {
+         if (client.level.isLoaded(pos) && !this.activeMineAreaSkippedBlocks.contains(pos) && !client.level.getBlockState(pos).isAir()) {
             double distance = client.player.distanceToSqr(Vec3.atCenterOf(pos));
             if (distance < nearestDistance) {
                nearestDistance = distance;
@@ -4317,6 +4342,11 @@ final class MacroRunner {
 
    private static boolean canReachBlock(Minecraft client, BlockPos pos) {
       return client.player.distanceToSqr(Vec3.atCenterOf(pos)) <= 25.0;
+   }
+
+   private Direction mineAreaHitDirection(Minecraft client, BlockPos pos) {
+      Vec3 center = Vec3.atCenterOf(pos);
+      return this.nearestBlockFace(client.player.getX() - center.x, client.player.getEyeY() - center.y, client.player.getZ() - center.z);
    }
 
    private boolean canReachFarmTarget(Minecraft client, MacroModel.Node node, MacroRunner.FarmOptions options, BlockPos target) {
@@ -4362,9 +4392,12 @@ final class MacroRunner {
          return true;
       } else {
          this.moveTowardBlock(client, areaCenter(options.min(), options.max()));
-         if (this.activeTicks > 300) {
+         this.activeMineAreaTravelTicks++;
+         if (this.activeMineAreaTravelTicks > MINE_AREA_MOVE_TIMEOUT_TICKS) {
             this.releaseMovementKeys(client);
             this.fail(client, node, "Failed: Mine Area could not reach the area.");
+         } else {
+            this.lastStatus = "Mine Area: moving to load the area.";
          }
 
          return true;

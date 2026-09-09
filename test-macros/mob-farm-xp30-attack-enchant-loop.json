@@ -1,0 +1,197 @@
+{
+  "format": "litemacro-v1",
+  "name": "Mob Farm XP 30 Attack Enchant Loop",
+  "stepDelayMs": 0,
+  "alwaysOn": false,
+  "autoStartMode": "off",
+  "autoStartFilter": "",
+  "randomDelayEnabled": false,
+  "randomDelayMinMs": 250,
+  "randomDelayMaxMs": 1250,
+  "nextIndex": 13,
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "official:start",
+      "x": 80,
+      "y": 180,
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "started": "node-2"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "builder:player.xpLevelAtLeast",
+      "x": 330,
+      "y": 180,
+      "value": "30",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "node-6",
+        "false": "node-3",
+        "failed": "node-10"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "builder:entity.nearby",
+      "x": 600,
+      "y": 300,
+      "value": "minecraft:zombie",
+      "value2": "6",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "node-4",
+        "false": "node-5",
+        "failed": "node-10"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "official:entity.attack",
+      "x": 880,
+      "y": 250,
+      "value": "minecraft:zombie",
+      "value2": "false",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-5",
+        "failed": "node-10"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "official:misc.wait",
+      "x": 1160,
+      "y": 300,
+      "value": "700",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-2",
+        "failed": "node-10"
+      }
+    },
+    {
+      "id": "node-6",
+      "type": "builder:world.openNearestEnchantingTable",
+      "x": 600,
+      "y": 80,
+      "value": "8",
+      "value2": "move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-7",
+        "failed": "node-10"
+      }
+    },
+    {
+      "id": "node-7",
+      "type": "builder:inventory.autoEnchant",
+      "x": 900,
+      "y": 80,
+      "value": "3",
+      "value2": "30",
+      "value3": "held",
+      "value4": "minecraft:lapis_lazuli",
+      "value5": "true",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-8",
+        "failed": "node-10"
+      }
+    },
+    {
+      "id": "node-8",
+      "type": "builder:localMessage",
+      "x": 1210,
+      "y": 80,
+      "value": "Enchanted at level 30. Returning to mob farm.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-5"
+      }
+    },
+    {
+      "id": "node-9",
+      "type": "builder:flow.note",
+      "x": 80,
+      "y": 410,
+      "value": "Mob farm XP 30 attack/enchant setup:\n\nStand where zombies are in attack range.\nHold the item you want enchanted.\nKeep minecraft:lapis_lazuli in your inventory.\nPlace an enchanting table within 8 blocks.\nChange minecraft:zombie to your farm mob if needed.\n\nThe macro attacks until XP level 30, opens the nearest enchanting table, loads the held item and lapis, clicks option 3, closes the GUI, then continues grinding.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "stickyNoteText": "Mob farm XP 30 attack/enchant setup:\n\nStand where zombies are in attack range.\nHold the item you want enchanted.\nKeep minecraft:lapis_lazuli in your inventory.\nPlace an enchanting table within 8 blocks.\nChange minecraft:zombie to your farm mob if needed.\n\nThe macro attacks until XP level 30, opens the nearest enchanting table, loads the held item and lapis, clicks option 3, closes the GUI, then continues grinding.",
+      "stickyNoteWidth": 640,
+      "stickyNoteHeight": 250,
+      "outputs": {}
+    },
+    {
+      "id": "node-10",
+      "type": "builder:localMessage",
+      "x": 1210,
+      "y": 250,
+      "value": "Mob farm enchant loop needs mobs nearby, XP data, held enchantable item, lapis, and an enchanting table.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-11"
+      }
+    },
+    {
+      "id": "node-11",
+      "type": "builder:flow.endConnection",
+      "x": 1530,
+      "y": 250,
+      "value": "end branch",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    }
+  ]
+}
