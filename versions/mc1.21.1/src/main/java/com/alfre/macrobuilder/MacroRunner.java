@@ -2110,14 +2110,25 @@ final class MacroRunner {
             int cost = menu.costs[buttonId];
             int lapisCost = buttonId + 1;
             boolean creative = client.player.getAbilities().instabuild;
-            if (options.autoLoad() && !containerSlotHasItem(handler, 0)) {
+            if (!handler.getCarried().isEmpty()) {
+               ItemStack carried = handler.getCarried();
+               if (!creative && stackMatches(carried, options.lapisItem()) && !containerSlotHasAtLeast(handler, 1, lapisCost) && this.moveCarriedToMenuSlot(client, handler, 1)) {
+                  this.lastStatus = "Auto Enchant: placed carried lapis.";
+               } else if (options.autoLoad() && !containerSlotHasItem(handler, 0) && this.moveCarriedToMenuSlot(client, handler, 0)) {
+                  this.lastStatus = "Auto Enchant: placed carried item.";
+               } else if (this.moveCarriedToPlayerInventory(client, handler)) {
+                  this.lastStatus = "Auto Enchant: cleared carried item.";
+               } else {
+                  this.fail(client, node, "Failed: Auto Enchant needs inventory space to clear the cursor.");
+               }
+            } else if (options.autoLoad() && !containerSlotHasItem(handler, 0)) {
                if (this.moveEnchantingInputToTable(client, handler, options.itemSelector())) {
                   this.lastStatus = "Auto Enchant: loaded item.";
                } else {
                   this.fail(client, node, "Failed: Auto Enchant needs an enchantable item in inventory or item=held.");
                }
             } else if (options.autoLoad() && !creative && !containerSlotHasAtLeast(handler, 1, lapisCost)) {
-               if (this.moveItemToMenuSlot(client, handler, options.lapisItem(), 1)) {
+               if (this.quickMoveItemToMenuSlot(client, handler, options.lapisItem(), 1)) {
                   this.lastStatus = "Auto Enchant: loaded lapis.";
                } else {
                   this.fail(client, node, "Failed: Auto Enchant needs " + options.lapisItem() + " in inventory.");
@@ -4699,10 +4710,24 @@ final class MacroRunner {
          && this.pickupMoveStack(client, handler, sourceSlotIndex, targetSlotIndex, targetSlotIndex + 1, handler.getSlot(sourceSlotIndex).getItem());
    }
 
-   private boolean moveItemToMenuSlot(Minecraft client, AbstractContainerMenu handler, String itemId, int targetSlotIndex) {
+   private boolean quickMoveItemToMenuSlot(Minecraft client, AbstractContainerMenu handler, String itemId, int targetSlotIndex) {
+      if (client.gameMode == null || client.player == null || handler == null || targetSlotIndex < 0 || targetSlotIndex >= handler.slots.size() || !isKnownItemId(itemId)) {
+         return false;
+      }
+
+      Slot targetSlot = handler.getSlot(targetSlotIndex);
       int sourceSlotIndex = this.firstMatchingPlayerMenuSlot(handler, itemId);
-      return sourceSlotIndex >= 0
-         && this.pickupMoveStack(client, handler, sourceSlotIndex, targetSlotIndex, targetSlotIndex + 1, handler.getSlot(sourceSlotIndex).getItem());
+      if (sourceSlotIndex < 0) {
+         return false;
+      }
+
+      ItemStack stack = handler.getSlot(sourceSlotIndex).getItem();
+      if (stack.isEmpty() || !targetSlot.mayPlace(stack)) {
+         return false;
+      }
+
+      client.gameMode.handleInventoryMouseClick(handler.containerId, sourceSlotIndex, 0, ClickType.QUICK_MOVE, client.player);
+      return true;
    }
 
    private int firstEnchantingInputMenuSlot(Minecraft client, AbstractContainerMenu handler, String selector) {
@@ -4825,6 +4850,31 @@ final class MacroRunner {
 
       int targetSlotIndex = this.firstAcceptingSlotIndex(handler, firstPlayerInventorySlot(handler), handler.slots.size(), carried);
       if (targetSlotIndex < 0) {
+         return false;
+      }
+
+      client.gameMode.handleInventoryMouseClick(handler.containerId, targetSlotIndex, 0, ClickType.PICKUP, client.player);
+      return true;
+   }
+
+   private boolean moveCarriedToMenuSlot(Minecraft client, AbstractContainerMenu handler, int targetSlotIndex) {
+      if (client.gameMode == null || client.player == null || handler == null || targetSlotIndex < 0 || targetSlotIndex >= handler.slots.size()) {
+         return false;
+      }
+
+      ItemStack carried = handler.getCarried();
+      if (carried.isEmpty()) {
+         return true;
+      }
+
+      Slot targetSlot = handler.getSlot(targetSlotIndex);
+      if (!targetSlot.mayPlace(carried)) {
+         return false;
+      }
+
+      ItemStack existing = targetSlot.getItem();
+      int maxCount = Math.min(carried.getMaxStackSize(), targetSlot.getMaxStackSize(carried));
+      if (!existing.isEmpty() && (!ItemStack.isSameItemSameComponents(existing, carried) || existing.getCount() >= maxCount)) {
          return false;
       }
 
