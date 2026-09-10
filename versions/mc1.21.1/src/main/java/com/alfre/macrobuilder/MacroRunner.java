@@ -2118,18 +2118,27 @@ final class MacroRunner {
                ItemStack carried = handler.getCarried();
                if (!creative && stackMatches(carried, options.lapisItem()) && !containerSlotHasAtLeast(handler, 1, lapisCost) && this.moveCarriedToMenuSlot(client, handler, 1)) {
                   this.lastStatus = "Auto Enchant: placed carried lapis.";
-               } else if (options.autoLoad() && !containerSlotHasItem(handler, 0) && this.moveCarriedToMenuSlot(client, handler, 0)) {
+               } else if (options.autoLoad()
+                  && !containerSlotHasItem(handler, 0)
+                  && this.isFreshEnchantingInput(client, handler, carried, options.itemSelector(), true)
+                  && this.moveCarriedToMenuSlot(client, handler, 0)) {
                   this.lastStatus = "Auto Enchant: placed carried item.";
                } else if (this.moveCarriedToPlayerInventory(client, handler)) {
                   this.lastStatus = "Auto Enchant: cleared carried item.";
                } else {
                   this.fail(client, node, "Failed: Auto Enchant needs inventory space to clear the cursor.");
                }
+            } else if (options.autoLoad() && isAlreadyEnchantedForAutoEnchant(handler.getSlot(0).getItem())) {
+               if (this.moveMenuSlotToPlayerInventory(client, handler, 0)) {
+                  this.lastStatus = "Auto Enchant: moved enchanted item to inventory.";
+               } else {
+                  this.fail(client, node, "Failed: Auto Enchant needs inventory space for the enchanted item.");
+               }
             } else if (options.autoLoad() && !containerSlotHasItem(handler, 0)) {
                if (this.moveEnchantingInputToTable(client, handler, options.itemSelector())) {
                   this.lastStatus = "Auto Enchant: loaded item.";
                } else {
-                  this.fail(client, node, "Failed: Auto Enchant needs an enchantable item in inventory or item=held.");
+                  this.fail(client, node, "Failed: Auto Enchant needs an unenchanted enchantable item in inventory.");
                }
             } else if (options.autoLoad() && !creative && !containerSlotHasAtLeast(handler, 1, lapisCost)) {
                if (this.quickMoveItemToMenuSlot(client, handler, options.lapisItem(), 1)) {
@@ -4780,8 +4789,8 @@ final class MacroRunner {
 
             for (int index = firstPlayerSlot; index < handler.slots.size(); index++) {
                ItemStack stack = handler.getSlot(index).getItem();
-               if (!stack.isEmpty() && targetSlot.mayPlace(stack)) {
-                  if (anyItem || heldItem && !heldStack.isEmpty() && ItemStack.isSameItemSameComponents(stack, heldStack) || !itemId.isBlank() && stackMatches(stack, itemId)) {
+               if (this.isFreshEnchantingInput(client, handler, stack, selector, false)) {
+                  if (anyItem || heldItem && !heldStack.isEmpty() && stack.getItem() == heldStack.getItem() || !itemId.isBlank() && stackMatches(stack, itemId)) {
                      return index;
                   }
                }
@@ -4790,6 +4799,39 @@ final class MacroRunner {
             return -1;
          }
       }
+   }
+
+   private boolean isFreshEnchantingInput(Minecraft client, AbstractContainerMenu handler, ItemStack stack, String selector, boolean allowHeldCursorFallback) {
+      return stack != null
+         && !stack.isEmpty()
+         && handler != null
+         && handler.getSlot(0).mayPlace(stack)
+         && !isAlreadyEnchantedForAutoEnchant(stack)
+         && this.enchantingInputMatchesSelector(client, stack, selector, allowHeldCursorFallback);
+   }
+
+   private boolean enchantingInputMatchesSelector(Minecraft client, ItemStack stack, String selector, boolean allowHeldCursorFallback) {
+      String normalizedSelector = selector == null ? "" : selector.trim().toLowerCase(Locale.ROOT);
+      boolean anyItem = normalizedSelector.isBlank() || normalizedSelector.equals("any") || normalizedSelector.equals("all") || normalizedSelector.equals("auto");
+      if (anyItem) {
+         return true;
+      }
+
+      boolean heldItem = normalizedSelector.equals("held")
+         || normalizedSelector.equals("hand")
+         || normalizedSelector.equals("mainhand")
+         || normalizedSelector.equals("main_hand");
+      if (heldItem) {
+         ItemStack heldStack = client.player == null ? ItemStack.EMPTY : client.player.getMainHandItem();
+         return heldStack.isEmpty() ? allowHeldCursorFallback : stack.getItem() == heldStack.getItem();
+      }
+
+      String itemId = MacroModel.normalizeItemId(normalizedSelector);
+      return isKnownItemId(itemId) && stackMatches(stack, itemId);
+   }
+
+   private static boolean isAlreadyEnchantedForAutoEnchant(ItemStack stack) {
+      return stack != null && !stack.isEmpty() && (stack.isEnchanted() || stackMatches(stack, "minecraft:enchanted_book"));
    }
 
    private int firstGrindstoneInputMenuSlot(
@@ -4869,6 +4911,15 @@ final class MacroRunner {
 
          return true;
       }
+   }
+
+   private boolean moveMenuSlotToPlayerInventory(Minecraft client, AbstractContainerMenu handler, int sourceSlotIndex) {
+      if (client.gameMode == null || client.player == null || handler == null || sourceSlotIndex < 0 || sourceSlotIndex >= handler.slots.size()) {
+         return false;
+      }
+
+      ItemStack stack = handler.getSlot(sourceSlotIndex).getItem();
+      return !stack.isEmpty() && this.pickupMoveStack(client, handler, sourceSlotIndex, firstPlayerInventorySlot(handler), handler.slots.size(), stack);
    }
 
    private boolean moveCarriedToPlayerInventory(Minecraft client, AbstractContainerMenu handler) {

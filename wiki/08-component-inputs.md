@@ -194,11 +194,13 @@ Auto enchanting:
 
 ```text
 Open an enchanting table first.
-Put the item in the left slot.
-Put lapis in the lapis slot.
 Auto Enchant Field 1: 1, 2, 3, or best
 Auto Enchant Field 2: minimum XP level, such as 30
+Enchant item: held, any, or an item ID like minecraft:iron_sword
+Lapis item: minecraft:lapis_lazuli
 ```
+
+When Auto Enchant loads items itself, it skips items that are already enchanted. For batch enchanting, set `Enchant item` to the item ID, such as `minecraft:iron_sword`, and keep several unenchanted copies in inventory.
 
 Auto grindstone:
 

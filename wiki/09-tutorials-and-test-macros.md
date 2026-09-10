@@ -12,6 +12,7 @@ Ready-to-import examples are in the repo `test-macros` folder:
 | --- | --- |
 | `zombie-attack-loop.json` | Finds nearby zombies, attacks, waits, and checks again. |
 | `mob-farm-xp30-attack-enchant-loop.json` | Attacks mobs until XP level 30, opens an enchanting table, enchants the held item with lapis, then returns to grinding. |
+| `batch-enchant-6-iron-swords.json` | Opens a nearby enchanting table and enchants up to six unenchanted iron swords, skipping already-enchanted ones. |
 | `mine-area-deposit-chest-template.json` | Mines a small coordinate box, opens a nearby chest, deposits inventory, and loops. Edit the coordinates before running. |
 
 To use one:
@@ -104,6 +105,35 @@ Setup:
 - Put an enchanting table within the radius.
 - Stand where your attack can hit mobs.
 
+## Tutorial: Enchant Several Items In A Row
+
+Use this when you have several unenchanted copies of the same item.
+
+```text
+Macro Entry Point
+  started -> Open Nearest Enchanting Table
+
+Open Nearest Enchanting Table
+  Radius 1-16: 8
+  Move true/false: move=true
+  completed -> Auto Enchant
+
+Auto Enchant
+  Option 1-3: 1
+  Min XP: 1
+  Item: minecraft:iron_sword
+  Lapis: minecraft:lapis_lazuli
+  Close: On
+  completed -> Repeat
+
+Repeat
+  Repeat count: 6
+  repeat -> Open Nearest Enchanting Table
+  completed -> Local Message
+```
+
+Auto Enchant skips items that are already enchanted. For a different batch, change `minecraft:iron_sword` to the item you are enchanting.
+
 ## Tutorial: Mine Area Coordinates
 
 Use `Mine Area` when you want the macro to mine a box.
@@ -148,4 +178,3 @@ Before uploading a macro:
 - Remove private server IPs, Discord webhooks, and personal commands.
 - Connect failed paths to a local message or end connection.
 - Test it once in singleplayer or a safe server area.
-

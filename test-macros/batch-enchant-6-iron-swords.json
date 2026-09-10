@@ -1,0 +1,160 @@
+{
+  "format": "litemacro-v1",
+  "name": "Batch Enchant 6 Iron Swords",
+  "stepDelayMs": 0,
+  "alwaysOn": false,
+  "autoStartMode": "off",
+  "autoStartFilter": "",
+  "randomDelayEnabled": false,
+  "randomDelayMinMs": 250,
+  "randomDelayMaxMs": 1250,
+  "nextIndex": 10,
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "official:start",
+      "x": 80,
+      "y": 170,
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "started": "node-2"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "builder:world.openNearestEnchantingTable",
+      "x": 350,
+      "y": 170,
+      "value": "8",
+      "value2": "move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-3",
+        "failed": "node-7"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "builder:inventory.autoEnchant",
+      "x": 650,
+      "y": 170,
+      "value": "1",
+      "value2": "1",
+      "value3": "minecraft:iron_sword",
+      "value4": "minecraft:lapis_lazuli",
+      "value5": "true",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-4",
+        "failed": "node-7"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "builder:misc.repeatSection",
+      "x": 950,
+      "y": 170,
+      "value": "6",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "repeat": "node-5",
+        "completed": "node-6",
+        "failed": "node-7"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "official:misc.wait",
+      "x": 950,
+      "y": 315,
+      "value": "500",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-2",
+        "failed": "node-7"
+      }
+    },
+    {
+      "id": "node-6",
+      "type": "builder:localMessage",
+      "x": 1230,
+      "y": 170,
+      "value": "Batch enchant finished. Already-enchanted swords were skipped.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    },
+    {
+      "id": "node-7",
+      "type": "builder:localMessage",
+      "x": 1230,
+      "y": 315,
+      "value": "Batch enchant stopped. Need unenchanted iron swords, lapis, XP, and an enchanting table within 8 blocks.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-8"
+      }
+    },
+    {
+      "id": "node-8",
+      "type": "builder:flow.endConnection",
+      "x": 1530,
+      "y": 315,
+      "value": "end branch",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    },
+    {
+      "id": "node-9",
+      "type": "builder:flow.note",
+      "x": 80,
+      "y": 390,
+      "value": "Batch enchant setup:\n\nPut several unenchanted iron swords and lapis in your inventory.\nPlace an enchanting table within 8 blocks.\nThis test uses option 1 and minimum XP 1 so it is easy to test.\nFor level 30 enchants, set Auto Enchant option to 3 and min XP to 30.\nAuto Enchant now skips swords that are already enchanted.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "stickyNoteText": "Batch enchant setup:\n\nPut several unenchanted iron swords and lapis in your inventory.\nPlace an enchanting table within 8 blocks.\nThis test uses option 1 and minimum XP 1 so it is easy to test.\nFor level 30 enchants, set Auto Enchant option to 3 and min XP to 30.\nAuto Enchant now skips swords that are already enchanted.",
+      "stickyNoteWidth": 580,
+      "stickyNoteHeight": 230,
+      "outputs": {}
+    }
+  ]
+}
