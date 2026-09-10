@@ -2348,6 +2348,11 @@ final class MacroRunner {
    private void runWorldMine(Minecraft client, MacroModel.Node node) {
       BlockHitResult hit = this.targetBlockHit(client, node.value);
       if (hit != null && client.gameMode != null) {
+         Boolean selectTool = parseBooleanOrDefault(node.value2, false);
+         if (selectTool != null && selectTool) {
+            this.selectBestHotbarTool(client, client.level.getBlockState(hit.getBlockPos()));
+         }
+
          if (this.activeTicks == 1) {
             client.gameMode.startDestroyBlock(hit.getBlockPos(), hit.getDirection());
          } else {
@@ -2718,7 +2723,7 @@ final class MacroRunner {
       MacroRunner.MineAreaOptions options = this.mineAreaOptions(client, node);
       if (options == null) {
          this.fail(client, node, mineAreaOptionsError(node));
-      } else if (toolIsLow(client, options.toolLowThreshold())) {
+      } else if (!options.autoTool() && toolIsLow(client, options.toolLowThreshold())) {
          this.releaseHeldKeys(client);
          this.complete(client, node, "tool_low");
       } else if (client.gameMode == null) {
@@ -2756,6 +2761,16 @@ final class MacroRunner {
             this.releaseMovementKeys(client);
             this.activeMineAreaTravelTicks = 0;
             this.activeMineAreaTicks++;
+            BlockState targetState = client.level.getBlockState(this.activeMineAreaPos);
+            if (options.autoTool()) {
+               this.selectBestHotbarTool(client, targetState);
+               if (toolIsLow(client, options.toolLowThreshold())) {
+                  this.releaseHeldKeys(client);
+                  this.complete(client, node, "tool_low");
+                  return;
+               }
+            }
+
             this.lookAt(client, Vec3.atCenterOf(this.activeMineAreaPos));
             Direction hitDirection = this.mineAreaHitDirection(client, this.activeMineAreaPos);
             if (this.activeMineAreaTicks == 1) {
@@ -4267,7 +4282,8 @@ final class MacroRunner {
          } else {
             int toolLowThreshold = mineToolLowThreshold(options);
             boolean move = moveOption(options, true);
-            return new MacroRunner.MineAreaOptions(min, max, toolLowThreshold, move);
+            boolean autoTool = mineAreaAutoTool(options);
+            return new MacroRunner.MineAreaOptions(min, max, toolLowThreshold, move, autoTool);
          }
       } else {
          return null;
@@ -4337,6 +4353,29 @@ final class MacroRunner {
       return toolLowThreshold;
    }
 
+   private static boolean mineAreaAutoTool(String options) {
+      boolean autoTool = false;
+
+      for (String token : options.split("[,\\s]+")) {
+         String normalized = token.trim().toLowerCase(Locale.ROOT).replace('-', '_');
+         if (normalized.equals("auto_tool") || normalized.equals("autotool") || normalized.equals("tool_auto") || normalized.equals("select_tool") || normalized.equals("smart_tool")) {
+            autoTool = true;
+         } else if (normalized.startsWith("auto_tool=")) {
+            autoTool = truthyWithDefault(normalized.substring("auto_tool=".length()), autoTool);
+         } else if (normalized.startsWith("autotool=")) {
+            autoTool = truthyWithDefault(normalized.substring("autotool=".length()), autoTool);
+         } else if (normalized.startsWith("tool_auto=")) {
+            autoTool = truthyWithDefault(normalized.substring("tool_auto=".length()), autoTool);
+         } else if (normalized.startsWith("select_tool=")) {
+            autoTool = truthyWithDefault(normalized.substring("select_tool=".length()), autoTool);
+         } else if (normalized.startsWith("smart_tool=")) {
+            autoTool = truthyWithDefault(normalized.substring("smart_tool=".length()), autoTool);
+         }
+      }
+
+      return autoTool;
+   }
+
    private static boolean toolIsLow(Minecraft client, int threshold) {
       if (threshold <= 0) {
          return false;
@@ -4344,6 +4383,52 @@ final class MacroRunner {
          ItemStack stack = client.player.getMainHandItem();
          return !stack.isEmpty() && stack.isDamageableItem() && stack.getMaxDamage() - stack.getDamageValue() <= threshold;
       }
+   }
+
+   private boolean selectBestHotbarTool(Minecraft client, BlockState state) {
+      if (client.player == null || state == null || state.isAir()) {
+         return false;
+      }
+
+      int selectedSlot = client.player.getInventory().selected;
+      double selectedScore = selectedSlot >= 0 && selectedSlot < client.player.getInventory().getContainerSize()
+         ? this.toolScore(client.player.getInventory().getItem(selectedSlot), state)
+         : 1.0;
+      int bestSlot = selectedSlot;
+      double bestScore = selectedScore;
+
+      for (int slot = 0; slot < 9 && slot < client.player.getInventory().getContainerSize(); slot++) {
+         ItemStack stack = client.player.getInventory().getItem(slot);
+         double score = this.toolScore(stack, state);
+         if (score > bestScore + 0.0001) {
+            bestScore = score;
+            bestSlot = slot;
+         }
+      }
+
+      if (bestSlot >= 0 && bestSlot != selectedSlot && bestScore > selectedScore + 0.0001 && bestScore > 1.0001) {
+         client.player.getInventory().selected = bestSlot;
+         return true;
+      }
+
+      return false;
+   }
+
+   private double toolScore(ItemStack stack, BlockState state) {
+      if (stack == null || stack.isEmpty()) {
+         return 1.0;
+      }
+
+      double score = stack.getDestroySpeed(state);
+      if (stack.isCorrectToolForDrops(state)) {
+         score += 1000.0;
+      }
+
+      if (stack.isDamageableItem()) {
+         score += Math.max(0, stack.getMaxDamage() - stack.getDamageValue()) / 100000.0;
+      }
+
+      return score;
    }
 
    private static boolean canReachBlock(Minecraft client, BlockPos pos) {
@@ -6515,7 +6600,7 @@ final class MacroRunner {
    private record FarmOptions(int radius, BlockPos min, BlockPos max, boolean replant, boolean depositWhenFull, boolean move) {
    }
 
-   private record MineAreaOptions(BlockPos min, BlockPos max, int toolLowThreshold, boolean move) {
+   private record MineAreaOptions(BlockPos min, BlockPos max, int toolLowThreshold, boolean move, boolean autoTool) {
    }
 
    private record PressKeyOptions(boolean hold, int durationMs) {

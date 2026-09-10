@@ -17,7 +17,7 @@ Fix:
 
 Common reasons:
 
-- `tool=10` is enabled and your held tool has 10 durability left. Connect `tool_low` to a repair/swap path, or use `tool=0` to disable this check.
+- `tool=10` is enabled and the selected tool has 10 durability left. Connect `tool_low` to a repair/swap path, or use `tool=0` to disable this check.
 - One block did not break or could not be reached. Current builds skip that block and continue, so check the status text for skipped blocks.
 - The next block is out of reach and `move=false` is set. Use `move=true` if the macro should walk toward blocks.
 - The selected area is bigger than `16x16x16`. Split the mine into multiple `Mine Area` components.

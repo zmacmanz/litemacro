@@ -51,7 +51,10 @@ Good example:
 
 ```text
 Field 1: -11879 26 12100
-Field 2: -11864 41 12115 tool=0 move=true
+Field 2: -11864 41 12115
+Tool Low: 10
+Move: On
+Auto Tool: On
 ```
 
 Options:
@@ -59,14 +62,17 @@ Options:
 ```text
 move=true   walk toward blocks before mining
 move=false  only mine blocks already in reach
+auto_tool=true   switch to the best hotbar tool before each block
+auto_tool=false  keep using the held item
 tool=0      do not stop for low tool durability
-tool=10     send the tool_low output when the held tool has 10 durability left
+tool=10     send the tool_low output when the selected tool has 10 durability left
 ```
 
 Limits and behavior:
 
 - Max size is `16x16x16` for one `Mine Area`.
 - Bigger mines must be split into multiple `Mine Area` components.
+- `Auto Tool` checks your hotbar and switches between pickaxe, shovel, axe, or another faster tool based on the block being mined.
 - If one block is protected, unreachable, or will not break, Litemacro skips that block and keeps checking the rest of the area.
 - If the whole area is unloaded and `move=true`, Litemacro walks toward the area for a limited time. If it still cannot load the area, the component fails instead of walking forever.
 

@@ -288,7 +288,7 @@ final class MacroModel {
          "official:world.mineBlock", "Mine Block", "World", -11094334, COMPLETED_OR_FAILED, true, "Target X Y Z", "Select tool true/false", ""
       ),
       new MacroModel.Descriptor(
-         "builder:world.mineArea", "Mine Area", "World", -11094334, COMPLETED_TOOL_LOW_OR_FAILED, true, "From corner X Y Z", "To corner X Y Z + options", "0 64 0"
+         "builder:world.mineArea", "Mine Area", "World", -11094334, COMPLETED_TOOL_LOW_OR_FAILED, true, "From corner X Y Z", "To corner X Y Z", "0 64 0"
       ),
       new MacroModel.Descriptor("official:world.placeBlock", "Place Block", "World", -11094334, COMPLETED_OR_FAILED, true, "Target X Y Z", "Select block", ""),
       new MacroModel.Descriptor(
@@ -1499,7 +1499,7 @@ final class MacroModel {
          } else if ("official:world.mineBlock".equals(this.type) || "official:world.placeBlock".equals(this.type)) {
             return "true";
          } else if ("builder:world.mineArea".equals(this.type)) {
-            return "10 79 10 tool=10 move=true";
+            return "10 79 10 tool=10 move=true auto_tool=false";
          } else if ("builder:world.farmArea".equals(this.type)) {
             return "0 64 0 replant deposit move=true";
          } else if ("builder:world.openNearestContainer".equals(this.type)) {

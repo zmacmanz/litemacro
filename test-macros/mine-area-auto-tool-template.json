@@ -1,0 +1,107 @@
+{
+  "format": "litemacro-v1",
+  "name": "Mine Area Auto Tool Template",
+  "stepDelayMs": 0,
+  "alwaysOn": false,
+  "autoStartMode": "off",
+  "autoStartFilter": "",
+  "randomDelayEnabled": false,
+  "randomDelayMinMs": 250,
+  "randomDelayMaxMs": 1250,
+  "nextIndex": 7,
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "official:start",
+      "x": 120,
+      "y": 120,
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "started": "node-2"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "builder:world.mineArea",
+      "x": 380,
+      "y": 120,
+      "value": "100 64 100",
+      "value2": "103 66 103 tool=10 move=true auto_tool=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-3",
+        "tool_low": "node-4",
+        "failed": "node-5"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "builder:localMessage",
+      "x": 680,
+      "y": 70,
+      "value": "Mine Area Auto Tool finished.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    },
+    {
+      "id": "node-4",
+      "type": "builder:localMessage",
+      "x": 680,
+      "y": 165,
+      "value": "Selected tool durability is low. Repair or swap tools.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    },
+    {
+      "id": "node-5",
+      "type": "builder:localMessage",
+      "x": 680,
+      "y": 260,
+      "value": "Mine Area failed. Check coordinates, reach, blocks, and server permissions.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    },
+    {
+      "id": "node-6",
+      "type": "builder:flow.note",
+      "x": 120,
+      "y": 315,
+      "value": "Auto Tool setup:\n\nPut a pickaxe, shovel, and axe in your hotbar.\nReplace both coordinate fields with the two corners of your mine.\nKeep the area 16x16x16 or smaller.\nAuto Tool switches tools based on the next block.\nTool Low is set to 10 so low tools go to the tool_low output.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "stickyNoteText": "Auto Tool setup:\n\nPut a pickaxe, shovel, and axe in your hotbar.\nReplace both coordinate fields with the two corners of your mine.\nKeep the area 16x16x16 or smaller.\nAuto Tool switches tools based on the next block.\nTool Low is set to 10 so low tools go to the tool_low output.",
+      "stickyNoteWidth": 560,
+      "stickyNoteHeight": 230,
+      "outputs": {}
+    }
+  ]
+}

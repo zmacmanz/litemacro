@@ -14,6 +14,7 @@ Ready-to-import examples are in the repo `test-macros` folder:
 | `mob-farm-xp30-attack-enchant-loop.json` | Attacks mobs until XP level 30, opens an enchanting table, enchants the held item with lapis, then returns to grinding. |
 | `batch-enchant-6-iron-swords.json` | Opens a nearby enchanting table and enchants up to six unenchanted iron swords, skipping already-enchanted ones. |
 | `mine-area-deposit-chest-template.json` | Mines a small coordinate box, opens a nearby chest, deposits inventory, and loops. Edit the coordinates before running. |
+| `mine-area-auto-tool-template.json` | Mines a small area while switching to the best hotbar tool for stone, dirt, wood, and similar blocks. |
 
 To use one:
 
@@ -144,7 +145,10 @@ Use `Mine Area` when you want the macro to mine a box.
 4. Put that in `From corner X Y Z`.
 5. Move to the opposite corner.
 6. Copy that block position.
-7. Put it at the start of `To corner X Y Z + options`.
+7. Put it in `To corner X Y Z`.
+8. Turn `Move` on if the macro should walk toward blocks.
+9. Turn `Auto Tool` on if the macro should switch hotbar tools.
+10. Set `Tool low durability` to a safe number like `10`, or `0` to disable the low-tool output.
 
 Example:
 
@@ -152,8 +156,14 @@ Example:
 From corner X Y Z:
 100 64 100
 
-To corner X Y Z + options:
-107 67 107 tool=10 move=true
+To corner X Y Z:
+107 67 107
+
+Tool low durability:
+10
+
+Move: On
+Auto Tool: On
 ```
 
 The first two corners can be in any order. Litemacro sorts the low and high corner for you.
@@ -161,10 +171,12 @@ The first two corners can be in any order. Litemacro sorts the low and high corn
 Options:
 
 ```text
-tool=10     use tool_low when the held tool has 10 durability left
+tool=10     use tool_low when the selected tool has 10 durability left
 tool=0      disable the tool_low check
 move=true   walk toward blocks and unloaded areas
 move=false  only mine what is already in reach
+auto_tool=true   switch to pickaxe, shovel, axe, or fastest hotbar tool
+auto_tool=false  keep using the held item
 ```
 
 Keep one Mine Area at `16x16x16` or smaller. For a bigger mine, place several Mine Area components one after another.

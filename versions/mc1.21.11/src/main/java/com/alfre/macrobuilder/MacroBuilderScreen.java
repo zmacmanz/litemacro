@@ -61,6 +61,10 @@ final class MacroBuilderScreen extends Screen {
    private static final int RIGHT_SECONDARY_LABEL_Y = 256;
    private static final int RIGHT_SECONDARY_FIELD_Y = 270;
    private static final int RIGHT_SECONDARY_ITEM_Y = 296;
+   private static final int RIGHT_MINE_AREA_TOOL_LABEL_Y = 296;
+   private static final int RIGHT_MINE_AREA_TOOL_FIELD_Y = 310;
+   private static final int RIGHT_MINE_AREA_TOGGLE_Y = 334;
+   private static final int RIGHT_MINE_AREA_HINT_Y = 358;
    private static final int RIGHT_AUTO_ENCHANT_ITEM_LABEL_Y = 296;
    private static final int RIGHT_AUTO_ENCHANT_ITEM_FIELD_Y = 310;
    private static final int RIGHT_AUTO_ENCHANT_ITEM_BUTTON_Y = 334;
@@ -100,6 +104,7 @@ final class MacroBuilderScreen extends Screen {
    private EditBox delayField;
    private EditBox primaryField;
    private EditBox secondaryField;
+   private EditBox mineAreaToolLowField;
    private EditBox autoEnchantItemField;
    private EditBox autoEnchantLapisField;
    private EditBox autoGrindstoneInputField;
@@ -124,6 +129,8 @@ final class MacroBuilderScreen extends Screen {
    private Button repeatIndefinitelyButton;
    private Button primaryItemButton;
    private Button secondaryItemButton;
+   private Button mineAreaMoveButton;
+   private Button mineAreaAutoToolButton;
    private Button autoEnchantUseHeldButton;
    private Button autoEnchantPickItemButton;
    private Button autoEnchantPickLapisButton;
@@ -280,6 +287,9 @@ final class MacroBuilderScreen extends Screen {
       this.secondaryField = new EditBox(this.font, rightX + 14, RIGHT_SECONDARY_FIELD_Y, rightWidth, 20, Component.empty());
       this.secondaryField.setMaxLength(2048);
       this.addRenderableWidget(this.secondaryField);
+      this.mineAreaToolLowField = new EditBox(this.font, rightX + 14, RIGHT_MINE_AREA_TOOL_FIELD_Y, rightWidth, 20, Component.empty());
+      this.mineAreaToolLowField.setMaxLength(6);
+      this.addRenderableWidget(this.mineAreaToolLowField);
       this.autoEnchantItemField = new EditBox(this.font, rightX + 14, RIGHT_AUTO_ENCHANT_ITEM_FIELD_Y, rightWidth, 20, Component.empty());
       this.autoEnchantItemField.setMaxLength(128);
       this.addRenderableWidget(this.autoEnchantItemField);
@@ -306,6 +316,16 @@ final class MacroBuilderScreen extends Screen {
       );
       int splitButtonWidth = Math.max(72, (rightWidth - 8) / 2);
       int trailingButtonWidth = Math.max(64, rightWidth - splitButtonWidth - 8);
+      this.mineAreaMoveButton = (Button)this.addRenderableWidget(
+         Button.builder(Component.literal("Move: On"), button -> this.toggleMineAreaMove())
+            .bounds(rightX + 14, RIGHT_MINE_AREA_TOGGLE_Y, splitButtonWidth, 20)
+            .build()
+      );
+      this.mineAreaAutoToolButton = (Button)this.addRenderableWidget(
+         Button.builder(Component.literal("Auto Tool: Off"), button -> this.toggleMineAreaAutoTool())
+            .bounds(rightX + 22 + splitButtonWidth, RIGHT_MINE_AREA_TOGGLE_Y, trailingButtonWidth, 20)
+            .build()
+      );
       this.autoEnchantUseHeldButton = (Button)this.addRenderableWidget(
          Button.builder(Component.literal("Use Held"), button -> this.setAutoEnchantItemToHeld()).bounds(rightX + 14, RIGHT_AUTO_ENCHANT_ITEM_BUTTON_Y, splitButtonWidth, 20).build()
       );
@@ -946,6 +966,7 @@ final class MacroBuilderScreen extends Screen {
          && !this.isNoteNode(this.selectedNode)
          && this.primaryField != null
          && this.secondaryField != null
+         && this.mineAreaToolLowField != null
          && this.autoEnchantItemField != null
          && this.autoEnchantLapisField != null
          && this.autoGrindstoneInputField != null
@@ -955,12 +976,17 @@ final class MacroBuilderScreen extends Screen {
          this.selectedNode.delayMs = this.parseNodeDelayMs(this.nodeDelayField.getValue());
          MacroModel.Descriptor descriptor = this.selectedNode.descriptor();
          boolean autoGrindstoneNode = this.isAutoGrindstoneNode(this.selectedNode);
+         boolean mineAreaNode = this.isMineAreaNode(this.selectedNode);
          if (!descriptor.primaryLabel().isBlank() && !autoGrindstoneNode) {
             this.selectedNode.value = this.primaryField.getValue();
          }
 
-         if (!descriptor.secondaryLabel().isBlank() && !this.isClickGuiItemNode(this.selectedNode) && !autoGrindstoneNode) {
+         if (!descriptor.secondaryLabel().isBlank() && !this.isClickGuiItemNode(this.selectedNode) && !autoGrindstoneNode && !mineAreaNode) {
             this.selectedNode.value2 = this.secondaryField.getValue();
+         }
+
+         if (mineAreaNode) {
+            this.syncMineAreaFieldsToNode();
          }
 
          if (this.isAutoEnchantNode(this.selectedNode)) {
@@ -988,6 +1014,9 @@ final class MacroBuilderScreen extends Screen {
    private void refreshProperties() {
       if (this.primaryField != null
          && this.secondaryField != null
+         && this.mineAreaToolLowField != null
+         && this.mineAreaMoveButton != null
+         && this.mineAreaAutoToolButton != null
          && this.autoEnchantItemField != null
          && this.autoEnchantLapisField != null
          && this.autoGrindstoneInputField != null
@@ -1007,6 +1036,7 @@ final class MacroBuilderScreen extends Screen {
             this.normalizeAutoGrindstoneNode(this.selectedNode);
          }
 
+         boolean mineAreaNode = hasSelection && this.isMineAreaNode(this.selectedNode);
          boolean hasPrimary = hasSelection && !noteNode && !autoGrindstoneNode && !descriptor.primaryLabel().isBlank();
          boolean hasSecondary = hasSelection && !noteNode && !autoGrindstoneNode && !descriptor.secondaryLabel().isBlank();
          boolean clickGuiItem = hasSelection && this.isClickGuiItemNode(this.selectedNode);
@@ -1029,7 +1059,8 @@ final class MacroBuilderScreen extends Screen {
          boolean repeatNode = hasSelection && this.isRepeatNode(this.selectedNode);
          String normalOutput = hasSelection ? this.primaryOutputKey(descriptor) : "completed";
          String primaryText = hasPrimary && this.selectedNode.value != null ? this.selectedNode.value : "";
-         String secondaryText = hasSecondary && this.selectedNode.value2 != null ? this.selectedNode.value2 : "";
+         String secondaryText = mineAreaNode ? this.mineAreaToText(this.selectedNode) : (hasSecondary && this.selectedNode.value2 != null ? this.selectedNode.value2 : "");
+         String mineAreaToolLowText = mineAreaNode ? this.mineAreaToolLowText(this.selectedNode) : "";
          String autoEnchantItemText = autoEnchantNode ? this.autoEnchantItemText(this.selectedNode) : "";
          String autoEnchantLapisText = autoEnchantNode ? this.autoEnchantLapisText(this.selectedNode) : "";
          String autoGrindstoneInputText = autoGrindstoneNode ? this.autoGrindstoneInputText(this.selectedNode) : "";
@@ -1044,6 +1075,10 @@ final class MacroBuilderScreen extends Screen {
          this.secondaryField.active = hasSecondary;
          this.secondaryField.setValue(secondaryText);
          this.secondaryField.setSuggestion(hasSecondary && secondaryText.isBlank() ? this.fieldSuggestion(descriptor, true) : "");
+         this.mineAreaToolLowField.visible = mineAreaNode;
+         this.mineAreaToolLowField.active = mineAreaNode;
+         this.mineAreaToolLowField.setValue(mineAreaToolLowText);
+         this.mineAreaToolLowField.setSuggestion(mineAreaNode && mineAreaToolLowText.isBlank() ? "10" : "");
          this.autoEnchantItemField.visible = autoEnchantNode;
          this.autoEnchantItemField.active = autoEnchantNode;
          this.autoEnchantItemField.setValue(autoEnchantItemText);
@@ -1074,6 +1109,12 @@ final class MacroBuilderScreen extends Screen {
          this.primaryItemButton.active = primaryItem;
          this.secondaryItemButton.visible = secondaryItem;
          this.secondaryItemButton.active = secondaryItem;
+         this.mineAreaMoveButton.visible = mineAreaNode;
+         this.mineAreaMoveButton.active = mineAreaNode;
+         this.mineAreaMoveButton.setMessage(Component.literal(this.mineAreaMoveEnabled(this.selectedNode) ? "Move: On" : "Move: Off"));
+         this.mineAreaAutoToolButton.visible = mineAreaNode;
+         this.mineAreaAutoToolButton.active = mineAreaNode;
+         this.mineAreaAutoToolButton.setMessage(Component.literal(this.mineAreaAutoToolEnabled(this.selectedNode) ? "Auto Tool: On" : "Auto Tool: Off"));
          this.autoEnchantUseHeldButton.visible = autoEnchantNode;
          this.autoEnchantUseHeldButton.active = autoEnchantNode;
          this.autoEnchantPickItemButton.visible = autoEnchantNode;
@@ -1344,6 +1385,22 @@ final class MacroBuilderScreen extends Screen {
       }
    }
 
+   private void toggleMineAreaMove() {
+      if (this.isMineAreaNode(this.selectedNode)) {
+         boolean next = !this.mineAreaMoveEnabled(this.selectedNode);
+         this.selectedNode.value2 = this.mineAreaOptionsText(this.secondaryField.getValue(), this.mineAreaToolLowField.getValue(), next, this.mineAreaAutoToolEnabled(this.selectedNode));
+         this.refreshProperties();
+      }
+   }
+
+   private void toggleMineAreaAutoTool() {
+      if (this.isMineAreaNode(this.selectedNode)) {
+         boolean next = !this.mineAreaAutoToolEnabled(this.selectedNode);
+         this.selectedNode.value2 = this.mineAreaOptionsText(this.secondaryField.getValue(), this.mineAreaToolLowField.getValue(), this.mineAreaMoveEnabled(this.selectedNode), next);
+         this.refreshProperties();
+      }
+   }
+
    private void toggleSelectedEnabled() {
       List<MacroModel.Node> nodes = this.movableSelection();
       if (nodes.isEmpty()) {
@@ -1442,6 +1499,10 @@ final class MacroBuilderScreen extends Screen {
       return node != null && ("builder:misc.repeatMacro".equals(node.type) || "builder:misc.repeatSection".equals(node.type));
    }
 
+   private boolean isMineAreaNode(MacroModel.Node node) {
+      return node != null && "builder:world.mineArea".equals(node.type);
+   }
+
    private boolean repeatIndefinitelyEnabled(MacroModel.Node node) {
       String value = node == null || node.value == null ? "" : node.value.trim().toLowerCase();
       return value.equals("forever") || value.equals("infinite") || value.equals("indefinite") || value.equals("always") || value.equals("-1");
@@ -1490,6 +1551,124 @@ final class MacroBuilderScreen extends Screen {
 
    private boolean autoGrindstoneCloseEnabled(MacroModel.Node node) {
       return this.isTruthyText(node == null || node.value5 == null ? "" : node.value5.trim());
+   }
+
+   private String mineAreaToText(MacroModel.Node node) {
+      return this.mineAreaCoordinateText(node == null ? "" : node.value2);
+   }
+
+   private String mineAreaToolLowText(MacroModel.Node node) {
+      String options = node == null || node.value2 == null ? "" : node.value2.trim();
+      String value = this.mineAreaOptionValue(options, "tool=", this.mineAreaOptionValue(options, "low=", this.mineAreaOptionValue(options, "durability=", "10")));
+      return this.cleanMineAreaToolLow(value);
+   }
+
+   private boolean mineAreaMoveEnabled(MacroModel.Node node) {
+      return this.mineAreaOptionBoolean(node == null ? "" : node.value2, "move=", true);
+   }
+
+   private boolean mineAreaAutoToolEnabled(MacroModel.Node node) {
+      String options = node == null || node.value2 == null ? "" : node.value2.trim();
+      boolean autoTool = false;
+
+      for (String token : options.split("[,\\s]+")) {
+         String normalized = token.trim().toLowerCase(Locale.ROOT).replace('-', '_');
+         if (normalized.equals("auto_tool") || normalized.equals("autotool") || normalized.equals("tool_auto") || normalized.equals("select_tool") || normalized.equals("smart_tool")) {
+            autoTool = true;
+         } else if (normalized.startsWith("auto_tool=")) {
+            autoTool = this.optionTruthy(normalized.substring("auto_tool=".length()), autoTool);
+         } else if (normalized.startsWith("autotool=")) {
+            autoTool = this.optionTruthy(normalized.substring("autotool=".length()), autoTool);
+         } else if (normalized.startsWith("tool_auto=")) {
+            autoTool = this.optionTruthy(normalized.substring("tool_auto=".length()), autoTool);
+         } else if (normalized.startsWith("select_tool=")) {
+            autoTool = this.optionTruthy(normalized.substring("select_tool=".length()), autoTool);
+         } else if (normalized.startsWith("smart_tool=")) {
+            autoTool = this.optionTruthy(normalized.substring("smart_tool=".length()), autoTool);
+         }
+      }
+
+      return autoTool;
+   }
+
+   private void syncMineAreaFieldsToNode() {
+      if (this.isMineAreaNode(this.selectedNode)) {
+         this.selectedNode.value2 = this.mineAreaOptionsText(
+            this.secondaryField.getValue(), this.mineAreaToolLowField.getValue(), this.mineAreaMoveEnabled(this.selectedNode), this.mineAreaAutoToolEnabled(this.selectedNode)
+         );
+      }
+   }
+
+   private String mineAreaOptionsText(String toText, String toolLowText, boolean move, boolean autoTool) {
+      String coords = this.mineAreaCoordinateText(toText);
+      String toolLow = this.cleanMineAreaToolLow(toolLowText);
+      return (coords + " tool=" + toolLow + " move=" + move + " auto_tool=" + autoTool).trim();
+   }
+
+   private String mineAreaCoordinateText(String value) {
+      String text = value == null ? "" : value.trim();
+      if (text.isBlank()) {
+         return "";
+      }
+
+      String[] tokens = text.split("[,\\s]+");
+      if (tokens.length >= 3 && this.isNumberText(tokens[0]) && this.isNumberText(tokens[1]) && this.isNumberText(tokens[2])) {
+         return tokens[0] + " " + tokens[1] + " " + tokens[2];
+      }
+
+      return text;
+   }
+
+   private String cleanMineAreaToolLow(String value) {
+      String text = value == null ? "" : value.trim();
+      if (text.isBlank()) {
+         return "10";
+      }
+
+      try {
+         return Integer.toString(Math.max(0, Integer.parseInt(text)));
+      } catch (NumberFormatException ignored) {
+         return "10";
+      }
+   }
+
+   private boolean mineAreaOptionBoolean(String options, String prefix, boolean fallback) {
+      if (options != null && !options.isBlank()) {
+         for (String token : options.split("[,\\s]+")) {
+            String normalized = token.trim().toLowerCase(Locale.ROOT);
+            if (normalized.startsWith(prefix)) {
+               return this.optionTruthy(normalized.substring(prefix.length()), fallback);
+            }
+         }
+      }
+
+      return fallback;
+   }
+
+   private boolean optionTruthy(String value, boolean fallback) {
+      return this.isTruthyText(value) || !this.isFalseyText(value) && fallback;
+   }
+
+   private String mineAreaOptionValue(String options, String prefix, String fallback) {
+      if (options != null && !options.isBlank()) {
+         for (String token : options.split("[,\\s]+")) {
+            String normalized = token.trim().toLowerCase(Locale.ROOT);
+            if (normalized.startsWith(prefix)) {
+               return normalized.substring(prefix.length());
+            }
+         }
+      }
+
+      return fallback;
+   }
+
+   private boolean isNumberText(String value) {
+      try {
+         Double.parseDouble(value);
+         return true;
+      } catch (NumberFormatException ignored) {
+         return false;
+      }
    }
 
    private String autoGrindstoneInputText(MacroModel.Node node) {
@@ -2140,6 +2319,11 @@ final class MacroBuilderScreen extends Screen {
 
          if (!descriptor.secondaryLabel().isBlank() && !this.isClickGuiItemNode(this.selectedNode) && !this.isAutoGrindstoneNode(this.selectedNode)) {
             context.drawString(this.font, descriptor.secondaryLabel(), rightX + 14, RIGHT_SECONDARY_LABEL_Y, -2565928);
+         }
+
+         if (this.isMineAreaNode(this.selectedNode)) {
+            context.drawString(this.font, "Tool low durability", rightX + 14, RIGHT_MINE_AREA_TOOL_LABEL_Y, -2565928);
+            this.drawWrappedText(context, "Auto Tool picks the best hotbar tool for each block.", rightX + 14, RIGHT_MINE_AREA_HINT_Y, rightWidth, -7366491, 2);
          }
 
          if (this.isAutoEnchantNode(this.selectedNode)) {
@@ -3433,6 +3617,8 @@ final class MacroBuilderScreen extends Screen {
          return node.value + " = " + node.value2;
       } else if ("builder:world.lookingAtBlock".equals(node.type)) {
          return node.value != null && !node.value.isBlank() ? node.value : "any block";
+      } else if ("builder:world.mineArea".equals(node.type)) {
+         return this.mineAreaToText(node) + (this.mineAreaAutoToolEnabled(node) ? " / auto tool" : "");
       } else if ("builder:world.openNearestEnchantingTable".equals(node.type) || "builder:world.openNearestGrindstone".equals(node.type)) {
          return node.value + " blocks" + (this.isTruthyText(node.value2) ? " / move" : "");
       } else if ("builder:entity.nearby".equals(node.type)) {
@@ -3505,7 +3691,7 @@ final class MacroBuilderScreen extends Screen {
 
    private String fieldSuggestion(MacroModel.Descriptor descriptor, boolean secondary) {
       if ("builder:world.mineArea".equals(descriptor.type())) {
-         return secondary ? "10 79 10 tool=10 move=true" : "0 64 0";
+         return secondary ? "10 79 10" : "0 64 0";
       } else if ("builder:world.farmArea".equals(descriptor.type())) {
          return secondary ? "0 64 0 replant deposit move=true" : "0 64 0";
       } else if ("official:inventory.clickOpenContainerSlot".equals(descriptor.type())) {
