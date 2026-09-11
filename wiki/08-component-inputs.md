@@ -17,6 +17,22 @@ When you click a component in the builder, the right panel shows its editable fi
 
 Some components save a value while the macro is running. A later component can use that value by typing its name into a field.
 
+You can use saved values as the whole field:
+
+```text
+last.slot
+repair_sword.item
+${player.pos}
+```
+
+You can also put live values inside messages:
+
+```text
+/msg letgio ${player.name} is at ${player.pos}
+Macro ${macro.number} finished on ${server.ip}
+Looking at ${target.block.id} at ${target.block.pos}
+```
+
 Useful values:
 
 ```text
@@ -25,6 +41,29 @@ last.slot          player inventory slot 1-36 saved by a component
 last.inventory_slot same as last.slot
 last.hotbar_slot   hotbar slot 1-9, only saved when the item was placed in the hotbar
 last.action        what the component did, such as inventory or drop
+```
+
+Live values:
+
+```text
+player.name        your username
+player.x           your block X
+player.y           your block Y
+player.z           your block Z
+player.pos         your block X Y Z
+player.exact_pos   your exact X Y Z
+player.xp_level    your current XP level
+player.held_item   item ID in your main hand
+player.selected_slot selected hotbar slot 1-9
+target.block.pos   block X Y Z you are looking at
+target.block.id    block ID you are looking at
+target.entity.name entity name you are looking at
+target.entity.id   entity type you are looking at
+server.ip          current or last server IP
+screen.name        current screen title
+macro.name         current macro name
+macro.number       current macro slot number
+macro.status       current macro status text
 ```
 
 You can also use a named component output. If you name an `Auto Grindstone` component `Repair Sword`, the same values are available as:
@@ -72,6 +111,17 @@ To X Y Z:   -11864 41 12115
 
 The order does not matter. Litemacro finds the low and high corner automatically.
 
+Coordinate fields also support live values and relative coordinates:
+
+```text
+${player.pos}
+${target.block.pos}
+~ ~-1 ~
+~5 ~2 ~5
+```
+
+`~` starts from your current player block position. For example, `~ ~-1 ~` means the block under your feet.
+
 ## Mine Area
 
 Use `Mine Area` to mine every block inside a small box.
@@ -91,6 +141,13 @@ Field 2: -11864 41 12115
 Tool Low: 10
 Move: On
 Auto Tool: On
+```
+
+Relative example around your current position:
+
+```text
+Field 1: ~-3 ~-1 ~-3
+Field 2: ~3 ~2 ~3 move=false auto_tool=true tool=10
 ```
 
 Options:
@@ -157,7 +214,7 @@ failed    -> local message or recovery path
 | `XP Level At Least` | Level | Empty | `30` |
 | `Player On Ground` | Empty | Empty | Sends `true` or `false`. |
 | `Player In Water` | Empty | Empty | Sends `true` or `false`. |
-| `Player At Location` | X Y Z | Max distance | `100 64 100` and `5` |
+| `Player At Location` | X Y Z, `~`, or runtime value | Max distance | `${player.pos}` and `5` |
 | `Player Nearby` | Names or regex | Mode | `Steve` and `any` |
 | `Scoreboard Contains` | Text or regex | Mode | `Purse:` and `contains` |
 
@@ -188,8 +245,8 @@ kicked
 
 | Component | Field 1 | Field 2 | Example |
 | --- | --- | --- | --- |
-| `Chat / Command` | Message or command | Empty | `/home farm` |
-| `Local Message` | Message | Empty | `Could not open chest` |
+| `Chat / Command` | Message or command | Empty | `/msg letgio ${player.name} at ${player.pos}` |
+| `Local Message` | Message | Empty | `Could not open chest at ${player.pos}` |
 
 ### Inventory
 
@@ -287,16 +344,17 @@ If `last.slot` is 10-36, Litemacro swaps that stack into an empty hotbar slot wh
 
 | Component | Field 1 | Field 2 | Example |
 | --- | --- | --- | --- |
-| `Interact With Block` | Target X Y Z | Button 0/1 | `100 64 100` and `1` |
-| `Mine Block` | Target X Y Z | Select tool true/false | `100 64 100` and `true` |
-| `Mine Area` | From X Y Z | To X Y Z plus options | `-11879 26 12100` and `-11864 41 12115 tool=0 move=true` |
+| `Interact With Block` | Target X Y Z, `~`, or runtime value | Button 0/1 | `${target.block.pos}` and `1` |
+| `Mine Block` | Target X Y Z, `~`, or runtime value | Select tool true/false | `~ ~-1 ~` and `true` |
+| `Mine Area` | From X Y Z, `~`, or runtime value | To X Y Z plus options | `~-3 ~-1 ~-3` and `~3 ~2 ~3 tool=10 auto_tool=true` |
 | `Place Block` | Target X Y Z | Select block/item | `100 64 100` and `minecraft:dirt` |
 | `Jump And Place Block` | Select block/item | Empty | `minecraft:dirt` |
-| `Farm Area` | Radius or From X Y Z | To X Y Z plus options | `8`, or `10 64 10` and `25 79 25 replant move=true` |
+| `Farm Area` | Radius, X Y Z, `~`, or runtime value | To X Y Z plus options | `8`, or `~-4 ~-1 ~-4` and `~4 ~1 ~4 replant move=true` |
 | `Open Nearest Container` | Radius 1-16 | Move/type | `8` and `move=true type=chest` |
+| `Open Nearest Enchanting Table` | Radius 1-16 | Move true/false | `8` and `move=true` |
 | `Open Nearest Grindstone` | Radius 1-16 | Move true/false | `8` and `move=true` |
 | `Auto Bone Meal` | Item ID | Options | `minecraft:bone_meal` and `refill radius=8` |
-| `Block At Location Is` | X Y Z | Block ID | `100 64 100` and `minecraft:stone` |
+| `Block At Location Is` | X Y Z, `~`, or runtime value | Block ID | `~ ~-1 ~` and `minecraft:stone` |
 | `Looking At Block` | Block ID or blank | Empty | `minecraft:chest` |
 
 Block button values:
@@ -332,7 +390,7 @@ Block button values:
 
 | Component | Field 1 | Field 2 | Example |
 | --- | --- | --- | --- |
-| `Discord Notification` | Webhook URL | Message | `https://discord.com/api/webhooks/...` and `Macro finished` |
+| `Discord Notification` | Webhook URL | Message | `https://discord.com/api/webhooks/...` and `${player.name} finished at ${player.pos}` |
 
 Do not upload public macros with private webhook URLs.
 

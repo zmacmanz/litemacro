@@ -155,7 +155,7 @@ final class MacroModel {
       new MacroModel.Descriptor("builder:player.onGround", "Player On Ground", "Logic", -1726398, TRUE_FALSE_OR_FAILED, true, "", "", ""),
       new MacroModel.Descriptor("builder:player.inWater", "Player In Water", "Logic", -1726398, TRUE_FALSE_OR_FAILED, true, "", "", ""),
       new MacroModel.Descriptor(
-         "official:player.isAtLocation", "Player At Location", "Logic", -10375185, TRUE_FALSE_OR_FAILED, true, "X Y Z", "Max distance", "0 64 0"
+         "official:player.isAtLocation", "Player At Location", "Logic", -10375185, TRUE_FALSE_OR_FAILED, true, "X Y Z, ~, or ${player.pos}", "Max distance", "0 64 0"
       ),
       new MacroModel.Descriptor(
          "official:entity.player_nearby", "Player Nearby", "Logic", -10375185, TRUE_FALSE_OR_FAILED, true, "Names or regex", "Mode: any/allow/block", ""
@@ -164,7 +164,7 @@ final class MacroModel {
          "builder:logic.scoreboardContains", "Scoreboard Contains", "Logic", -1726398, TRUE_FALSE_OR_FAILED, true, "Text or regex", "Mode: contains/exact/regex", ""
       ),
       new MacroModel.Descriptor("official:misc.wait", "Wait", "Flow", -11094334, COMPLETED_OR_FAILED, true, "Duration ms", "", "10000"),
-      new MacroModel.Descriptor("official:misc.chat", "Chat / Command", "Action", -6765703, COMPLETED_OR_FAILED, true, "Message", "", "/say Macro running"),
+      new MacroModel.Descriptor("official:misc.chat", "Chat / Command", "Action", -6765703, COMPLETED_OR_FAILED, true, "Message; use ${player.name}", "", "/say Macro running"),
       new MacroModel.Descriptor(
          "official:inventory.clickOpenContainerSlot",
          "Click GUI Item",
@@ -282,20 +282,20 @@ final class MacroModel {
          "builder:inventory.dropSelectedItem", "Drop Selected Item", "Inventory", -3040666, COMPLETED_OR_FAILED, true, "Drop stack: true/false", "", "false"
       ),
       new MacroModel.Descriptor(
-         "official:world.interactWithBlock", "Interact With Block", "World", -11094334, COMPLETED_OR_FAILED, true, "Target X Y Z", "Button 0/1", ""
+         "official:world.interactWithBlock", "Interact With Block", "World", -11094334, COMPLETED_OR_FAILED, true, "Target X Y Z, ~, or ${target.block.pos}", "Button 0/1", ""
       ),
       new MacroModel.Descriptor(
-         "official:world.mineBlock", "Mine Block", "World", -11094334, COMPLETED_OR_FAILED, true, "Target X Y Z", "Select tool true/false", ""
+         "official:world.mineBlock", "Mine Block", "World", -11094334, COMPLETED_OR_FAILED, true, "Target X Y Z, ~, or ${target.block.pos}", "Select tool true/false", ""
       ),
       new MacroModel.Descriptor(
-         "builder:world.mineArea", "Mine Area", "World", -11094334, COMPLETED_TOOL_LOW_OR_FAILED, true, "From corner X Y Z", "To corner X Y Z", "0 64 0"
+         "builder:world.mineArea", "Mine Area", "World", -11094334, COMPLETED_TOOL_LOW_OR_FAILED, true, "From X Y Z or ~ ~ ~", "To X Y Z / options", "0 64 0"
       ),
       new MacroModel.Descriptor("official:world.placeBlock", "Place Block", "World", -11094334, COMPLETED_OR_FAILED, true, "Target X Y Z", "Select block", ""),
       new MacroModel.Descriptor(
          "official:world.jumpAndPlaceBlock", "Jump And Place Block", "World", -11094334, COMPLETED_OR_FAILED, true, "Select block", "", ""
       ),
       new MacroModel.Descriptor(
-         "builder:world.farmArea", "Farm Area", "World", -11094334, COMPLETED_OR_FAILED, true, "From X Y Z or radius", "To X Y Z / options", "0 64 0"
+         "builder:world.farmArea", "Farm Area", "World", -11094334, COMPLETED_OR_FAILED, true, "Radius, X Y Z, or ~ ~ ~", "To X Y Z / options", "0 64 0"
       ),
       new MacroModel.Descriptor(
          "builder:world.openNearestContainer", "Open Nearest Container", "World", -11094334, COMPLETED_OR_FAILED, true, "Radius 1-16", "Move/type", "8"
@@ -325,7 +325,7 @@ final class MacroModel {
       new MacroModel.Descriptor(
          "builder:world.autoBoneMeal", "Auto Bone Meal", "World", -11094334, COMPLETED_OR_FAILED, true, "Item id", "Options", "minecraft:bone_meal"
       ),
-      new MacroModel.Descriptor("builder:world.blockIs", "Block At Location Is", "World", -1726398, TRUE_FALSE_OR_FAILED, true, "X Y Z", "Block id", "0 64 0"),
+      new MacroModel.Descriptor("builder:world.blockIs", "Block At Location Is", "World", -1726398, TRUE_FALSE_OR_FAILED, true, "X Y Z, ~, or ${target.block.pos}", "Block id", "0 64 0"),
       new MacroModel.Descriptor("builder:world.lookingAtBlock", "Looking At Block", "World", -1726398, TRUE_FALSE_OR_FAILED, true, "Block id or blank", "", ""),
       new MacroModel.Descriptor(
          "official:entity.attack", "Attack Entity", "Entity", -3770147, COMPLETED_OR_FAILED, true, "Target/filter", "Move true/false", "minecraft:zombie"
@@ -336,7 +336,7 @@ final class MacroModel {
       new MacroModel.Descriptor(
          "builder:entity.nearby", "Entity Nearby", "Entity", -1726398, TRUE_FALSE_OR_FAILED, true, "Target/filter", "Max distance", "minecraft:zombie"
       ),
-      new MacroModel.Descriptor("builder:localMessage", "Local Message", "Action", -10375185, COMPLETED_OR_FAILED, true, "Message", "", "Macro message"),
+      new MacroModel.Descriptor("builder:localMessage", "Local Message", "Action", -10375185, COMPLETED_OR_FAILED, true, "Message; use ${player.pos}", "", "Macro message"),
       new MacroModel.Descriptor("builder:misc.repeatMacro", "Repeat Macro", "Flow", -7366491, List.of(), true, "Repeat count", "", "3"),
       new MacroModel.Descriptor("builder:misc.repeatSection", "Repeat", "Flow", -7366491, REPEAT_COMPLETED_OR_FAILED, true, "Repeat count", "", "3"),
       new MacroModel.Descriptor(
@@ -360,7 +360,7 @@ final class MacroModel {
       ),
       new MacroModel.Descriptor("official:misc.isInLobby", "Is In Lobby", "Misc", -1726398, TRUE_FALSE_OR_FAILED, true, "Player", "", ""),
       new MacroModel.Descriptor(
-         "official:notification.discord", "Discord Notification", "Notification", -10983950, COMPLETED_OR_FAILED, true, "Webhook URL", "Message", ""
+         "official:notification.discord", "Discord Notification", "Notification", -10983950, COMPLETED_OR_FAILED, true, "Webhook URL", "Message; use ${player.name}", ""
       ),
       new MacroModel.Descriptor("official:login.repeat", "Login Repeat", "Login", -4794025, COMPLETED_OR_FAILED, true, "Repeat count", "", "2"),
       new MacroModel.Descriptor(

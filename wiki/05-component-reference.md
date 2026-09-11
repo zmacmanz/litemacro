@@ -4,6 +4,8 @@ This page explains what each component group is for.
 
 For exact text-box values, examples, and coordinate setup, see [Component Inputs](08-component-inputs.md).
 
+Many fields can use live values such as `${player.name}`, `${player.pos}`, `${target.block.pos}`, `${server.ip}`, or saved component outputs such as `last.item` and `last.slot`. Coordinate fields can also use relative `~` values, for example `~ ~-1 ~` for the block under the player.
+
 ## Entry
 
 | Component | Use |
@@ -60,8 +62,8 @@ For exact text-box values, examples, and coordinate setup, see [Component Inputs
 
 | Component | Use |
 | --- | --- |
-| `Chat / Command` | Sends chat text or a command. |
-| `Local Message` | Shows a local message for debugging or status. |
+| `Chat / Command` | Sends chat text or a command and can include live values like `${player.name}` or `${player.pos}`. |
+| `Local Message` | Shows a local message for debugging or status and can include live values. |
 
 ## Inventory
 
@@ -104,7 +106,7 @@ Inventory slots usually use:
 | --- | --- |
 | `Interact With Block` | Right-clicks or attacks a target block. Useful for anvils and containers. |
 | `Mine Block` | Mines a target block. |
-| `Mine Area` | Mines between two XYZ points, with a `tool_low` output. Each side can be up to 16 blocks. Single unreachable or unbreakable blocks are skipped so the macro can keep going. |
+| `Mine Area` | Mines between two XYZ points or relative `~` corners, with a `tool_low` output. Each side can be up to 16 blocks. Single unreachable or unbreakable blocks are skipped so the macro can keep going. |
 | `Place Block` | Places a selected block on a target. |
 | `Jump And Place Block` | Jumps and places below the player. |
 | `Farm Area` | Harvests crops between two XYZ points and can move. |
@@ -140,7 +142,7 @@ Inventory slots usually use:
 
 | Component | Use |
 | --- | --- |
-| `Discord Notification` | Sends a Discord webhook message. |
+| `Discord Notification` | Sends a Discord webhook message and can include live values like `${player.name}`, `${player.pos}`, and `${macro.status}`. |
 
 ## Login
 

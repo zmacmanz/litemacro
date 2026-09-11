@@ -660,18 +660,14 @@ final class MacroRunner {
 
    private boolean stopMacroRuns(Minecraft client, int macroNumber, String reason) {
       boolean stopped = false;
-      Iterator<MacroRunner> iterator = this.childRunners.iterator();
-
-      while (iterator.hasNext()) {
-         MacroRunner child = iterator.next();
+      for (MacroRunner child : new ArrayList<>(this.childRunners)) {
          if (child.currentMacroNumber == macroNumber || child.hasRunningMacro(macroNumber)) {
             child.stop(client, reason);
-            iterator.remove();
             stopped = true;
          }
       }
 
-      iterator = this.pendingChildRunners.iterator();
+      Iterator<MacroRunner> iterator = this.pendingChildRunners.iterator();
       while (iterator.hasNext()) {
          MacroRunner child = iterator.next();
          if (child.currentMacroNumber == macroNumber || child.hasRunningMacro(macroNumber)) {
@@ -779,6 +775,115 @@ final class MacroRunner {
       ServerData server = client.getCurrentServer();
       if (server != null && server.ip != null && !server.ip.isBlank()) {
          this.lastServerData = server;
+      }
+   }
+
+   private void refreshRuntimeValues(Minecraft client) {
+      this.putRuntimeValue("macro.number", Integer.toString(this.currentMacroNumber));
+      this.putRuntimeValue("macro.name", this.model == null ? "" : this.model.name());
+      this.putRuntimeValue("macro.node", this.currentNodeId);
+      this.putRuntimeValue("macro.active_node", this.activeNodeId);
+      this.putRuntimeValue("macro.status", this.lastStatus);
+      this.putRuntimeValue("macro.running", Boolean.toString(this.running));
+
+      if (this.lastServerData != null) {
+         this.putRuntimeValue("server.name", this.lastServerData.name);
+         this.putRuntimeValue("server.ip", this.lastServerData.ip);
+      }
+
+      Screen screen = client == null ? null : client.gui.screen();
+      this.putRuntimeValue("screen.name", screen == null ? "" : screen.getTitle().getString());
+      this.putRuntimeValue("screen.type", screen == null ? "" : screen.getClass().getSimpleName());
+
+      if (client == null || client.player == null) {
+         this.clearPlayerRuntimeValues();
+         return;
+      }
+
+      BlockPos playerPos = client.player.blockPosition();
+      this.putRuntimeValue("player.name", client.player.getName().getString());
+      this.putRuntimeValue("player.uuid", client.player.getUUID().toString());
+      this.putRuntimeValue("player.x", Integer.toString(playerPos.getX()));
+      this.putRuntimeValue("player.y", Integer.toString(playerPos.getY()));
+      this.putRuntimeValue("player.z", Integer.toString(playerPos.getZ()));
+      this.putRuntimeValue("player.pos", blockPosText(playerPos));
+      this.putRuntimeValue("player.exact_x", coordinateText(client.player.getX()));
+      this.putRuntimeValue("player.exact_y", coordinateText(client.player.getY()));
+      this.putRuntimeValue("player.exact_z", coordinateText(client.player.getZ()));
+      this.putRuntimeValue(
+         "player.exact_pos", coordinateText(client.player.getX()) + " " + coordinateText(client.player.getY()) + " " + coordinateText(client.player.getZ())
+      );
+      this.putRuntimeValue("player.yaw", Integer.toString(Math.round(client.player.getYRot())));
+      this.putRuntimeValue("player.pitch", Integer.toString(Math.round(client.player.getXRot())));
+      this.putRuntimeValue("player.health", Integer.toString(Mth.ceil(client.player.getHealth())));
+      this.putRuntimeValue("player.food", Integer.toString(client.player.getFoodData().getFoodLevel()));
+      this.putRuntimeValue("player.xp_level", Integer.toString(client.player.experienceLevel));
+      int selectedSlot = this.selectedHotbarSlot(client);
+      this.putRuntimeValue("player.selected_slot", selectedSlot < 0 ? "" : Integer.toString(selectedSlot + 1));
+      this.putRuntimeValue("player.held_item", itemId(client.player.getMainHandItem()));
+
+      if (client.level != null) {
+         this.putRuntimeValue("world.dimension", client.level.dimension().identifier().toString());
+      }
+
+      this.refreshTargetRuntimeValues(client);
+   }
+
+   private void clearPlayerRuntimeValues() {
+      for (String key : List.of(
+         "player.name",
+         "player.uuid",
+         "player.x",
+         "player.y",
+         "player.z",
+         "player.pos",
+         "player.exact_x",
+         "player.exact_y",
+         "player.exact_z",
+         "player.exact_pos",
+         "player.yaw",
+         "player.pitch",
+         "player.health",
+         "player.food",
+         "player.xp_level",
+         "player.selected_slot",
+         "player.held_item",
+         "world.dimension",
+         "target.block.x",
+         "target.block.y",
+         "target.block.z",
+         "target.block.pos",
+         "target.block.id",
+         "target.entity.name",
+         "target.entity.id"
+      )) {
+         this.putRuntimeValue(key, "");
+      }
+   }
+
+   private void refreshTargetRuntimeValues(Minecraft client) {
+      if (client.level != null && client.hitResult instanceof BlockHitResult hit && hit.getType() == Type.BLOCK) {
+         BlockPos pos = hit.getBlockPos();
+         this.putRuntimeValue("target.block.x", Integer.toString(pos.getX()));
+         this.putRuntimeValue("target.block.y", Integer.toString(pos.getY()));
+         this.putRuntimeValue("target.block.z", Integer.toString(pos.getZ()));
+         this.putRuntimeValue("target.block.pos", blockPosText(pos));
+         this.putRuntimeValue("target.block.id", BuiltInRegistries.BLOCK.getKey(client.level.getBlockState(pos).getBlock()).toString());
+      } else {
+         this.putRuntimeValue("target.block.x", "");
+         this.putRuntimeValue("target.block.y", "");
+         this.putRuntimeValue("target.block.z", "");
+         this.putRuntimeValue("target.block.pos", "");
+         this.putRuntimeValue("target.block.id", "");
+      }
+
+      if (client.hitResult instanceof EntityHitResult hit && hit.getType() == Type.ENTITY) {
+         Entity entity = hit.getEntity();
+         this.putRuntimeValue("target.entity.name", entity.getName().getString());
+         this.putRuntimeValue("target.entity.id", BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString());
+      } else {
+         this.putRuntimeValue("target.entity.name", "");
+         this.putRuntimeValue("target.entity.id", "");
       }
    }
 
@@ -983,6 +1088,8 @@ final class MacroRunner {
          this.updateLastServerData(client);
       }
 
+      this.refreshRuntimeValues(client);
+
       if (!this.running) {
          if (!this.childRunner && this.model != null) {
             if (worldAvailable) {
@@ -1104,16 +1211,24 @@ final class MacroRunner {
                            this.completeCondition(client, node, this.inventoryHasItem(client, node), "Failed: Inventory Has Item needs a valid item id.");
                            break;
                         case "builder:player.healthBelow":
-                           this.completeCondition(client, node, doubleAtOrBelow(client.player.getHealth(), node.value), "Failed: Health Below needs a number.");
+                           this.completeCondition(
+                              client, node, doubleAtOrBelow(client.player.getHealth(), this.resolveRuntimeText(node.value)), "Failed: Health Below needs a number."
+                           );
                            break;
                         case "builder:player.foodBelow":
                            this.completeCondition(
-                              client, node, intAtOrBelow(client.player.getFoodData().getFoodLevel(), node.value), "Failed: Food Below needs a whole number."
+                              client,
+                              node,
+                              intAtOrBelow(client.player.getFoodData().getFoodLevel(), this.resolveRuntimeText(node.value)),
+                              "Failed: Food Below needs a whole number."
                            );
                            break;
                          case "builder:player.xpLevelAtLeast":
                             this.completeCondition(
-                               client, node, intAtLeast(client.player.experienceLevel, node.value), "Failed: XP Level At Least needs a whole number."
+                               client,
+                               node,
+                               intAtLeast(client.player.experienceLevel, this.resolveRuntimeText(node.value)),
+                               "Failed: XP Level At Least needs a whole number."
                             );
                             break;
                          case "builder:player.stopAtXpLevel":
@@ -1606,7 +1721,7 @@ final class MacroRunner {
    }
 
    private void runWait(Minecraft client, MacroModel.Node node) {
-      Integer durationMs = parseIntOrNull(node.value);
+      Integer durationMs = parseIntOrNull(this.resolveRuntimeText(node.value));
       if (durationMs != null && durationMs >= 0) {
          int durationTicks = Math.max(1, (int)Math.ceil(durationMs.intValue() / 50.0));
          if (this.activeTicks >= durationTicks) {
@@ -1626,12 +1741,12 @@ final class MacroRunner {
    }
 
    private Boolean isAccount(Minecraft client, MacroModel.Node node) {
-      String list = node.value == null ? "" : node.value;
+      String list = this.resolveRuntimeText(node.value);
       return list.isBlank() ? null : nameMatchesList(client.player.getName().getString(), list);
    }
 
    private Boolean isInAction(Minecraft client, MacroModel.Node node) {
-      String state = node.value == null ? "" : node.value.trim().toLowerCase();
+      String state = this.resolveRuntimeText(node.value).trim().toLowerCase(Locale.ROOT);
 
       return switch (state) {
          case "sneak", "sneaking", "crouch", "crouching" -> client.player.isShiftKeyDown() || client.player.isCrouching();
@@ -1644,7 +1759,7 @@ final class MacroRunner {
 
    private void runSetCrouch(Minecraft client, MacroModel.Node node) {
       if (this.activeTicks == 1) {
-         Boolean crouching = parseBooleanOrDefault(node.value, true);
+         Boolean crouching = parseBooleanOrDefault(this.resolveRuntimeText(node.value), true);
          if (crouching == null) {
             this.fail(client, node, "Failed: Set Crouch needs true or false.");
             return;
@@ -1658,7 +1773,7 @@ final class MacroRunner {
 
    private void runSetSprint(Minecraft client, MacroModel.Node node) {
       if (this.activeTicks == 1) {
-         Boolean sprinting = parseBooleanOrDefault(node.value, true);
+         Boolean sprinting = parseBooleanOrDefault(this.resolveRuntimeText(node.value), true);
          if (sprinting == null) {
             this.fail(client, node, "Failed: Set Sprint needs true or false.");
             return;
@@ -1680,8 +1795,8 @@ final class MacroRunner {
    }
 
    private void runAutoClick(Minecraft client, MacroModel.Node node) {
-      Integer button = parseMouseButton(node.value);
-      MacroRunner.AutoClickOptions options = autoClickOptions(node.value2);
+      Integer button = parseMouseButton(this.resolveRuntimeText(node.value));
+      MacroRunner.AutoClickOptions options = autoClickOptions(this.resolveRuntimeText(node.value2));
       if (button == null || options == null) {
          this.fail(client, node, "Failed: Auto Click needs button left/right and options like count=5 cps=8 or hold 500.");
       } else if (options.hold()) {
@@ -1706,8 +1821,8 @@ final class MacroRunner {
    }
 
    private void runPressKey(Minecraft client, MacroModel.Node node) {
-      InputConstants.Key key = keyFromText(node.value);
-      MacroRunner.PressKeyOptions options = pressKeyOptions(node.value2);
+      InputConstants.Key key = keyFromText(this.resolveRuntimeText(node.value));
+      MacroRunner.PressKeyOptions options = pressKeyOptions(this.resolveRuntimeText(node.value2));
       if (key == null || options == null) {
          this.fail(client, node, "Failed: Press Key needs a key like space, shift, ctrl, alt, E, or key code.");
       } else if (options.hold()) {
@@ -1734,7 +1849,8 @@ final class MacroRunner {
    }
 
    private void runPlayerMove(Minecraft client, MacroModel.Node node) {
-      Vec3 target = parseVec3(node.value);
+      String targetText = this.resolveRuntimeText(node.value);
+      Vec3 target = this.parseResolvedVec3(client, targetText);
       if (target != null) {
          this.lookAt(client, target);
          double distanceSquared = client.player.distanceToSqr(target);
@@ -1749,7 +1865,7 @@ final class MacroRunner {
             }
          }
       } else {
-         Entity targetEntity = this.findTargetEntity(client, node.value);
+         Entity targetEntity = this.findTargetEntity(client, targetText);
          if (targetEntity != null) {
             this.lookAt(client, this.entityCenter(targetEntity));
             if (client.player.distanceToSqr(targetEntity) <= 1.25) {
@@ -1765,7 +1881,7 @@ final class MacroRunner {
          } else {
             if (this.activeTicks == 1) {
                this.releaseMovementKeys(client);
-               String direction = node.value != null && !node.value.isBlank() ? node.value.trim().toLowerCase(Locale.ROOT) : "forward";
+               String direction = targetText != null && !targetText.isBlank() ? targetText.trim().toLowerCase(Locale.ROOT) : "forward";
                switch (direction) {
                   case "back":
                   case "backward":
@@ -1787,7 +1903,7 @@ final class MacroRunner {
                }
             }
 
-            int moveTicks = Math.max(1, (int)Math.ceil(Math.max(0.1, parseDouble(node.value2, 1.0)) * 5.0));
+            int moveTicks = Math.max(1, (int)Math.ceil(Math.max(0.1, parseDouble(this.resolveRuntimeText(node.value2), 1.0)) * 5.0));
             if (this.activeTicks >= moveTicks) {
                this.releaseMovementKeys(client);
                this.complete(client, node, "completed");
@@ -1797,17 +1913,18 @@ final class MacroRunner {
    }
 
    private void runPlayerLook(Minecraft client, MacroModel.Node node) {
-      Vec3 target = parseVec3(node.value);
+      String targetText = this.resolveRuntimeText(node.value);
+      Vec3 target = this.parseResolvedVec3(client, targetText);
       if (target != null) {
          this.lookAt(client, target);
          this.complete(client, node, "completed");
       } else {
-         Entity targetEntity = this.findTargetEntity(client, node.value);
+         Entity targetEntity = this.findTargetEntity(client, targetText);
          if (targetEntity != null) {
             this.lookAt(client, this.entityCenter(targetEntity));
             this.complete(client, node, "completed");
          } else {
-            double[] yawPitch = parseTwoDoubles(node.value);
+            double[] yawPitch = parseTwoDoubles(targetText);
             if (yawPitch != null) {
                client.player.setYRot((float)yawPitch[0]);
                client.player.setXRot((float)Mth.clamp(yawPitch[1], -90.0, 90.0));
@@ -1820,8 +1937,8 @@ final class MacroRunner {
    }
 
    private void runSetMouseButton(Minecraft client, MacroModel.Node node) {
-      Boolean pressed = parseBooleanOrAction(node.value);
-      Integer button = parseMouseButton(node.value2);
+      Boolean pressed = parseBooleanOrAction(this.resolveRuntimeText(node.value));
+      Integer button = parseMouseButton(this.resolveRuntimeText(node.value2));
       if (pressed != null && button != null && button >= 0 && button <= 1) {
          if (button == 1) {
             client.options.keyUse.setDown(pressed);
@@ -1837,7 +1954,7 @@ final class MacroRunner {
 
    private void runShootBow(Minecraft client, MacroModel.Node node) {
       if (this.activeTicks == 1) {
-         Boolean equipBow = parseBooleanOrDefault(node.value2, true);
+         Boolean equipBow = parseBooleanOrDefault(this.resolveRuntimeText(node.value2), true);
          if (equipBow == null) {
             this.fail(client, node, "Failed: Shoot Bow equip value must be true or false.");
             return;
@@ -1848,8 +1965,9 @@ final class MacroRunner {
             return;
          }
 
-         Vec3 target = parseVec3(node.value);
-         Entity targetEntity = target == null ? this.findTargetEntity(client, node.value) : null;
+         String targetText = this.resolveRuntimeText(node.value);
+         Vec3 target = this.parseResolvedVec3(client, targetText);
+         Entity targetEntity = target == null ? this.findTargetEntity(client, targetText) : null;
          if (target != null) {
             this.lookAt(client, target);
          } else if (targetEntity != null) {
@@ -1877,7 +1995,7 @@ final class MacroRunner {
 
    private void runChat(Minecraft client, MacroModel.Node node) {
       if (this.activeTicks == 1) {
-         String message = node.value == null ? "" : node.value.trim();
+         String message = this.resolveRuntimeText(node.value).trim();
          if (message.isBlank()) {
             this.fail(client, node, "Failed: Chat / Command needs text.");
             return;
@@ -1905,7 +2023,7 @@ final class MacroRunner {
 
    private void runLocalMessage(Minecraft client, MacroModel.Node node) {
       if (this.activeTicks == 1 && node.value != null && !node.value.isBlank()) {
-         this.send(client, node.value.trim());
+         this.send(client, this.resolveRuntimeText(node.value).trim());
       }
 
       this.complete(client, node, "completed");
@@ -1953,13 +2071,13 @@ final class MacroRunner {
 
    private void runDropItems(Minecraft client, MacroModel.Node node) {
       if (this.activeTicks == 1) {
-         Boolean dropStack = parseBooleanOrDefault(node.value2, false);
+         Boolean dropStack = parseBooleanOrDefault(this.resolveRuntimeText(node.value2), false);
          if (dropStack == null) {
             this.fail(client, node, "Failed: Drop Items stack value must be true or false.");
             return;
          }
 
-         Set<Integer> excludedSlots = parseInventorySlotSet(node.value3);
+         Set<Integer> excludedSlots = parseInventorySlotSet(this.resolveRuntimeText(node.value3));
          if (excludedSlots == null) {
             this.fail(client, node, "Failed: Drop Items exclude slots must be numbers or ranges.");
             return;
@@ -2027,7 +2145,7 @@ final class MacroRunner {
 
    private void runDropSelectedItem(Minecraft client, MacroModel.Node node) {
       if (this.activeTicks == 1) {
-         Boolean dropStack = parseBooleanOrDefault(node.value, false);
+         Boolean dropStack = parseBooleanOrDefault(this.resolveRuntimeText(node.value), false);
          if (dropStack == null) {
             this.fail(client, node, "Failed: Drop Selected Item stack value must be true or false.");
             return;
@@ -2040,10 +2158,10 @@ final class MacroRunner {
    }
 
    private void runClickOpenContainerSlot(Minecraft client, MacroModel.Node node) {
-      String target = node.value == null ? "" : node.value.trim();
+      String target = this.resolveRuntimeText(node.value).trim();
       String itemId = clickTargetItemId(target);
-      Boolean shiftClick = parseBooleanOrDefault(node.value2, false);
-      Integer button = parseMouseButton(node.value3);
+      Boolean shiftClick = parseBooleanOrDefault(this.resolveRuntimeText(node.value2), false);
+      Integer button = parseMouseButton(this.resolveRuntimeText(node.value3));
       if (target.isBlank()) {
          this.fail(client, node, "Failed: Click GUI Item needs an item id or GUI slot.");
       } else if (!looksLikeOpenContainerSlotTarget(target) && !clickTargetHasValidFilter(target, itemId)) {
@@ -2101,7 +2219,7 @@ final class MacroRunner {
 
       if (this.activeEnchantClicked) {
          if (this.activeTicks - this.activeEnchantClickTick >= CLOSE_SETTLE_TICKS) {
-            MacroRunner.AutoEnchantOptions options = autoEnchantOptions(node);
+            MacroRunner.AutoEnchantOptions options = this.autoEnchantOptions(node);
             if (options != null && options.closeGui() && client.player != null) {
                client.player.closeContainer();
             }
@@ -2120,7 +2238,7 @@ final class MacroRunner {
       } else if (client.gameMode == null || client.player == null || client.player.connection == null) {
          this.fail(client, node, "Failed: Auto Enchant cannot use the current game mode.");
       } else {
-         MacroRunner.AutoEnchantOptions options = autoEnchantOptions(node);
+         MacroRunner.AutoEnchantOptions options = this.autoEnchantOptions(node);
          if (options == null) {
             this.fail(client, node, "Failed: Auto Enchant needs option 1-3 and XP level 0 or higher.");
          } else {
@@ -2208,7 +2326,7 @@ final class MacroRunner {
       } else if (client.gameMode == null || client.player == null) {
          this.fail(client, node, "Failed: Auto Grindstone cannot use the current game mode.");
       } else {
-         MacroRunner.AutoGrindstoneOptions options = autoGrindstoneOptions(node);
+      MacroRunner.AutoGrindstoneOptions options = this.autoGrindstoneOptions(node);
          if (options == null) {
             this.fail(client, node, "Failed: Auto Grindstone needs mode repair/remove and valid item settings.");
          } else if (!containerSlotHasItem(handler, 0)) {
@@ -2299,12 +2417,12 @@ final class MacroRunner {
    }
 
    private void runStopAtXpLevel(Minecraft client, MacroModel.Node node) {
-      Integer targetLevel = parseIntOrNull(node.value);
+      Integer targetLevel = parseIntOrNull(this.resolveRuntimeText(node.value));
       if (targetLevel == null || targetLevel < 0) {
          this.fail(client, node, "Failed: Stop At XP Level needs a level of 0 or higher.");
       } else if (client.player.experienceLevel >= targetLevel) {
          this.releaseHeldKeys(client);
-         if (shouldStopMacroAtXpLevel(node.value2)) {
+         if (shouldStopMacroAtXpLevel(this.resolveRuntimeText(node.value2))) {
             this.stop(client, "Stopped: XP level " + targetLevel + " reached.");
          } else {
             this.complete(client, node, "completed");
@@ -2354,7 +2472,7 @@ final class MacroRunner {
    private void runWorldInteract(Minecraft client, MacroModel.Node node) {
       BlockHitResult hit = this.targetBlockHit(client, node.value);
       if (hit != null && client.gameMode != null) {
-         if (parseInt(node.value2, 1) == 0) {
+         if (parseInt(this.resolveRuntimeText(node.value2), 1) == 0) {
             client.gameMode.startDestroyBlock(hit.getBlockPos(), hit.getDirection());
          } else {
             client.gameMode.useItemOn(client.player, InteractionHand.MAIN_HAND, hit);
@@ -2370,7 +2488,7 @@ final class MacroRunner {
    private void runWorldMine(Minecraft client, MacroModel.Node node) {
       BlockHitResult hit = this.targetBlockHit(client, node.value);
       if (hit != null && client.gameMode != null) {
-         Boolean selectTool = parseBooleanOrDefault(node.value2, false);
+         Boolean selectTool = parseBooleanOrDefault(this.resolveRuntimeText(node.value2), false);
          if (selectTool != null && selectTool) {
             this.selectBestHotbarTool(client, client.level.getBlockState(hit.getBlockPos()));
          }
@@ -2400,7 +2518,7 @@ final class MacroRunner {
       BlockHitResult hit = this.targetBlockHit(client, node.value);
       if (hit == null || client.gameMode == null) {
          this.fail(client, node, "Failed: Place Block needs a target block.");
-      } else if (!this.selectItemIfProvided(client, node.value2)) {
+      } else if (!this.selectItemIfProvided(client, this.resolveRuntimeText(node.value2))) {
          this.fail(client, node, "Failed: Place Block could not find the selected block.");
       } else {
          InteractionResult result = client.gameMode.useItemOn(client.player, InteractionHand.MAIN_HAND, hit);
@@ -2415,7 +2533,7 @@ final class MacroRunner {
 
    private void runJumpAndPlaceBlock(Minecraft client, MacroModel.Node node) {
       if (this.activeTicks == 1) {
-         if (!this.selectItemIfProvided(client, node.value)) {
+         if (!this.selectItemIfProvided(client, this.resolveRuntimeText(node.value))) {
             this.fail(client, node, "Failed: Jump And Place Block could not find the selected block.");
          } else {
             this.activeJumpPlaceSupportPos = this.blockUnderPlayer(client);
@@ -2447,7 +2565,7 @@ final class MacroRunner {
    }
 
    private void runFarmArea(Minecraft client, MacroModel.Node node) {
-      MacroRunner.FarmOptions options = this.farmOptions(node);
+      MacroRunner.FarmOptions options = this.farmOptions(client, node);
       if (options == null) {
          this.fail(client, node, "Failed: Farm Area needs radius 1-8 or two XYZ points within 16 blocks per side.");
       } else if (this.activeFarmCropPos == null && options.depositWhenFull() && this.isInventoryFull(client)) {
@@ -2579,7 +2697,7 @@ final class MacroRunner {
    }
 
    private void runOpenNearestContainer(Minecraft client, MacroModel.Node node) {
-      MacroRunner.ContainerSearchOptions options = this.containerSearchOptions(node.value, node.value2);
+      MacroRunner.ContainerSearchOptions options = this.containerSearchOptions(this.resolveRuntimeText(node.value), this.resolveRuntimeText(node.value2));
       if (options == null) {
          this.fail(client, node, "Failed: Open Nearest Container needs radius 1-16 and type any/chest/barrel/ender_chest/shulker.");
       } else if (activeContainerHandler(client) != null) {
@@ -2614,7 +2732,7 @@ final class MacroRunner {
    }
 
    private void runOpenNearestEnchantingTable(Minecraft client, MacroModel.Node node) {
-      MacroRunner.ContainerSearchOptions options = this.containerSearchOptions(node.value, node.value2);
+      MacroRunner.ContainerSearchOptions options = this.containerSearchOptions(this.resolveRuntimeText(node.value), this.resolveRuntimeText(node.value2));
       if (options == null) {
          this.fail(client, node, "Failed: Open Nearest Enchanting Table needs radius 1-16 and move true/false.");
       } else if (activeContainerHandler(client) instanceof EnchantmentMenu) {
@@ -2651,7 +2769,7 @@ final class MacroRunner {
    }
 
    private void runOpenNearestGrindstone(Minecraft client, MacroModel.Node node) {
-      MacroRunner.ContainerSearchOptions options = this.containerSearchOptions(node.value, node.value2);
+      MacroRunner.ContainerSearchOptions options = this.containerSearchOptions(this.resolveRuntimeText(node.value), this.resolveRuntimeText(node.value2));
       if (options == null) {
          this.fail(client, node, "Failed: Open Nearest Grindstone needs radius 1-16 and move true/false.");
       } else if (activeContainerHandler(client) instanceof GrindstoneMenu) {
@@ -2688,11 +2806,11 @@ final class MacroRunner {
    }
 
    private void runAutoBoneMeal(Minecraft client, MacroModel.Node node) {
-      String itemId = MacroModel.normalizeItemId(node.value);
+      String itemId = MacroModel.normalizeItemId(this.resolveRuntimeText(node.value));
       if (!isKnownItemId(itemId)) {
          this.fail(client, node, "Failed: Auto Bone Meal needs a valid item id.");
       } else {
-         MacroRunner.BoneMealOptions options = this.boneMealOptions(node.value2);
+         MacroRunner.BoneMealOptions options = this.boneMealOptions(client, node.value2);
          if (options == null) {
             this.fail(client, node, "Failed: Auto Bone Meal options need radius 1-16.");
          } else if (activeContainerHandler(client) != null) {
@@ -2744,7 +2862,7 @@ final class MacroRunner {
    private void runMineArea(Minecraft client, MacroModel.Node node) {
       MacroRunner.MineAreaOptions options = this.mineAreaOptions(client, node);
       if (options == null) {
-         this.fail(client, node, mineAreaOptionsError(node));
+         this.fail(client, node, this.mineAreaOptionsError(client, node));
       } else if (!options.autoTool() && toolIsLow(client, options.toolLowThreshold())) {
          this.releaseHeldKeys(client);
          this.complete(client, node, "tool_low");
@@ -2827,14 +2945,14 @@ final class MacroRunner {
    }
 
    private void runEntityAction(Minecraft client, MacroModel.Node node, boolean attack) {
-      Entity target = this.findTargetEntity(client, node.value);
+      Entity target = this.findTargetEntity(client, this.resolveRuntimeText(node.value));
       if (target == null) {
          if (this.activeTicks > 300) {
             this.fail(client, node, "Failed: no matching entity found.");
          }
       } else {
          this.lookAt(client, this.entityCenter(target));
-         Boolean moveToTarget = parseBooleanOrDefault(node.value2, false);
+         Boolean moveToTarget = parseBooleanOrDefault(this.resolveRuntimeText(node.value2), false);
          if (moveToTarget == null) {
             this.fail(client, node, "Failed: Entity move value must be true or false.");
          } else if (moveToTarget && client.player.distanceToSqr(target) > 9.0) {
@@ -2882,18 +3000,18 @@ final class MacroRunner {
       if (targetServer == null || targetServer.ip == null || targetServer.ip.isBlank()) {
          this.fail(client, node, "Failed: Rejoin Server needs a last server or a server IP.");
       } else {
-         int delayMs = Math.max(0, parseInt(node.value, 3000));
+         int delayMs = Math.max(0, parseInt(this.resolveRuntimeText(node.value), 3000));
          this.scheduleServerConnection(client, node, targetServer, delayMs, "Rejoin Server", "Rejoining by macro.");
       }
    }
 
    private void runJoinServer(Minecraft client, MacroModel.Node node) {
-      String configuredIp = node.value == null ? "" : node.value.trim();
+      String configuredIp = this.resolveRuntimeText(node.value).trim();
       if (configuredIp.isBlank()) {
          this.fail(client, node, "Failed: Join Server needs a server IP.");
       } else {
          ServerData targetServer = new ServerData(configuredIp, configuredIp, ServerData.Type.OTHER);
-         int delayMs = Math.max(0, parseInt(node.value2, 1000));
+         int delayMs = Math.max(0, parseInt(this.resolveRuntimeText(node.value2), 1000));
          this.scheduleServerConnection(client, node, targetServer, delayMs, "Join Server", "Joining server by macro.");
       }
    }
@@ -2922,7 +3040,7 @@ final class MacroRunner {
    }
 
    private ServerData rejoinTargetServer(MacroModel.Node node) {
-      String configuredIp = node.value2 == null ? "" : node.value2.trim();
+      String configuredIp = this.resolveRuntimeText(node.value2).trim();
       if (!configuredIp.isBlank()) {
          ServerData target = this.lastServerData == null ? new ServerData(configuredIp, configuredIp, ServerData.Type.OTHER) : this.copyServerData(this.lastServerData);
          target.name = configuredIp;
@@ -2934,13 +3052,13 @@ final class MacroRunner {
    }
 
    private void runIdleUntil(Minecraft client, MacroModel.Node node) {
-      Boolean triggered = this.idleConditionMatches(client, node.value, node.value2, this.nodeChatBaseline, this.nodeKickedBaseline);
+      Boolean triggered = this.idleConditionMatches(client, this.resolveRuntimeText(node.value), this.resolveRuntimeText(node.value2), this.nodeChatBaseline, this.nodeKickedBaseline);
       if (triggered == null) {
          this.fail(client, node, "Failed: Idle Until condition must be chat, player, full, or kicked.");
       } else if (triggered) {
          this.complete(client, node, "triggered");
       } else {
-         this.lastStatus = "Idle: waiting for " + this.idleConditionLabel(node.value) + ".";
+         this.lastStatus = "Idle: waiting for " + this.idleConditionLabel(this.resolveRuntimeText(node.value)) + ".";
       }
    }
 
@@ -2949,14 +3067,14 @@ final class MacroRunner {
       if (hit == null) {
          this.fail(client, node, "Failed: Update Sign needs you to look at a sign.");
       } else {
-         String[] lines = signLines(node.value);
+         String[] lines = signLines(this.resolveRuntimeText(node.value));
          client.player.connection.send(new ServerboundSignUpdatePacket(hit.getBlockPos(), true, lines[0], lines[1], lines[2], lines[3]));
          this.complete(client, node, "completed");
       }
    }
 
    private void runRandom(Minecraft client, MacroModel.Node node) {
-      Double percent = parseDoubleOrNull(node.value);
+      Double percent = parseDoubleOrNull(this.resolveRuntimeText(node.value));
       if (percent != null && !(percent < 0.0) && !(percent > 100.0)) {
          this.complete(client, node, Math.random() * 100.0 < percent ? "true" : "false");
       } else {
@@ -2974,7 +3092,8 @@ final class MacroRunner {
    }
 
    private void runRepeatMacro(Minecraft client, MacroModel.Node node) {
-      if (isRepeatIndefinitely(node.value)) {
+      String repeatText = this.resolveRuntimeText(node.value);
+      if (isRepeatIndefinitely(repeatText)) {
          MacroModel.Node start = this.model == null ? null : this.model.startNode();
          if (start == null) {
             this.stop(client, "Stopped: Repeat Macro could not find the entry point.");
@@ -2990,7 +3109,7 @@ final class MacroRunner {
          return;
       }
 
-      int targetRuns = parseInt(node.value, 1);
+      int targetRuns = parseInt(repeatText, 1);
       if (targetRuns < 1 || targetRuns > 100000) {
          this.fail(client, node, "Failed: Repeat Macro needs a repeat count from 1 to 100000 or forever.");
       } else {
@@ -3016,13 +3135,14 @@ final class MacroRunner {
    }
 
    private void runRepeatSection(Minecraft client, MacroModel.Node node) {
-      if (isRepeatIndefinitely(node.value)) {
+      String repeatText = this.resolveRuntimeText(node.value);
+      if (isRepeatIndefinitely(repeatText)) {
          this.complete(client, node, "repeat");
          this.lastStatus = "Repeating section forever.";
          return;
       }
 
-      int targetRuns = parseInt(node.value, 1);
+      int targetRuns = parseInt(repeatText, 1);
       if (targetRuns < 1 || targetRuns > 100000) {
          this.fail(client, node, "Failed: Repeat needs a repeat count from 1 to 100000 or forever.");
       } else {
@@ -3061,16 +3181,17 @@ final class MacroRunner {
    }
 
    private void runSkipIfTrue(Minecraft client, MacroModel.Node node) {
-      Boolean condition = parseBooleanOrDefault(node.value, true);
+      Boolean condition = parseBooleanOrDefault(this.resolveRuntimeText(node.value), true);
       if (condition == null) {
          this.fail(client, node, "Failed: Skip If True needs true or false.");
       } else if (!condition) {
          this.complete(client, node, "false");
       } else {
-         MacroModel.Node skipped = this.findNodeForSkip(node, node.value2);
+         String skipTarget = this.resolveRuntimeText(node.value2);
+         MacroModel.Node skipped = this.findNodeForSkip(node, skipTarget);
          if (skipped == null) {
-            if (node.value2 != null && !node.value2.isBlank()) {
-               this.fail(client, node, "Failed: Skip If True could not find " + node.value2.trim() + ".");
+            if (!skipTarget.isBlank()) {
+               this.fail(client, node, "Failed: Skip If True could not find " + skipTarget.trim() + ".");
             } else {
                this.complete(client, node, "true");
             }
@@ -3265,7 +3386,27 @@ final class MacroRunner {
       }
 
       normalized = normalized.replace('-', '_');
-      return normalized.startsWith("last.") || normalized.startsWith("last_") || normalized.contains(".") ? normalized : null;
+      return isRuntimeKey(normalized) ? normalized : null;
+   }
+
+   private static boolean isRuntimeKey(String key) {
+      if (key == null || key.isBlank()) {
+         return false;
+      }
+
+      return key.startsWith("last.")
+         || key.startsWith("last_")
+         || key.startsWith("player.")
+         || key.startsWith("target.")
+         || key.startsWith("world.")
+         || key.startsWith("macro.")
+         || key.startsWith("server.")
+         || key.startsWith("screen.")
+         || key.endsWith(".slot")
+         || key.endsWith(".inventory_slot")
+         || key.endsWith(".hotbar_slot")
+         || key.endsWith(".item")
+         || key.endsWith(".action");
    }
 
    private void putRuntimeValue(String key, String value) {
@@ -3283,6 +3424,19 @@ final class MacroRunner {
       } else {
          this.runtimeValues.put(normalized, value.trim());
       }
+   }
+
+   private Vec3 parseResolvedVec3(Minecraft client, String value) {
+      return parseVec3(this.resolveRuntimeText(value), relativeBase(client));
+   }
+
+   private BlockPos parseResolvedBlockPos(Minecraft client, String value) {
+      Vec3 vec = this.parseResolvedVec3(client, value);
+      return vec == null ? null : BlockPos.containing(vec);
+   }
+
+   private BlockPos parseResolvedFirstBlockPos(Minecraft client, String value) {
+      return parseFirstBlockPos(this.resolveRuntimeText(value), relativeBase(client));
    }
 
    private void clearLastSlotOutput(MacroModel.Node node) {
@@ -3341,7 +3495,7 @@ final class MacroRunner {
    }
 
    private void runMacroStart(Minecraft client, MacroModel.Node node) {
-      int macroNumber = parseInt(node.value, this.currentMacroNumber);
+      int macroNumber = parseInt(this.resolveRuntimeText(node.value), this.currentMacroNumber);
       if (macroNumber >= 1 && macroNumber <= 100) {
          this.rootRunner().startMacroSlot(client, macroNumber);
          this.complete(client, node, "completed");
@@ -3351,7 +3505,7 @@ final class MacroRunner {
    }
 
    private void runMacroStop(Minecraft client, MacroModel.Node node) {
-      int macroNumber = parseInt(node.value, this.currentMacroNumber);
+      int macroNumber = parseInt(this.resolveRuntimeText(node.value), this.currentMacroNumber);
       if (macroNumber >= 1 && macroNumber <= 100) {
          boolean stopped = this.rootRunner().stopMacroRuns(client, macroNumber, "Stopped Macro " + macroNumber + " by macro component.");
          if (this.childRunner && macroNumber == this.currentMacroNumber) {
@@ -3385,7 +3539,7 @@ final class MacroRunner {
             }
          }
       } else {
-         String message = node.value2 != null && !node.value2.isBlank() ? node.value2.trim() : "Notification";
+         String message = node.value2 != null && !node.value2.isBlank() ? this.resolveRuntimeText(node.value2).trim() : "Notification";
          String webhook = node.value == null ? "" : node.value.trim();
          if (webhook.isBlank()) {
             this.clearDiscordRequest();
@@ -3405,13 +3559,13 @@ final class MacroRunner {
    }
 
    private void runEventChat(Minecraft client, MacroModel.Node node) {
-      if (this.chatSequence > this.nodeChatBaseline && eventTextMatches(this.lastChatMessage, node.value, node.value2)) {
+      if (this.chatSequence > this.nodeChatBaseline && eventTextMatches(this.lastChatMessage, this.resolveRuntimeText(node.value), this.resolveRuntimeText(node.value2))) {
          this.complete(client, node, "triggered");
       }
    }
 
    private void runEventKicked(Minecraft client, MacroModel.Node node) {
-      if (this.kickedSequence > this.nodeKickedBaseline && eventTextMatches(this.lastKickReason, node.value, node.value2)) {
+      if (this.kickedSequence > this.nodeKickedBaseline && eventTextMatches(this.lastKickReason, this.resolveRuntimeText(node.value), this.resolveRuntimeText(node.value2))) {
          this.complete(client, node, "triggered");
       }
    }
@@ -3421,11 +3575,12 @@ final class MacroRunner {
       if (latest.isBlank()) {
          return false;
       } else {
-         String filter = node.value == null ? "" : node.value.trim();
+         String filter = this.resolveRuntimeText(node.value).trim();
          if (filter.isBlank()) {
             return true;
          } else {
-            String mode = node.value2 == null ? "same" : node.value2.trim().toLowerCase(Locale.ROOT);
+            String mode = this.resolveRuntimeText(node.value2);
+            mode = mode.isBlank() ? "same" : mode.trim().toLowerCase(Locale.ROOT);
 
             return switch (mode) {
                case "", "same", "exact", "equals" -> latest.equalsIgnoreCase(filter);
@@ -3464,7 +3619,7 @@ final class MacroRunner {
    }
 
    private void runEventSchedule(Minecraft client, MacroModel.Node node) {
-      String schedule = node.value == null ? "" : node.value.trim();
+      String schedule = this.resolveRuntimeText(node.value).trim();
       if (!schedule.isBlank() && !schedule.equals("* * * * *")) {
          int delayTicks = parseScheduleDelayTicks(schedule);
          if (delayTicks > 0) {
@@ -3493,7 +3648,7 @@ final class MacroRunner {
       long sequence = spawned ? this.playerSpawnSequence : this.playerDespawnSequence;
       long baseline = spawned ? this.nodeSpawnBaseline : this.nodeDespawnBaseline;
       String name = spawned ? this.lastPlayerSpawnName : this.lastPlayerDespawnName;
-      if (sequence > baseline && eventTextMatches(name, node.value, node.value2)) {
+      if (sequence > baseline && eventTextMatches(name, this.resolveRuntimeText(node.value), this.resolveRuntimeText(node.value2))) {
          this.complete(client, node, "triggered");
       }
    }
@@ -3959,7 +4114,7 @@ final class MacroRunner {
    }
 
    private Boolean emptySlotsAtLeast(Minecraft client, MacroModel.Node node) {
-      Integer minimum = parseIntOrNull(node.value);
+      Integer minimum = parseIntOrNull(this.resolveRuntimeText(node.value));
       return minimum != null && minimum >= 0 ? this.emptyInventorySlots(client) >= minimum : null;
    }
 
@@ -4004,33 +4159,27 @@ final class MacroRunner {
    }
 
    private Boolean isLobbyMatch(Minecraft client, MacroModel.Node node) {
-      String player = node.value == null ? "" : node.value.trim();
+      String player = this.resolveRuntimeText(node.value).trim();
       return player.isBlank() ? null : client.player.getName().getString().equalsIgnoreCase(player);
    }
 
    private Boolean isAtLocation(Minecraft client, MacroModel.Node node) {
-      String[] parts = (node.value == null ? "" : node.value.trim()).split("[,\\s]+");
-      if (parts.length < 3) {
+      Vec3 target = this.parseResolvedVec3(client, node.value);
+      Double maxDistance = parseDoubleOrNull(this.resolveRuntimeText(node.value2));
+      if (target == null || maxDistance == null || maxDistance < 0.0) {
          return null;
       } else {
-         Double targetX = parseDoubleOrNull(parts[0]);
-         Double targetY = parseDoubleOrNull(parts[1]);
-         Double targetZ = parseDoubleOrNull(parts[2]);
-         Double maxDistance = parseDoubleOrNull(node.value2);
-         if (targetX != null && targetY != null && targetZ != null && maxDistance != null && !(maxDistance < 0.0)) {
-            double x = client.player.getX() - targetX;
-            double y = client.player.getY() - targetY;
-            double z = client.player.getZ() - targetZ;
-            return x * x + y * y + z * z <= maxDistance * maxDistance;
-         } else {
-            return null;
-         }
+         double x = client.player.getX() - target.x;
+         double y = client.player.getY() - target.y;
+         double z = client.player.getZ() - target.z;
+         return x * x + y * y + z * z <= maxDistance * maxDistance;
       }
    }
 
    private Boolean playerNearby(Minecraft client, MacroModel.Node node) {
-      String filterText = node.value == null ? "" : node.value.trim();
-      String mode = node.value2 == null ? "any" : node.value2.trim().toLowerCase();
+      String filterText = this.resolveRuntimeText(node.value).trim();
+      String mode = this.resolveRuntimeText(node.value2);
+      mode = mode.isBlank() ? "any" : mode.trim().toLowerCase(Locale.ROOT);
       if (!mode.equals("any") && !mode.equals("allow") && !mode.equals("block")) {
          return null;
       } else {
@@ -4057,12 +4206,13 @@ final class MacroRunner {
    }
 
    private Boolean scoreboardContains(Minecraft client, MacroModel.Node node) {
-      String filter = node.value == null ? "" : node.value.trim();
+      String filter = this.resolveRuntimeText(node.value).trim();
       if (filter.isBlank()) {
          return true;
       }
 
-      String mode = node.value2 == null || node.value2.isBlank() ? "contains" : node.value2.trim().toLowerCase(Locale.ROOT);
+      String mode = this.resolveRuntimeText(node.value2);
+      mode = mode.isBlank() ? "contains" : mode.trim().toLowerCase(Locale.ROOT);
       if (!"contains".equals(mode) && !"any".equals(mode) && !"exact".equals(mode) && !"equals".equals(mode) && !"regex".equals(mode)) {
          return null;
       }
@@ -4135,9 +4285,9 @@ final class MacroRunner {
    }
 
    private Boolean blockAtMatches(Minecraft client, MacroModel.Node node) {
-      BlockPos pos = parseBlockPos(node.value);
+      BlockPos pos = this.parseResolvedBlockPos(client, node.value);
       if (pos != null && client.level.isLoaded(pos)) {
-         String blockId = MacroModel.normalizeItemId(node.value2);
+         String blockId = MacroModel.normalizeItemId(this.resolveRuntimeText(node.value2));
          return !isKnownBlockId(blockId) ? null : BuiltInRegistries.BLOCK.getKey(client.level.getBlockState(pos).getBlock()).toString().equals(blockId);
       } else {
          return null;
@@ -4146,7 +4296,7 @@ final class MacroRunner {
 
    private Boolean lookingAtBlockMatches(Minecraft client, MacroModel.Node node) {
       if (client.hitResult instanceof BlockHitResult hit && hit.getType() == Type.BLOCK) {
-         String blockId = node.value == null ? "" : node.value.trim();
+         String blockId = this.resolveRuntimeText(node.value).trim();
          if (blockId.isBlank()) {
             return true;
          } else {
@@ -4163,8 +4313,8 @@ final class MacroRunner {
    }
 
    private Boolean entityNearby(Minecraft client, MacroModel.Node node) {
-      Double maxDistance = parseDoubleOrNull(node.value2);
-      return maxDistance != null && !(maxDistance <= 0.0) ? this.findTargetEntityWithin(client, node.value, maxDistance) != null : null;
+      Double maxDistance = parseDoubleOrNull(this.resolveRuntimeText(node.value2));
+      return maxDistance != null && !(maxDistance <= 0.0) ? this.findTargetEntityWithin(client, this.resolveRuntimeText(node.value), maxDistance) != null : null;
    }
 
    private boolean clickOpenContainerTarget(Minecraft client, String target, int button, boolean shiftClick) {
@@ -4284,7 +4434,7 @@ final class MacroRunner {
    }
 
    private BlockHitResult targetBlockHit(Minecraft client, String targetText) {
-      Vec3 target = parseVec3(targetText);
+      Vec3 target = this.parseResolvedVec3(client, targetText);
       if (target != null) {
          BlockPos pos = BlockPos.containing(target);
          return this.blockFaceHit(client, pos);
@@ -4378,13 +4528,13 @@ final class MacroRunner {
       this.activeMineAreaSkippedBlocks.clear();
    }
 
-   private MacroRunner.FarmOptions farmOptions(MacroModel.Node node) {
-      Integer radius = parseIntOrNull(node.value);
+   private MacroRunner.FarmOptions farmOptions(Minecraft client, MacroModel.Node node) {
+      Integer radius = parseIntOrNull(this.resolveRuntimeText(node.value));
       BlockPos min = null;
       BlockPos max = null;
       if (radius == null) {
-         BlockPos from = parseBlockPos(node.value);
-         BlockPos to = parseFirstBlockPos(node.value2);
+         BlockPos from = this.parseResolvedBlockPos(client, node.value);
+         BlockPos to = this.parseResolvedFirstBlockPos(client, node.value2);
          if (from == null || to == null) {
             return null;
          }
@@ -4400,7 +4550,7 @@ final class MacroRunner {
          return null;
       }
 
-      String options = node.value2 == null ? "" : node.value2.trim().toLowerCase(Locale.ROOT);
+      String options = this.resolveRuntimeText(node.value2).trim().toLowerCase(Locale.ROOT);
       boolean disabled = options.equals("false") || options.equals("off") || options.equals("harvest only");
       boolean replant = !disabled && !options.contains("no replant") && !options.contains("noreplant");
       boolean deposit = !disabled
@@ -4473,8 +4623,8 @@ final class MacroRunner {
       };
    }
 
-   private MacroRunner.BoneMealOptions boneMealOptions(String value) {
-      String options = value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+   private MacroRunner.BoneMealOptions boneMealOptions(Minecraft client, String value) {
+      String options = this.resolveRuntimeText(value).trim().toLowerCase(Locale.ROOT);
       boolean refill = options.isBlank() || options.equals("true") || options.contains("refill") || options.contains("container") || options.contains("chest");
       if (options.equals("false") || options.equals("off") || options.contains("no refill") || options.contains("norefill")) {
          refill = false;
@@ -4486,9 +4636,9 @@ final class MacroRunner {
          BlockPos target = null;
          int targetIndex = options.indexOf("target=");
          if (targetIndex >= 0) {
-            target = parseFirstBlockPos(options.substring(targetIndex + "target=".length()));
+            target = this.parseResolvedFirstBlockPos(client, options.substring(targetIndex + "target=".length()));
          } else {
-            target = parseBlockPos(value);
+            target = this.parseResolvedBlockPos(client, value);
          }
 
          return new MacroRunner.BoneMealOptions(refill, radius, target);
@@ -4507,10 +4657,10 @@ final class MacroRunner {
    }
 
    private MacroRunner.MineAreaOptions mineAreaOptions(Minecraft client, MacroModel.Node node) {
-      BlockPos from = parseBlockPos(node.value);
-      BlockPos to = parseFirstBlockPos(node.value2);
+      BlockPos from = this.parseResolvedBlockPos(client, node.value);
+      BlockPos to = this.parseResolvedFirstBlockPos(client, node.value2);
       if (from != null && to != null) {
-         String options = node.value2 == null ? "" : node.value2.trim().toLowerCase(Locale.ROOT);
+         String options = this.resolveRuntimeText(node.value2).trim().toLowerCase(Locale.ROOT);
          BlockPos min = minPos(from, to);
          BlockPos max = maxPos(from, to);
          if (!areaWithinLimit(min, max, 16)) {
@@ -4526,11 +4676,11 @@ final class MacroRunner {
       }
    }
 
-   private static String mineAreaOptionsError(MacroModel.Node node) {
-      BlockPos from = parseBlockPos(node.value);
-      BlockPos to = parseFirstBlockPos(node.value2);
+   private String mineAreaOptionsError(Minecraft client, MacroModel.Node node) {
+      BlockPos from = this.parseResolvedBlockPos(client, node.value);
+      BlockPos to = this.parseResolvedFirstBlockPos(client, node.value2);
       if (from == null && to == null) {
-         return "Failed: Mine Area needs From X Y Z and To X Y Z. Example: 10 64 10 / 25 79 25 tool=10 move=true.";
+         return "Failed: Mine Area needs From and To coordinates. Examples: 10 64 10 / 25 79 25 or ~ ~-1 ~ / ~5 ~2 ~5 auto_tool=true.";
       } else if (from == null) {
          return "Failed: Mine Area needs From X Y Z in the first field.";
       } else if (to == null) {
@@ -4552,6 +4702,10 @@ final class MacroRunner {
 
    private static String blockPosText(BlockPos pos) {
       return pos.getX() + " " + pos.getY() + " " + pos.getZ();
+   }
+
+   private static String coordinateText(double value) {
+      return String.format(Locale.ROOT, "%.2f", value);
    }
 
    private BlockPos nextMineAreaBlock(Minecraft client, MacroRunner.MineAreaOptions options) {
@@ -4933,11 +5087,11 @@ final class MacroRunner {
       AbstractContainerMenu handler = activeContainerHandler(client);
       if (handler != null && client.gameMode != null) {
          int firstPlayerSlot = firstPlayerInventorySlot(handler);
-         boolean depositAll = !"specific".equalsIgnoreCase(node.value == null ? "" : node.value.trim());
-         String specificItem = MacroModel.normalizeItemId(node.value2);
+         boolean depositAll = !"specific".equalsIgnoreCase(this.resolveRuntimeText(node.value).trim());
+         String specificItem = MacroModel.normalizeItemId(this.resolveRuntimeText(node.value2));
          boolean shiftClick = depositWithdrawShiftClick(node);
          boolean fastDeposit = fastDepositEnabled(node);
-         Set<Integer> excludedSlots = parseInventorySlotSet(node.value5);
+         Set<Integer> excludedSlots = parseInventorySlotSet(this.resolveRuntimeText(node.value5));
          if (!depositAll && !isKnownItemId(specificItem)) {
             return MacroRunner.DepositResult.INVALID_ITEM;
          } else if (excludedSlots == null) {
@@ -4989,8 +5143,8 @@ final class MacroRunner {
       AbstractContainerMenu handler = activeContainerHandler(client);
       if (handler != null && client.gameMode != null) {
          int firstPlayerSlot = firstPlayerInventorySlot(handler);
-         boolean withdrawAll = !"specific".equalsIgnoreCase(node.value == null ? "" : node.value.trim());
-         String specificItem = MacroModel.normalizeItemId(node.value2);
+         boolean withdrawAll = !"specific".equalsIgnoreCase(this.resolveRuntimeText(node.value).trim());
+         String specificItem = MacroModel.normalizeItemId(this.resolveRuntimeText(node.value2));
          boolean shiftClick = depositWithdrawShiftClick(node);
          if (!withdrawAll && !isKnownItemId(specificItem)) {
             return MacroRunner.DepositResult.INVALID_ITEM;
@@ -5954,6 +6108,10 @@ final class MacroRunner {
       }
    }
 
+   private static String itemId(ItemStack stack) {
+      return stack == null || stack.isEmpty() ? "" : BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+   }
+
    private static boolean isKnownItemId(String itemId) {
       return itemById(itemId) != null;
    }
@@ -6037,16 +6195,23 @@ final class MacroRunner {
    }
 
    private static Vec3 parseVec3(String value) {
+      return parseVec3(value, null);
+   }
+
+   private static Vec3 parseVec3(String value, BlockPos relativeBase) {
       if (value != null && !value.isBlank()) {
          String[] parts = value.trim().split("[,\\s]+");
          if (parts.length < 3) {
             return null;
          } else {
-            try {
-               return new Vec3(Double.parseDouble(parts[0]), Double.parseDouble(parts[1]), Double.parseDouble(parts[2]));
-            } catch (NumberFormatException var3) {
+            Double x = parseCoordinate(parts[0], relativeBase == null ? null : relativeBase.getX());
+            Double y = parseCoordinate(parts[1], relativeBase == null ? null : relativeBase.getY());
+            Double z = parseCoordinate(parts[2], relativeBase == null ? null : relativeBase.getZ());
+            if (x == null || y == null || z == null) {
                return null;
             }
+
+            return new Vec3(x, y, z);
          }
       } else {
          return null;
@@ -6059,20 +6224,61 @@ final class MacroRunner {
    }
 
    private static BlockPos parseFirstBlockPos(String value) {
+      return parseFirstBlockPos(value, null);
+   }
+
+   private static BlockPos parseFirstBlockPos(String value, BlockPos relativeBase) {
       if (value != null && !value.isBlank()) {
          String[] parts = value.trim().split("[,\\s]+");
          if (parts.length < 3) {
             return null;
          } else {
-            try {
-               return BlockPos.containing(Double.parseDouble(parts[0]), Double.parseDouble(parts[1]), Double.parseDouble(parts[2]));
-            } catch (NumberFormatException var3) {
+            Double x = parseCoordinate(parts[0], relativeBase == null ? null : relativeBase.getX());
+            Double y = parseCoordinate(parts[1], relativeBase == null ? null : relativeBase.getY());
+            Double z = parseCoordinate(parts[2], relativeBase == null ? null : relativeBase.getZ());
+            if (x == null || y == null || z == null) {
                return null;
             }
+
+            return BlockPos.containing(x, y, z);
          }
       } else {
          return null;
       }
+   }
+
+   private static Double parseCoordinate(String token, Integer relativeBase) {
+      if (token == null || token.isBlank()) {
+         return null;
+      }
+
+      String trimmed = token.trim();
+      if (trimmed.startsWith("~")) {
+         if (relativeBase == null) {
+            return null;
+         }
+
+         String offsetText = trimmed.substring(1);
+         if (offsetText.isBlank()) {
+            return relativeBase.doubleValue();
+         }
+
+         try {
+            return relativeBase + Double.parseDouble(offsetText);
+         } catch (NumberFormatException error) {
+            return null;
+         }
+      }
+
+      try {
+         return Double.parseDouble(trimmed);
+      } catch (NumberFormatException error) {
+         return null;
+      }
+   }
+
+   private static BlockPos relativeBase(Minecraft client) {
+      return client == null || client.player == null ? null : client.player.blockPosition();
    }
 
    private static double[] parseTwoDoubles(String value) {
@@ -6164,12 +6370,12 @@ final class MacroRunner {
       return option != null && option >= 1 && option <= 3 ? option : null;
    }
 
-   private static MacroRunner.AutoEnchantOptions autoEnchantOptions(MacroModel.Node node) {
-      Integer option = parseEnchantOption(node.value);
+   private MacroRunner.AutoEnchantOptions autoEnchantOptions(MacroModel.Node node) {
+      Integer option = parseEnchantOption(this.resolveRuntimeText(node.value));
       if (option == null) {
          return null;
       } else {
-         String options = node.value2 == null ? "" : node.value2.trim();
+         String options = this.resolveRuntimeText(node.value2).trim();
          Integer minimumLevel = leadingInteger(options);
          if (minimumLevel == null) {
             minimumLevel = optionInt(options, "level=", optionInt(options, "min=", optionInt(options, "xp=", 1)));
@@ -6178,19 +6384,19 @@ final class MacroRunner {
          if (minimumLevel < 0) {
             return null;
          } else {
-            String itemSelector = optionPresent(options, "item=") ? "" : (node.value3 == null ? "" : node.value3.trim());
+            String itemSelector = optionPresent(options, "item=") ? "" : this.resolveRuntimeText(node.value3).trim();
             if (itemSelector.isBlank()) {
                itemSelector = optionString(options, "item=", "held").trim();
             }
 
-            String lapisText = optionPresent(options, "lapis=") ? "" : (node.value4 == null ? "" : node.value4.trim());
+            String lapisText = optionPresent(options, "lapis=") ? "" : this.resolveRuntimeText(node.value4).trim();
             String lapisItem = MacroModel.normalizeItemId(lapisText.isBlank() ? optionString(options, "lapis=", "minecraft:lapis_lazuli") : lapisText);
             String normalizedOptions = options.toLowerCase(Locale.ROOT);
             boolean autoLoad = optionBoolean(options, "load=", true)
                && !normalizedOptions.contains("manual")
                && !normalizedOptions.contains("no_load")
                && !normalizedOptions.contains("noload");
-            Boolean closeSetting = parseBooleanOrDefault(node.value5, false);
+            Boolean closeSetting = parseBooleanOrDefault(this.resolveRuntimeText(node.value5), false);
             boolean closeGui = optionPresent(options, "close=") ? optionBoolean(options, "close=", false) : closeSetting != null && closeSetting;
             if (!isKnownItemId(lapisItem)) {
                return null;
@@ -6204,22 +6410,22 @@ final class MacroRunner {
       }
    }
 
-   private static MacroRunner.AutoGrindstoneOptions autoGrindstoneOptions(MacroModel.Node node) {
-      Boolean legacyShiftClick = parseExplicitBoolean(node.value);
+   private MacroRunner.AutoGrindstoneOptions autoGrindstoneOptions(MacroModel.Node node) {
+      Boolean legacyShiftClick = parseExplicitBoolean(this.resolveRuntimeText(node.value));
       if (legacyShiftClick != null) {
-         Boolean legacyClose = parseBooleanOrDefault(node.value2, false);
+         Boolean legacyClose = parseBooleanOrDefault(this.resolveRuntimeText(node.value2), false);
          return legacyClose == null
             ? null
             : new MacroRunner.AutoGrindstoneOptions(false, "held", "same", "inventory", legacyClose);
       } else {
-         String mode = grindstoneMode(node.value);
+         String mode = grindstoneMode(this.resolveRuntimeText(node.value));
          if (mode == null) {
             return null;
          } else {
-            String inputSelector = cleanGrindstoneInputSelector(node.value2, "held", false);
-            String repairSelector = cleanGrindstoneInputSelector(node.value3, "same", true);
-            String resultAction = grindstoneResultAction(node.value4);
-            Boolean closeGui = parseBooleanOrDefault(node.value5, false);
+            String inputSelector = cleanGrindstoneInputSelector(this.resolveRuntimeText(node.value2), "held", false);
+            String repairSelector = cleanGrindstoneInputSelector(this.resolveRuntimeText(node.value3), "same", true);
+            String resultAction = grindstoneResultAction(this.resolveRuntimeText(node.value4));
+            Boolean closeGui = parseBooleanOrDefault(this.resolveRuntimeText(node.value5), false);
             if (inputSelector == null || repairSelector == null || resultAction == null || closeGui == null) {
                return null;
             }
