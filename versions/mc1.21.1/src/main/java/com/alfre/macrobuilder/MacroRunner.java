@@ -113,6 +113,7 @@ final class MacroRunner {
    private String copiedMacroLabel = "";
    private int copiedMacroNumber;
    private int currentMacroNumber = 1;
+   private final Map<String, String> runtimeValues = new HashMap<>();
    private boolean running;
    private String currentNodeId;
    private String activeNodeId;
@@ -494,6 +495,7 @@ final class MacroRunner {
          this.activeTicks = 0;
          this.stepDelayTicksRemaining = 0;
          this.repeatCounters.clear();
+         this.runtimeValues.clear();
          this.waitingForWorld = false;
          this.clearPendingRejoin();
          this.autoReconnectAttempted = false;
@@ -532,6 +534,7 @@ final class MacroRunner {
       this.activeTicks = 0;
       this.stepDelayTicksRemaining = 0;
       this.repeatCounters.clear();
+      this.runtimeValues.clear();
       this.clearPendingRejoin();
       this.autoStartChatBaseline = this.chatSequence;
       this.autoStartKickedBaseline = this.kickedSequence;
@@ -561,6 +564,7 @@ final class MacroRunner {
       this.activeTicks = 0;
       this.stepDelayTicksRemaining = 0;
       this.repeatCounters.clear();
+      this.runtimeValues.clear();
       this.waitingForWorld = false;
       this.clearPendingRejoin();
       this.autoReconnectAttempted = false;
@@ -629,7 +633,7 @@ final class MacroRunner {
          node = this.model.node(this.currentNodeId);
       }
 
-      return node == null ? "Waiting" : node.descriptor().label();
+      return node == null ? "Waiting" : node.displayLabel();
    }
 
    private boolean hasRunningMacro(int macroNumber) {
@@ -758,6 +762,7 @@ final class MacroRunner {
       branch.lastHealth = this.lastHealth;
       branch.lastPlayerPos = this.lastPlayerPos;
       branch.lastWorldId = this.lastWorldId;
+      branch.runtimeValues.putAll(this.runtimeValues);
       branch.knownPlayerIds.addAll(this.knownPlayerIds);
       branch.knownPlayerNames.putAll(this.knownPlayerNames);
       branch.captureEventBaselines();
@@ -1263,6 +1268,9 @@ final class MacroRunner {
                         case "builder:misc.idleUntil":
                            this.runIdleUntil(client, node);
                            break;
+                        case "builder:flow.skipIfTrue":
+                           this.runSkipIfTrue(client, node);
+                           break;
                         case "builder:flow.endConnection":
                            this.endBranch(client, "Ended connection.");
                            break;
@@ -1337,7 +1345,7 @@ final class MacroRunner {
                      }
                      } catch (RuntimeException var5) {
                         MacroBuilderClient.LOGGER.error("Litemacro component failed: {}", node.type, var5);
-                        this.fail(client, node, "Failed: " + node.descriptor().label() + " hit an internal safety check.");
+                        this.fail(client, node, "Failed: " + node.displayLabel() + " hit an internal safety check.");
                      }
                   }
                }
@@ -1416,6 +1424,9 @@ final class MacroRunner {
             case "builder:misc.idleUntil":
                this.runIdleUntil(client, node);
                break;
+            case "builder:flow.skipIfTrue":
+               this.runSkipIfTrue(client, node);
+               break;
             case "builder:flow.endConnection":
                this.endBranch(client, "Ended connection.");
                break;
@@ -1448,7 +1459,7 @@ final class MacroRunner {
          }
       } catch (RuntimeException error) {
          MacroBuilderClient.LOGGER.error("Litemacro offline component failed: {}", node.type, error);
-         this.fail(client, node, "Failed: " + node.descriptor().label() + " hit an internal safety check.");
+         this.fail(client, node, "Failed: " + node.displayLabel() + " hit an internal safety check.");
       }
 
       return true;
@@ -1472,6 +1483,7 @@ final class MacroRunner {
             "builder:stop",
             "builder:misc.repeatMacro",
             "builder:misc.repeatSection",
+            "builder:flow.skipIfTrue",
             "official:misc.random",
             "builder:misc.randomOutput3" -> true;
          case "builder:misc.idleUntil" -> isKickedCondition(node.value);
@@ -1899,13 +1911,13 @@ final class MacroRunner {
 
    private void runSelectHotbarSlot(Minecraft client, MacroModel.Node node) {
       if (this.activeTicks == 1) {
-         int slot = parseInt(node.value, 1);
-         if (slot < 1 || slot > 9) {
-            this.fail(client, node, "Failed: Select Hotbar Slot needs a slot from 1 to 9.");
+         String rawSlotText = node.value == null ? "" : node.value.trim();
+         String slotText = this.resolveRuntimeText(rawSlotText).trim();
+         Integer slotValue = slotText.isBlank() && rawSlotText.isBlank() ? 1 : parseIntOrNull(slotText);
+         if (slotValue == null || !this.selectInventorySlotIntoHotbar(client, slotValue - 1)) {
+            this.fail(client, node, "Failed: Select Hotbar Slot needs a slot from 1 to 36.");
             return;
          }
-
-         client.player.getInventory().selected = slot - 1;
       }
 
       this.complete(client, node, "completed");
@@ -1951,7 +1963,7 @@ final class MacroRunner {
             return;
          }
 
-         String target = node.value == null ? "" : node.value.trim();
+         String target = this.resolveRuntimeText(node.value).trim();
          if (target.isBlank()) {
             client.player.drop(dropStack);
             this.complete(client, node, "completed");
@@ -2230,6 +2242,7 @@ final class MacroRunner {
             if (!this.activeGrindstoneResultClicked) {
                Slot result = handler.getSlot(2);
                ItemStack resultStack = result.getItem();
+               this.setLastItemOutput(node, resultStack);
                if (!"drop".equals(options.resultAction()) && !this.playerInventoryCanAccept(handler, firstPlayerInventorySlot(handler), resultStack)) {
                   this.fail(client, node, "Failed: Auto Grindstone needs inventory space for the result or Result: Drop.");
                   return;
@@ -2246,13 +2259,20 @@ final class MacroRunner {
                if (!handler.getCarried().isEmpty()) {
                   if ("drop".equals(options.resultAction())) {
                      client.gameMode.handleInventoryMouseClick(handler.containerId, OUTSIDE_CONTAINER_SLOT, 0, ClickType.PICKUP, client.player);
+                     this.clearLastSlotOutput(node);
+                     this.putRuntimeValue("last.action", "drop");
                      this.lastStatus = "Auto Grindstone: clearing carried result.";
                      this.activeGrindstoneResultReleased = true;
-                  } else if (this.moveCarriedToPlayerInventory(client, handler)) {
-                     this.lastStatus = "Auto Grindstone: putting carried result away.";
-                     this.activeGrindstoneResultReleased = true;
                   } else {
-                     this.fail(client, node, "Failed: Auto Grindstone could not put the carried result away.");
+                     int targetSlotIndex = this.moveCarriedToPlayerInventorySlot(client, handler);
+                     if (targetSlotIndex >= 0) {
+                        this.setLastSlotOutput(node, handler, targetSlotIndex);
+                        this.putRuntimeValue("last.action", "inventory");
+                        this.lastStatus = "Auto Grindstone: result moved to slot " + this.runtimeValues.getOrDefault("last.slot", "?") + ".";
+                        this.activeGrindstoneResultReleased = true;
+                     } else {
+                        this.fail(client, node, "Failed: Auto Grindstone could not put the carried result away.");
+                     }
                   }
                } else if (this.activeGrindstoneResultReleased) {
                   if (options.closeGui()) {
@@ -3028,11 +3048,105 @@ final class MacroRunner {
    private void skipDisabledNode(Minecraft client, MacroModel.Node node) {
       List<String> outputs = node.descriptor().outputs();
       if (outputs.isEmpty()) {
-         this.endBranch(client, "Skipped disabled " + node.descriptor().label() + ".");
+         this.endBranch(client, "Skipped disabled " + node.displayLabel() + ".");
       } else {
          String output = outputs.contains("completed") ? "completed" : outputs.contains("started") ? "started" : outputs.get(0);
-         this.lastStatus = "Skipped disabled " + node.descriptor().label() + ".";
+         this.lastStatus = "Skipped disabled " + node.displayLabel() + ".";
          this.complete(client, node, output);
+      }
+   }
+
+   private void runSkipIfTrue(Minecraft client, MacroModel.Node node) {
+      Boolean condition = parseBooleanOrDefault(node.value, true);
+      if (condition == null) {
+         this.fail(client, node, "Failed: Skip If True needs true or false.");
+      } else if (!condition) {
+         this.complete(client, node, "false");
+      } else {
+         MacroModel.Node skipped = this.findNodeForSkip(node, node.value2);
+         if (skipped == null) {
+            if (node.value2 != null && !node.value2.isBlank()) {
+               this.fail(client, node, "Failed: Skip If True could not find " + node.value2.trim() + ".");
+            } else {
+               this.complete(client, node, "true");
+            }
+         } else {
+            String outputKey = this.skipOutputKey(skipped.descriptor());
+            List<String> nextTargets = skipped.nextTargets(outputKey);
+            if (nextTargets.isEmpty()) {
+               this.complete(client, node, "true");
+            } else {
+               this.jumpToTargets(client, node, nextTargets, "Skipped " + skipped.displayLabel());
+            }
+         }
+      }
+   }
+
+   private MacroModel.Node findNodeForSkip(MacroModel.Node source, String text) {
+      String filter = cleanSkipTarget(text);
+      if (filter.isBlank() || this.model == null) {
+         return null;
+      }
+
+      String normalized = filter.toLowerCase(Locale.ROOT);
+      for (MacroModel.Node node : this.model.nodes()) {
+         if (node != source
+            && (node.id.equals(filter)
+               || node.displayLabel().equalsIgnoreCase(filter)
+               || node.descriptor().label().equalsIgnoreCase(filter)
+               || node.type.equalsIgnoreCase(filter))) {
+            return node;
+         }
+      }
+
+      for (MacroModel.Node node : this.model.nodes()) {
+         if (node != source
+            && (node.displayLabel().toLowerCase(Locale.ROOT).contains(normalized)
+               || node.descriptor().label().toLowerCase(Locale.ROOT).contains(normalized))) {
+            return node;
+         }
+      }
+
+      return null;
+   }
+
+   private static String cleanSkipTarget(String text) {
+      String value = text == null ? "" : text.trim();
+      for (String prefix : List.of("component=", "name=", "id=", "skip=", "target=")) {
+         if (value.toLowerCase(Locale.ROOT).startsWith(prefix)) {
+            return value.substring(prefix.length()).trim();
+         }
+      }
+
+      return value;
+   }
+
+   private String skipOutputKey(MacroModel.Descriptor descriptor) {
+      List<String> outputs = descriptor.outputs();
+      for (String preferred : List.of("completed", "started", "true", "triggered", "repeat", "failed", "false")) {
+         if (outputs.contains(preferred)) {
+            return preferred;
+         }
+      }
+
+      return outputs.isEmpty() ? "completed" : outputs.get(0);
+   }
+
+   private void jumpToTargets(Minecraft client, MacroModel.Node node, List<String> nextTargets, String message) {
+      if (nextTargets.isEmpty()) {
+         this.stop(client, "Stopped: " + message + " has no next connection.");
+      } else if (this.model != null && nextTargets.stream().allMatch(target -> this.model.node(target) != null)) {
+         this.currentNodeId = nextTargets.get(0);
+         this.activeNodeId = null;
+         this.activeTicks = 0;
+         this.stepDelayTicksRemaining = this.stepDelayTicks(node);
+         this.lastStatus = message + ".";
+
+         for (int index = 1; index < nextTargets.size(); index++) {
+            this.rootRunner().queueChildRunner(this.spawnBranch(nextTargets.get(index), node));
+         }
+      } else {
+         this.stop(client, "Stopped: " + message + " has a broken link.");
       }
    }
 
@@ -3056,27 +3170,27 @@ final class MacroRunner {
       if (result != null) {
          this.complete(client, node, result ? "true" : "false");
       } else {
-         this.fail(client, node, failReason != null && !failReason.isBlank() ? failReason : "Failed: " + node.descriptor().label() + " could not run.");
+         this.fail(client, node, failReason != null && !failReason.isBlank() ? failReason : "Failed: " + node.displayLabel() + " could not run.");
       }
    }
 
    private void complete(Minecraft client, MacroModel.Node node, String outputKey) {
       List<String> nextTargets = node.nextTargets(outputKey);
       if (nextTargets.isEmpty()) {
-         this.stop(client, "Stopped: " + node.descriptor().label() + " has no " + outputKey + " connection.");
+         this.stop(client, "Stopped: " + node.displayLabel() + " has no " + outputKey + " connection.");
       } else if (this.model != null && nextTargets.stream().allMatch(target -> this.model.node(target) != null)) {
          String next = nextTargets.get(0);
          this.currentNodeId = next;
          this.activeNodeId = null;
          this.activeTicks = 0;
          this.stepDelayTicksRemaining = this.stepDelayTicks(node);
-         this.lastStatus = "Running Macro " + this.currentMacroNumber + " | " + node.descriptor().label();
+         this.lastStatus = "Running Macro " + this.currentMacroNumber + " | " + node.displayLabel();
 
          for (int index = 1; index < nextTargets.size(); index++) {
             this.rootRunner().queueChildRunner(this.spawnBranch(nextTargets.get(index), node));
          }
       } else {
-         this.stop(client, "Stopped: " + node.descriptor().label() + " has a broken " + outputKey + " link.");
+         this.stop(client, "Stopped: " + node.displayLabel() + " has a broken " + outputKey + " link.");
       }
    }
 
@@ -3114,6 +3228,112 @@ final class MacroRunner {
       int min = Math.max(0, Math.min(minMs, maxMs));
       int max = Math.max(min, Math.max(minMs, maxMs));
       return min + (int)Math.floor(Math.random() * (double)(max - min + 1));
+   }
+
+   private String resolveRuntimeText(String text) {
+      if (text == null || text.isBlank()) {
+         return "";
+      }
+
+      String directKey = runtimeKey(text);
+      if (directKey != null) {
+         return this.runtimeValues.getOrDefault(directKey, "");
+      }
+
+      String resolved = text;
+      for (Map.Entry<String, String> entry : this.runtimeValues.entrySet()) {
+         resolved = resolved.replace("${" + entry.getKey() + "}", entry.getValue());
+         resolved = resolved.replace("{{" + entry.getKey() + "}}", entry.getValue());
+         resolved = resolved.replace("$" + entry.getKey(), entry.getValue());
+      }
+
+      return resolved;
+   }
+
+   private static String runtimeKey(String text) {
+      String normalized = text == null ? "" : text.trim().toLowerCase(Locale.ROOT);
+      if (normalized.startsWith("${") && normalized.endsWith("}")) {
+         normalized = normalized.substring(2, normalized.length() - 1).trim();
+      } else if (normalized.startsWith("{{") && normalized.endsWith("}}")) {
+         normalized = normalized.substring(2, normalized.length() - 2).trim();
+      } else if (normalized.startsWith("$")) {
+         normalized = normalized.substring(1).trim();
+      }
+
+      normalized = normalized.replace('-', '_');
+      return normalized.startsWith("last.") || normalized.startsWith("last_") || normalized.contains(".") ? normalized : null;
+   }
+
+   private void putRuntimeValue(String key, String value) {
+      String normalized = runtimeKey(key);
+      if (normalized == null) {
+         normalized = key == null ? "" : key.trim().toLowerCase(Locale.ROOT).replace('-', '_');
+      }
+
+      if (normalized.isBlank()) {
+         return;
+      }
+
+      if (value == null || value.isBlank()) {
+         this.runtimeValues.remove(normalized);
+      } else {
+         this.runtimeValues.put(normalized, value.trim());
+      }
+   }
+
+   private void clearLastSlotOutput(MacroModel.Node node) {
+      this.putRuntimeValue("last.slot", "");
+      this.putRuntimeValue("last.inventory_slot", "");
+      this.putRuntimeValue("last.hotbar_slot", "");
+      this.putRuntimeValue(nodeScopedRuntimeKey(node, "slot"), "");
+      this.putRuntimeValue(nodeScopedRuntimeKey(node, "inventory_slot"), "");
+      this.putRuntimeValue(nodeScopedRuntimeKey(node, "hotbar_slot"), "");
+   }
+
+   private void setLastSlotOutput(MacroModel.Node node, AbstractContainerMenu handler, int menuSlotIndex) {
+      int inventorySlot = playerInventorySlotNumber(handler, menuSlotIndex);
+      if (inventorySlot < 0) {
+         this.clearLastSlotOutput(node);
+         return;
+      }
+
+      String slot = Integer.toString(inventorySlot + 1);
+      this.putRuntimeValue("last.slot", slot);
+      this.putRuntimeValue("last.inventory_slot", slot);
+      this.putRuntimeValue(nodeScopedRuntimeKey(node, "slot"), slot);
+      this.putRuntimeValue(nodeScopedRuntimeKey(node, "inventory_slot"), slot);
+      if (inventorySlot < 9) {
+         String hotbarSlot = Integer.toString(inventorySlot + 1);
+         this.putRuntimeValue("last.hotbar_slot", hotbarSlot);
+         this.putRuntimeValue(nodeScopedRuntimeKey(node, "hotbar_slot"), hotbarSlot);
+      } else {
+         this.putRuntimeValue("last.hotbar_slot", "");
+         this.putRuntimeValue(nodeScopedRuntimeKey(node, "hotbar_slot"), "");
+      }
+   }
+
+   private void setLastItemOutput(MacroModel.Node node, ItemStack stack) {
+      String itemId = stack == null || stack.isEmpty() ? "" : BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+      this.putRuntimeValue("last.item", itemId);
+      this.putRuntimeValue(nodeScopedRuntimeKey(node, "item"), itemId);
+   }
+
+   private static String nodeScopedRuntimeKey(MacroModel.Node node, String key) {
+      if (node == null) {
+         return "";
+      }
+
+      String name = node.displayName == null || node.displayName.isBlank() ? node.id : node.displayName;
+      String cleaned = name.trim().toLowerCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
+      StringBuilder builder = new StringBuilder();
+      for (int index = 0; index < cleaned.length(); index++) {
+         char ch = cleaned.charAt(index);
+         if (Character.isLetterOrDigit(ch) || ch == '_' || ch == '.') {
+            builder.append(ch);
+         }
+      }
+
+      return builder.isEmpty() ? "" : builder + "." + key;
    }
 
    private void runMacroStart(Minecraft client, MacroModel.Node node) {
@@ -3648,11 +3868,11 @@ final class MacroRunner {
    }
 
    private Boolean inventoryHasItem(Minecraft client, MacroModel.Node node) {
-      String itemId = MacroModel.normalizeItemId(node.value);
+      String itemId = MacroModel.normalizeItemId(this.resolveRuntimeText(node.value));
       if (!isKnownItemId(itemId)) {
          return null;
       } else {
-         int minCount = Math.max(1, parseInt(node.value2, 1));
+         int minCount = Math.max(1, parseInt(this.resolveRuntimeText(node.value2), 1));
          int count = 0;
 
          for (int index = 0; index < client.player.getInventory().getContainerSize(); index++) {
@@ -3670,19 +3890,20 @@ final class MacroRunner {
    }
 
    private Boolean heldItemIs(Minecraft client, MacroModel.Node node) {
-      String itemId = MacroModel.normalizeItemId(node.value);
+      String itemId = MacroModel.normalizeItemId(this.resolveRuntimeText(node.value));
       return !isKnownItemId(itemId) ? null : stackMatches(client.player.getMainHandItem(), itemId);
    }
 
    private Boolean slotHasItem(Minecraft client, MacroModel.Node node) {
-      ItemStack stack = playerInventoryStack(client, node.value);
-      String itemId = MacroModel.normalizeItemId(node.value2);
+      ItemStack stack = playerInventoryStack(client, this.resolveRuntimeText(node.value));
+      String itemId = MacroModel.normalizeItemId(this.resolveRuntimeText(node.value2));
       return stack != null && isKnownItemId(itemId) ? stackMatches(stack, itemId) : null;
    }
 
    private Boolean itemOrSlotHasTag(Minecraft client, MacroModel.Node node) {
-      String tagText = node.value2 == null ? "" : node.value2.trim();
-      boolean openContainerSource = isOpenContainerTagSource(node.value);
+      String sourceText = this.resolveRuntimeText(node.value);
+      String tagText = this.resolveRuntimeText(node.value2).trim();
+      boolean openContainerSource = isOpenContainerTagSource(sourceText);
       if (tagText.isBlank()) {
          if (openContainerSource) {
             this.clearOpenContainerTagMatch();
@@ -3697,7 +3918,7 @@ final class MacroRunner {
 
          return result;
       } else {
-         List<ItemStack> stacks = stacksFromItemOrSlot(client, node.value);
+         List<ItemStack> stacks = stacksFromItemOrSlot(client, sourceText);
          if (stacks == null) {
             return null;
          }
@@ -3713,8 +3934,8 @@ final class MacroRunner {
    }
 
    private Boolean itemDurabilityMatches(Minecraft client, MacroModel.Node node) {
-      MacroRunner.DurabilityCheck check = durabilityCheck(node.value2);
-      List<ItemStack> stacks = stacksFromItemOrSlot(client, node.value);
+      MacroRunner.DurabilityCheck check = durabilityCheck(this.resolveRuntimeText(node.value2));
+      List<ItemStack> stacks = stacksFromItemOrSlot(client, this.resolveRuntimeText(node.value));
       if (check == null || stacks == null) {
          return null;
       }
@@ -3755,11 +3976,11 @@ final class MacroRunner {
       if (handler == null) {
          return null;
       } else {
-         String itemId = MacroModel.normalizeItemId(node.value);
+         String itemId = MacroModel.normalizeItemId(this.resolveRuntimeText(node.value));
          if (!isKnownItemId(itemId)) {
             return null;
          } else {
-            int minCount = Math.max(1, parseInt(node.value2, 1));
+            int minCount = Math.max(1, parseInt(this.resolveRuntimeText(node.value2), 1));
             int count = 0;
             int firstPlayerSlot = firstPlayerInventorySlot(handler);
 
@@ -3977,16 +4198,27 @@ final class MacroRunner {
    }
 
    private boolean selectHotbarSlot(Minecraft client, MacroModel.Node node) {
-      String item = node.value == null ? "" : node.value.trim();
+      String rawItem = node.value == null ? "" : node.value.trim();
+      String item = this.resolveRuntimeText(rawItem).trim();
       if (item.isBlank()) {
-         int slot = parseInt(node.value2, parseInt(node.value, 1));
-         if (slot >= 1 && slot <= 9) {
-            client.player.getInventory().selected = slot - 1;
-            return true;
-         } else {
+         if (!rawItem.isBlank() && runtimeKey(rawItem) != null) {
             return false;
          }
+
+         String rawSlotText = node.value2 == null ? "" : node.value2.trim();
+         String slotText = this.resolveRuntimeText(rawSlotText).trim();
+         Integer slotValue = slotText.isBlank() ? parseIntOrNull(this.resolveRuntimeText(node.value)) : parseIntOrNull(slotText);
+         if (slotValue == null && rawSlotText.isBlank()) {
+            slotValue = 1;
+         }
+
+         return slotValue != null && this.selectInventorySlotIntoHotbar(client, slotValue - 1);
       } else {
+         Integer slotValue = parseIntOrNull(item);
+         if (slotValue != null) {
+            return this.selectInventorySlotIntoHotbar(client, slotValue - 1);
+         }
+
          String itemId = MacroModel.normalizeItemId(item);
 
          for (int slot = 0; slot < 9 && slot < client.player.getInventory().getContainerSize(); slot++) {
@@ -4001,7 +4233,7 @@ final class MacroRunner {
    }
 
    private boolean selectHotbarItem(Minecraft client, String itemId) {
-      String normalized = MacroModel.normalizeItemId(itemId);
+      String normalized = MacroModel.normalizeItemId(this.resolveRuntimeText(itemId));
 
       for (int slot = 0; slot < 9 && slot < client.player.getInventory().getContainerSize(); slot++) {
          if (stackMatches(client.player.getInventory().getItem(slot), normalized)) {
@@ -5008,22 +5240,26 @@ final class MacroRunner {
    }
 
    private boolean moveCarriedToPlayerInventory(Minecraft client, AbstractContainerMenu handler) {
+      return this.moveCarriedToPlayerInventorySlot(client, handler) >= 0;
+   }
+
+   private int moveCarriedToPlayerInventorySlot(Minecraft client, AbstractContainerMenu handler) {
       if (client.gameMode == null || client.player == null || handler == null) {
-         return false;
+         return -1;
       }
 
       ItemStack carried = handler.getCarried();
       if (carried.isEmpty()) {
-         return true;
+         return -1;
       }
 
       int targetSlotIndex = this.firstAcceptingSlotIndex(handler, firstPlayerInventorySlot(handler), handler.slots.size(), carried);
       if (targetSlotIndex < 0) {
-         return false;
+         return -1;
       }
 
       client.gameMode.handleInventoryMouseClick(handler.containerId, targetSlotIndex, 0, ClickType.PICKUP, client.player);
-      return true;
+      return targetSlotIndex;
    }
 
    private boolean moveCarriedToMenuSlot(Minecraft client, AbstractContainerMenu handler, int targetSlotIndex) {
@@ -5124,6 +5360,58 @@ final class MacroRunner {
 
    private static int playerInventoryMenuSlot(int inventorySlot) {
       return inventorySlot >= 0 && inventorySlot < 9 ? inventorySlot + 36 : inventorySlot;
+   }
+
+   private boolean selectInventorySlotIntoHotbar(Minecraft client, int inventorySlot) {
+      if (client == null || client.player == null || inventorySlot < 0 || inventorySlot >= PLAYER_INVENTORY_SLOT_COUNT) {
+         return false;
+      }
+
+      if (inventorySlot < 9) {
+         client.player.getInventory().selected = inventorySlot;
+         return true;
+      }
+
+      if (client.gameMode == null || client.player.inventoryMenu == null) {
+         return false;
+      }
+
+      int hotbarSlot = this.firstEmptyHotbarSlot(client);
+      if (hotbarSlot < 0) {
+         hotbarSlot = this.selectedHotbarSlot(client);
+      }
+
+      if (hotbarSlot < 0 || hotbarSlot >= 9) {
+         hotbarSlot = 0;
+      }
+
+      client.gameMode.handleInventoryMouseClick(client.player.inventoryMenu.containerId, playerInventoryMenuSlot(inventorySlot), hotbarSlot, ClickType.SWAP, client.player);
+      client.player.getInventory().selected = hotbarSlot;
+      return true;
+   }
+
+   private int firstEmptyHotbarSlot(Minecraft client) {
+      if (client == null || client.player == null) {
+         return -1;
+      }
+
+      int max = Math.min(9, client.player.getInventory().getContainerSize());
+      for (int slot = 0; slot < max; slot++) {
+         if (client.player.getInventory().getItem(slot).isEmpty()) {
+            return slot;
+         }
+      }
+
+      return -1;
+   }
+
+   private int selectedHotbarSlot(Minecraft client) {
+      if (client == null || client.player == null) {
+         return -1;
+      }
+
+      int selected = client.player.getInventory().selected;
+      return selected >= 0 && selected < 9 ? selected : -1;
    }
 
    private boolean dropPlayerInventorySlot(Minecraft client, int inventorySlot, boolean dropStack) {
@@ -5454,14 +5742,15 @@ final class MacroRunner {
       if (handler == null) {
          return null;
       } else {
-         SlotRange range = slotRange(node.value);
+         String sourceText = this.resolveRuntimeText(node.value);
+         SlotRange range = slotRange(sourceText);
          if (range != null && range.openContainer()) {
             int firstPlayerSlot = firstPlayerInventorySlot(handler);
             int start = Math.max(0, Math.min(range.start(), range.end()));
             int end = Math.min(firstPlayerSlot - 1, Math.max(range.start(), range.end()));
             return start > end ? false : this.openContainerSlotsHaveTag(client, node, handler, start, end, tagText);
          } else {
-            Integer slotIndex = isExplicitOpenContainerSlotTarget(node.value) ? openContainerSlotIndex(handler, node.value) : null;
+            Integer slotIndex = isExplicitOpenContainerSlotTarget(sourceText) ? openContainerSlotIndex(handler, sourceText) : null;
             return slotIndex == null ? null : this.openContainerSlotsHaveTag(client, node, handler, slotIndex, slotIndex, tagText);
          }
       }

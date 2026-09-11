@@ -50,10 +50,22 @@ Click a component to edit it on the right side.
 
 Common settings:
 
+- `Name` gives a component a custom label, useful when you have many `Wait`, `Move`, or `Click` components.
 - `Component delay` overrides the global delay for one component.
 - `Enabled` lets you turn a component on or off for testing.
 - `Pick Item` helps fill item IDs without typing them.
 - `Connections` shows and clears links from the selected component.
+
+Useful builder shortcuts:
+
+- `Ctrl+C` copies the selected component or selected group.
+- `Ctrl+V` pastes into the current macro. You can copy in one macro slot and paste in another.
+- `Delete` removes the selected component or group. Extra `Macro Entry Point` components can be deleted.
+- `Ctrl+Z` undo.
+- `Ctrl+Y` redo.
+- `D`, `F`, and `T` start a link from the selected component's `done/completed`, `failed`, or `true` output when that output exists.
+
+Notes support normal text editing: select text with the mouse, copy/paste selected text, use Up/Down to move lines, and use Ctrl+Left/Ctrl+Right to jump by words.
 
 ## Global Delay
 
@@ -101,3 +113,4 @@ Main menu friendly components include:
 - `Random Output 3`
 - `Discord Notification`
 - `If Kicked`
+- `Skip If True`

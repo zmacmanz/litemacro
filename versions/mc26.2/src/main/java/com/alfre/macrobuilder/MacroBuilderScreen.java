@@ -95,11 +95,14 @@ final class MacroBuilderScreen extends Screen {
    private static final int CONTEXT_MENU_ROW_HEIGHT = 18;
    private static final int CONTEXT_CLICK_DRAG_THRESHOLD = 5;
    private static final long AUTO_SAVE_INTERVAL_MS = 2500L;
+   private static final int HISTORY_LIMIT = 80;
+   private static List<MacroBuilderScreen.CopiedComponent> sharedCopiedComponents = List.of();
    private final MacroRunner runner;
    private final MacroModel model;
    private final Map<String, Boolean> expandedGroups = new LinkedHashMap<>();
    private final List<MacroBuilderScreen.ItemEntry> itemEntries = new ArrayList<>();
    private EditBox componentSearchField;
+   private EditBox componentNameField;
    private EditBox nameField;
    private EditBox delayField;
    private EditBox primaryField;
@@ -175,6 +178,9 @@ final class MacroBuilderScreen extends Screen {
    private String savedSnapshot;
    private MacroBuilderScreen.CopiedComponent copiedComponent;
    private List<MacroBuilderScreen.CopiedComponent> copiedComponents = List.of();
+   private String lastHistorySnapshot;
+   private final List<String> undoSnapshots = new ArrayList<>();
+   private final List<String> redoSnapshots = new ArrayList<>();
    private boolean contextMenuOpen;
    private boolean topActionsMenuOpen;
    private int contextMenuX;
@@ -198,6 +204,9 @@ final class MacroBuilderScreen extends Screen {
    private MacroModel.Node editingNote;
    private String editingNoteText = "";
    private int editingNoteCaret;
+   private int editingNoteSelectionAnchor;
+   private int editingNotePreferredX = -1;
+   private boolean selectingNoteText;
    private boolean noteCaretVisible = true;
    private long noteCaretLastToggleMs;
    private MacroModel.Node resizingNote;
@@ -218,6 +227,9 @@ final class MacroBuilderScreen extends Screen {
       }
 
       this.savedSnapshot = model.toJson();
+      this.lastHistorySnapshot = this.savedSnapshot;
+      this.copiedComponents = sharedCopiedComponents;
+      this.copiedComponent = this.copiedComponents.isEmpty() ? null : this.copiedComponents.get(0);
       this.lastAutoSaveTimeMs = System.currentTimeMillis();
 
       for (MacroModel.Descriptor descriptor : MacroModel.paletteDescriptors()) {
@@ -305,7 +317,10 @@ final class MacroBuilderScreen extends Screen {
       this.excludeSlotsField = new EditBox(this.font, rightX + 14, RIGHT_EXTRA_FIELD_Y, rightWidth, 20, Component.empty());
       this.excludeSlotsField.setMaxLength(128);
       this.addRenderableWidget(this.excludeSlotsField);
-      this.nodeDelayField = new EditBox(this.font, rightX + 14, RIGHT_NODE_DELAY_FIELD_Y, rightWidth, 20, Component.empty());
+      this.componentNameField = new EditBox(this.font, rightX + 14, RIGHT_NODE_DELAY_FIELD_Y, Math.max(78, rightWidth - 58), 20, Component.empty());
+      this.componentNameField.setMaxLength(60);
+      this.addRenderableWidget(this.componentNameField);
+      this.nodeDelayField = new EditBox(this.font, rightX + rightWidth - 44, RIGHT_NODE_DELAY_FIELD_Y, 44, 20, Component.empty());
       this.nodeDelayField.setMaxLength(8);
       this.addRenderableWidget(this.nodeDelayField);
       this.primaryItemButton = (Button)this.addRenderableWidget(
@@ -538,6 +553,7 @@ final class MacroBuilderScreen extends Screen {
                this.selectedNode.outputs.remove(outputToClear);
                this.status = "Cleared " + outputToClear + " link";
                this.statusColor = -11382;
+               this.recordHistorySnapshot();
                this.refreshProperties();
                return true;
             } else {
@@ -585,6 +601,8 @@ final class MacroBuilderScreen extends Screen {
                                   if (this.noteBodyAt(clickedNode, (int)mouseX, (int)mouseY)) {
                                      this.highlightedConnection = null;
                                      this.startNoteEditing(clickedNode);
+                                     this.setNoteCaret(this.noteCaretAt(clickedNode, (int)mouseX, (int)mouseY), this.shiftDown());
+                                     this.selectingNoteText = true;
                                      this.refreshProperties();
                                      return true;
                                   }
@@ -617,8 +635,9 @@ final class MacroBuilderScreen extends Screen {
                            if (clickedNode != null && clickedNode != this.pendingConnectionSource && !this.isNoteNode(clickedNode)) {
                               this.pendingConnectionSource.addTarget(this.pendingConnectionOutput, clickedNode.id);
                               this.selectNode(this.pendingConnectionSource, false);
-                              this.status = "Connected " + this.pendingConnectionOutput + " to " + clickedNode.descriptor().label();
+                              this.status = "Connected " + this.pendingConnectionOutput + " to " + clickedNode.displayLabel();
                               this.statusColor = -4200769;
+                              this.recordHistorySnapshot();
                            } else if (this.isNoteNode(clickedNode)) {
                               this.status = "Notes do not run as components";
                               this.statusColor = -11382;
@@ -655,7 +674,10 @@ final class MacroBuilderScreen extends Screen {
       try {
          double mouseX = click.x();
          double mouseY = click.y();
-         if (this.resizingNote != null && click.button() == 0) {
+         if (this.selectingNoteText && this.editingNote != null && click.button() == 0) {
+            this.setNoteCaret(this.noteCaretAt(this.editingNote, (int)mouseX, (int)mouseY), true);
+            return true;
+         } else if (this.resizingNote != null && click.button() == 0) {
             this.updateNoteResize((int)mouseX, (int)mouseY);
             return true;
          } else if (this.draggedConnection != null && click.button() == 0) {
@@ -724,8 +746,14 @@ final class MacroBuilderScreen extends Screen {
          double mouseX = click.x();
          double mouseY = click.y();
          int button = click.button();
+         if (button == 0 && this.selectingNoteText) {
+            this.selectingNoteText = false;
+            return true;
+         }
+
          if (button == 0 && this.resizingNote != null) {
             this.finishNoteResize();
+            this.recordHistorySnapshot();
             return true;
          }
 
@@ -738,7 +766,7 @@ final class MacroBuilderScreen extends Screen {
                       (int)Math.round(this.worldY(mouseY) - this.nodeWorldHeight(this.paletteDragType) / 2.0)
                    );
                this.selectNode(node, false);
-               this.status = "Added " + node.descriptor().label();
+               this.status = "Added " + node.displayLabel();
                this.statusColor = -4200769;
                if (this.isNoteNode(node)) {
                   node.noteWidth = NOTE_WIDTH;
@@ -747,6 +775,7 @@ final class MacroBuilderScreen extends Screen {
                }
 
                this.refreshProperties();
+               this.recordHistorySnapshot();
             }
 
             this.paletteDragType = null;
@@ -767,6 +796,10 @@ final class MacroBuilderScreen extends Screen {
                 }
 
                 return true;
+             }
+
+             if (button == 0 && (this.draggedNode != null || this.draggedConnection != null)) {
+                this.recordHistorySnapshot();
              }
 
              this.draggedNode = null;
@@ -834,6 +867,12 @@ final class MacroBuilderScreen extends Screen {
       } else if (this.contextMenuOpen && input.key() == 256) {
          this.closeContextMenu();
          return true;
+      } else if ((input.key() == GLFW.GLFW_KEY_Y || input.key() == GLFW.GLFW_KEY_Z && this.shiftDown()) && input.hasControlDownWithQuirk() && !this.fieldFocused()) {
+         this.redo();
+         return true;
+      } else if (input.key() == GLFW.GLFW_KEY_Z && input.hasControlDownWithQuirk() && !this.fieldFocused()) {
+         this.undo();
+         return true;
       } else if (this.editingNote != null && this.handleNoteKey(input.key(), input.hasControlDownWithQuirk())) {
          return true;
       } else if (input.key() == 83 && input.hasControlDownWithQuirk()) {
@@ -852,6 +891,8 @@ final class MacroBuilderScreen extends Screen {
          return true;
       } else if (input.key() == 86 && input.hasControlDownWithQuirk() && !this.fieldFocused()) {
          this.pasteCopiedComponent();
+         return true;
+      } else if (!this.fieldFocused() && this.handleConnectionShortcut(input.key())) {
          return true;
       } else {
          return super.keyPressed(input);
@@ -889,6 +930,7 @@ final class MacroBuilderScreen extends Screen {
       try {
          this.runner.save(this.model);
          this.savedSnapshot = this.model.toJson();
+         this.lastHistorySnapshot = this.savedSnapshot;
          this.status = "Saved";
          this.statusColor = -4200769;
          return true;
@@ -908,6 +950,7 @@ final class MacroBuilderScreen extends Screen {
 
       this.lastAutoSaveTimeMs = now;
       this.syncSelectedFromFields();
+      this.recordHistorySnapshot();
       String currentSnapshot = this.model.toJson();
       if (currentSnapshot.equals(this.savedSnapshot)) {
          return;
@@ -964,6 +1007,7 @@ final class MacroBuilderScreen extends Screen {
 
       if (this.selectedNode != null
          && !this.isNoteNode(this.selectedNode)
+         && this.componentNameField != null
          && this.primaryField != null
          && this.secondaryField != null
          && this.mineAreaToolLowField != null
@@ -974,6 +1018,7 @@ final class MacroBuilderScreen extends Screen {
          && this.excludeSlotsField != null
          && this.nodeDelayField != null) {
          this.selectedNode.delayMs = this.parseNodeDelayMs(this.nodeDelayField.getValue());
+         this.selectedNode.displayName = this.cleanComponentName(this.componentNameField.getValue());
          MacroModel.Descriptor descriptor = this.selectedNode.descriptor();
          boolean autoGrindstoneNode = this.isAutoGrindstoneNode(this.selectedNode);
          boolean mineAreaNode = this.isMineAreaNode(this.selectedNode);
@@ -1014,6 +1059,7 @@ final class MacroBuilderScreen extends Screen {
    private void refreshProperties() {
       if (this.primaryField != null
          && this.secondaryField != null
+         && this.componentNameField != null
          && this.mineAreaToolLowField != null
          && this.mineAreaMoveButton != null
          && this.mineAreaAutoToolButton != null
@@ -1103,6 +1149,10 @@ final class MacroBuilderScreen extends Screen {
          this.nodeDelayField.active = this.nodeDelayField.visible;
          this.nodeDelayField.setValue(hasSelection && this.selectedNode.delayMs >= 0 ? Integer.toString(this.selectedNode.delayMs) : "");
          this.nodeDelayField.setSuggestion("");
+         this.componentNameField.visible = hasSelection && !noteNode;
+         this.componentNameField.active = this.componentNameField.visible;
+         this.componentNameField.setValue(hasSelection && this.selectedNode.displayName != null ? this.selectedNode.displayName : "");
+         this.componentNameField.setSuggestion(hasSelection && !noteNode && (this.selectedNode.displayName == null || this.selectedNode.displayName.isBlank()) ? "optional name" : "");
          boolean primaryItem = hasPrimary && !autoEnchantNode && this.isItemField(descriptor.primaryLabel());
          boolean secondaryItem = hasSecondary && !autoEnchantNode && this.isItemField(descriptor.secondaryLabel());
          this.primaryItemButton.visible = primaryItem;
@@ -1183,14 +1233,14 @@ final class MacroBuilderScreen extends Screen {
           this.clearConnectionsButton.visible = hasSelection && this.model.hasAnyConnection(this.selectedNode);
          this.clearConnectionsButton.active = this.clearConnectionsButton.visible;
           this.clearConnectionsButton.setMessage(Component.literal("Clear"));
-         this.deleteButton.visible = hasSelection && !"official:start".equals(this.selectedNode.type);
+         this.deleteButton.visible = hasSelection && this.selectionHasDeletableNode();
          this.deleteButton.active = this.deleteButton.visible;
          if (this.copyComponentButton != null) {
-            this.copyComponentButton.active = hasSelection && !"official:start".equals(this.selectedNode.type);
+            this.copyComponentButton.active = hasSelection && this.movableSelection().stream().anyMatch(node -> !"official:start".equals(node.type));
          }
 
          if (this.pasteComponentButton != null) {
-            this.pasteComponentButton.active = !this.copiedComponents.isEmpty();
+            this.pasteComponentButton.active = this.hasCopiedComponents();
          }
 
          if (this.setAllDelayButton != null) {
@@ -1299,6 +1349,7 @@ final class MacroBuilderScreen extends Screen {
    private void toggleDepositMode() {
       if (this.isDepositWithdrawNode(this.selectedNode)) {
          this.selectedNode.value = "specific".equalsIgnoreCase(this.selectedNode.value) ? "all" : "specific";
+         this.recordHistorySnapshot();
          this.refreshProperties();
       }
    }
@@ -1307,6 +1358,7 @@ final class MacroBuilderScreen extends Screen {
       if (this.isItemOrSlotHasTagNode(this.selectedNode)) {
          boolean next = !this.clickMatchedTagEnabled(this.selectedNode);
          this.selectedNode.value3 = Boolean.toString(next);
+         this.recordHistorySnapshot();
          this.refreshProperties();
       } else if (this.isShiftClickNode(this.selectedNode)) {
          boolean next = !this.shiftClickEnabled(this.selectedNode);
@@ -1316,6 +1368,7 @@ final class MacroBuilderScreen extends Screen {
             this.selectedNode.value3 = Boolean.toString(next);
          }
 
+         this.recordHistorySnapshot();
          this.refreshProperties();
       }
    }
@@ -1324,6 +1377,7 @@ final class MacroBuilderScreen extends Screen {
       if (this.isDepositNode(this.selectedNode) || this.isDropItemsNode(this.selectedNode)) {
          boolean next = !this.fastDepositEnabled(this.selectedNode);
          this.selectedNode.value4 = Boolean.toString(next);
+         this.recordHistorySnapshot();
          this.refreshProperties();
       }
    }
@@ -1331,6 +1385,7 @@ final class MacroBuilderScreen extends Screen {
    private void toggleClickGuiButton() {
       if (this.isClickGuiItemNode(this.selectedNode)) {
          this.selectedNode.value3 = "right".equalsIgnoreCase(this.selectedNode.value3 == null ? "" : this.selectedNode.value3.trim()) ? "left" : "right";
+         this.recordHistorySnapshot();
          this.refreshProperties();
       }
    }
@@ -1338,6 +1393,7 @@ final class MacroBuilderScreen extends Screen {
    private void setAutoEnchantItemToHeld() {
       if (this.isAutoEnchantNode(this.selectedNode)) {
          this.selectedNode.value3 = "held";
+         this.recordHistorySnapshot();
          this.refreshProperties();
       }
    }
@@ -1345,6 +1401,7 @@ final class MacroBuilderScreen extends Screen {
    private void toggleAutoEnchantClose() {
       if (this.isAutoEnchantNode(this.selectedNode)) {
          this.selectedNode.value5 = Boolean.toString(!this.autoEnchantCloseEnabled(this.selectedNode));
+         this.recordHistorySnapshot();
          this.refreshProperties();
       }
    }
@@ -1353,6 +1410,7 @@ final class MacroBuilderScreen extends Screen {
       if (this.isAutoGrindstoneNode(this.selectedNode)) {
          this.normalizeAutoGrindstoneNode(this.selectedNode);
          this.selectedNode.value = this.autoGrindstoneRepairMode(this.selectedNode) ? "disenchant" : "repair";
+         this.recordHistorySnapshot();
          this.refreshProperties();
       }
    }
@@ -1360,6 +1418,7 @@ final class MacroBuilderScreen extends Screen {
    private void setAutoGrindstoneInputToHeld() {
       if (this.isAutoGrindstoneNode(this.selectedNode)) {
          this.selectedNode.value2 = "held";
+         this.recordHistorySnapshot();
          this.refreshProperties();
       }
    }
@@ -1367,6 +1426,7 @@ final class MacroBuilderScreen extends Screen {
    private void setAutoGrindstoneRepairToSame() {
       if (this.isAutoGrindstoneNode(this.selectedNode)) {
          this.selectedNode.value3 = "same";
+         this.recordHistorySnapshot();
          this.refreshProperties();
       }
    }
@@ -1374,6 +1434,7 @@ final class MacroBuilderScreen extends Screen {
    private void toggleAutoGrindstoneShift() {
       if (this.isAutoGrindstoneNode(this.selectedNode)) {
          this.selectedNode.value4 = "drop".equals(this.autoGrindstoneResultAction(this.selectedNode)) ? "inventory" : "drop";
+         this.recordHistorySnapshot();
          this.refreshProperties();
       }
    }
@@ -1381,6 +1442,7 @@ final class MacroBuilderScreen extends Screen {
    private void toggleAutoGrindstoneClose() {
       if (this.isAutoGrindstoneNode(this.selectedNode)) {
          this.selectedNode.value5 = Boolean.toString(!this.autoGrindstoneCloseEnabled(this.selectedNode));
+         this.recordHistorySnapshot();
          this.refreshProperties();
       }
    }
@@ -1389,6 +1451,7 @@ final class MacroBuilderScreen extends Screen {
       if (this.isMineAreaNode(this.selectedNode)) {
          boolean next = !this.mineAreaMoveEnabled(this.selectedNode);
          this.selectedNode.value2 = this.mineAreaOptionsText(this.secondaryField.getValue(), this.mineAreaToolLowField.getValue(), next, this.mineAreaAutoToolEnabled(this.selectedNode));
+         this.recordHistorySnapshot();
          this.refreshProperties();
       }
    }
@@ -1397,6 +1460,7 @@ final class MacroBuilderScreen extends Screen {
       if (this.isMineAreaNode(this.selectedNode)) {
          boolean next = !this.mineAreaAutoToolEnabled(this.selectedNode);
          this.selectedNode.value2 = this.mineAreaOptionsText(this.secondaryField.getValue(), this.mineAreaToolLowField.getValue(), this.mineAreaMoveEnabled(this.selectedNode), next);
+         this.recordHistorySnapshot();
          this.refreshProperties();
       }
    }
@@ -1416,6 +1480,7 @@ final class MacroBuilderScreen extends Screen {
 
       this.status = enable ? "Enabled selected components" : "Disabled selected components";
       this.statusColor = -4200769;
+      this.recordHistorySnapshot();
       this.refreshProperties();
    }
 
@@ -1428,6 +1493,7 @@ final class MacroBuilderScreen extends Screen {
       this.selectedNode.value = enableForever ? "forever" : "3";
       this.status = enableForever ? "Repeat forever" : "Repeat count";
       this.statusColor = -4200769;
+      this.recordHistorySnapshot();
       this.refreshProperties();
    }
 
@@ -1985,6 +2051,7 @@ final class MacroBuilderScreen extends Screen {
             this.draggedConnection = null;
             this.status = "Cleared links";
             this.statusColor = -11382;
+            this.recordHistorySnapshot();
             this.refreshProperties();
          }
       }
@@ -2108,8 +2175,8 @@ final class MacroBuilderScreen extends Screen {
          case 0 -> true;
          case 1 -> this.contextMenuNode != null && !"official:start".equals(this.contextMenuNode.type);
          case 2 -> this.contextMenuNode != null && !"official:start".equals(this.contextMenuNode.type);
-         case 3 -> !this.copiedComponents.isEmpty();
-         case 4 -> this.contextMenuNode != null && !"official:start".equals(this.contextMenuNode.type);
+         case 3 -> this.hasCopiedComponents();
+         case 4 -> this.contextMenuNode != null && this.canDeleteNode(this.contextMenuNode);
          case 5 -> this.contextMenuNode != null && this.model.hasAnyConnection(this.contextMenuNode);
          case 6 -> this.contextMenuNode != null && !"official:start".equals(this.contextMenuNode.type) && !this.isNoteNode(this.contextMenuNode);
          default -> false;
@@ -2141,6 +2208,7 @@ final class MacroBuilderScreen extends Screen {
          this.draggedConnection = null;
          this.status = "Deleted link";
          this.statusColor = -11382;
+         this.recordHistorySnapshot();
          this.refreshProperties();
       }
    }
@@ -2151,6 +2219,7 @@ final class MacroBuilderScreen extends Screen {
          this.highlightedConnection = connection;
          this.status = message;
          this.statusColor = -4200769;
+         this.recordHistorySnapshot();
          this.refreshProperties();
       }
    }
@@ -2167,6 +2236,7 @@ final class MacroBuilderScreen extends Screen {
 
       this.status = "Set all component delays to " + delay + " ms";
       this.statusColor = -4200769;
+      this.recordHistorySnapshot();
       this.refreshProperties();
    }
 
@@ -2179,7 +2249,7 @@ final class MacroBuilderScreen extends Screen {
 
          int deleted = 0;
          for (MacroModel.Node node : nodes) {
-            if (this.model.removeNode(node)) {
+            if (this.canDeleteNode(node) && this.model.removeNode(node)) {
                deleted++;
             }
          }
@@ -2190,6 +2260,10 @@ final class MacroBuilderScreen extends Screen {
             this.selectNode(null, false);
             this.highlightedConnection = null;
             this.draggedConnection = null;
+            this.recordHistorySnapshot();
+         } else {
+            this.status = "Keep at least one entry point";
+            this.statusColor = -11382;
          }
 
          this.refreshProperties();
@@ -2301,7 +2375,7 @@ final class MacroBuilderScreen extends Screen {
          context.text(this.font, "No component selected", rightX + 14, RIGHT_COMPONENT_Y, -5327166);
       } else {
          MacroModel.Descriptor descriptor = this.selectedNode.descriptor();
-         String title = this.selectedNodes.size() > 1 ? this.selectedNodes.size() + " components selected" : descriptor.label();
+         String title = this.selectedNodes.size() > 1 ? this.selectedNodes.size() + " components selected" : this.selectedNode.displayLabel();
          context.text(this.font, this.fit(title, rightWidth), rightX + 14, RIGHT_COMPONENT_Y, -1);
          this.drawWrappedText(context, descriptor.description(), rightX + 14, RIGHT_COMPONENT_Y + 12, rightWidth, -7366491, 3);
          if (this.isNoteNode(this.selectedNode)) {
@@ -2337,9 +2411,12 @@ final class MacroBuilderScreen extends Screen {
             if (this.autoGrindstoneRepairMode(this.selectedNode)) {
                context.text(this.font, "Repair item", rightX + 14, RIGHT_GRINDSTONE_REPAIR_LABEL_Y, -2565928);
             }
+
+            this.drawWrappedText(context, "Outputs: last.slot, last.hotbar_slot, last.item", rightX + 14, RIGHT_GRINDSTONE_TOGGLE_Y + 26, rightWidth, -7366491, 2);
          }
 
-         context.text(this.font, "Component delay (blank = global)", rightX + 14, RIGHT_NODE_DELAY_LABEL_Y, -2565928);
+         context.text(this.font, "Name", rightX + 14, RIGHT_NODE_DELAY_LABEL_Y, -2565928);
+         context.text(this.font, "Delay", this.nodeDelayField.getX(), RIGHT_NODE_DELAY_LABEL_Y, -2565928);
          if (this.hasExcludeSlotField(this.selectedNode)) {
             context.text(this.font, "Exclude slots", rightX + 14, RIGHT_EXTRA_LABEL_Y, -2565928);
             context.text(this.font, "0-8 hotbar, 9-35 inventory", rightX + 14, RIGHT_EXTRA_HINT_Y, -7366491);
@@ -2447,7 +2524,7 @@ final class MacroBuilderScreen extends Screen {
    private boolean topActionEnabled(int row) {
       return switch (row) {
          case 1 -> this.selectedNode != null && !"official:start".equals(this.selectedNode.type);
-         case 2 -> !this.copiedComponents.isEmpty();
+         case 2 -> this.hasCopiedComponents();
          default -> true;
       };
    }
@@ -2540,6 +2617,7 @@ final class MacroBuilderScreen extends Screen {
                   node.value3,
                   node.value4,
                   node.value5,
+                  node.displayName,
                   node.delayMs,
                   node.enabled,
                   node.x,
@@ -2554,9 +2632,10 @@ final class MacroBuilderScreen extends Screen {
          }
 
          this.copiedComponents = List.copyOf(copies);
+         sharedCopiedComponents = this.copiedComponents;
          this.copiedComponent = this.copiedComponents.get(0);
          this.status = this.copiedComponents.size() == 1
-            ? "Copied " + MacroModel.descriptor(this.copiedComponent.type()).label()
+            ? "Copied " + this.copiedComponent.displayLabel()
             : "Copied " + this.copiedComponents.size() + " components";
          this.statusColor = -4200769;
          this.refreshProperties();
@@ -2568,6 +2647,7 @@ final class MacroBuilderScreen extends Screen {
 
    private void pasteCopiedComponent() {
       this.syncSelectedFromFields();
+      this.refreshCopiedComponentsFromShared();
       if (this.copiedComponents.isEmpty()) {
          this.status = "No copied component";
          this.statusColor = -11382;
@@ -2580,6 +2660,7 @@ final class MacroBuilderScreen extends Screen {
    }
 
    private void pasteCopiedComponentAt(int x, int y) {
+      this.refreshCopiedComponentsFromShared();
       if (this.copiedComponents.isEmpty()) {
          this.status = "No copied component";
          this.statusColor = -11382;
@@ -2596,6 +2677,7 @@ final class MacroBuilderScreen extends Screen {
             pasted.value3 = copy.value3();
             pasted.value4 = copy.value4();
             pasted.value5 = copy.value5();
+            pasted.displayName = copy.displayName();
             pasted.delayMs = copy.delayMs();
             pasted.enabled = copy.enabled();
             pasted.noteWidth = copy.noteWidth();
@@ -2639,8 +2721,9 @@ final class MacroBuilderScreen extends Screen {
          this.selectedNodes.clear();
          this.selectedNodes.addAll(pastedNodes);
          this.selectedNode = pastedNodes.isEmpty() ? null : pastedNodes.get(pastedNodes.size() - 1);
-         this.status = pastedNodes.size() == 1 ? "Pasted " + this.selectedNode.descriptor().label() : "Pasted " + pastedNodes.size() + " components";
+         this.status = pastedNodes.size() == 1 ? "Pasted " + this.selectedNode.displayLabel() : "Pasted " + pastedNodes.size() + " components";
          this.statusColor = -4200769;
+         this.recordHistorySnapshot();
          this.refreshProperties();
       }
    }
@@ -2694,6 +2777,8 @@ final class MacroBuilderScreen extends Screen {
       this.editingNote = node;
       this.editingNoteText = this.noteText(node);
       this.editingNoteCaret = this.editingNoteText.length();
+      this.editingNoteSelectionAnchor = this.editingNoteCaret;
+      this.editingNotePreferredX = -1;
       this.resetNoteCaretBlink();
    }
 
@@ -2709,6 +2794,9 @@ final class MacroBuilderScreen extends Screen {
       this.editingNote = null;
       this.editingNoteText = "";
       this.editingNoteCaret = 0;
+      this.editingNoteSelectionAnchor = 0;
+      this.editingNotePreferredX = -1;
+      this.selectingNoteText = false;
       this.noteCaretVisible = true;
    }
 
@@ -2723,39 +2811,48 @@ final class MacroBuilderScreen extends Screen {
          return false;
       }
 
+      boolean shiftHeld = this.shiftDown();
       switch (keyCode) {
          case GLFW.GLFW_KEY_BACKSPACE:
-            if (this.editingNoteCaret > 0 && !this.editingNoteText.isEmpty()) {
+            if (this.deleteNoteSelection()) {
+               this.noteTextChanged();
+            } else if (this.editingNoteCaret > 0 && !this.editingNoteText.isEmpty()) {
                this.editingNoteText = this.editingNoteText.substring(0, this.editingNoteCaret - 1)
                   + this.editingNoteText.substring(this.editingNoteCaret);
                this.editingNoteCaret--;
+               this.editingNoteSelectionAnchor = this.editingNoteCaret;
                this.noteTextChanged();
             }
 
             return true;
          case GLFW.GLFW_KEY_DELETE:
-            if (this.editingNoteCaret < this.editingNoteText.length()) {
+            if (this.deleteNoteSelection()) {
+               this.noteTextChanged();
+            } else if (this.editingNoteCaret < this.editingNoteText.length()) {
                this.editingNoteText = this.editingNoteText.substring(0, this.editingNoteCaret)
                   + this.editingNoteText.substring(this.editingNoteCaret + 1);
+               this.editingNoteSelectionAnchor = this.editingNoteCaret;
                this.noteTextChanged();
             }
 
             return true;
          case GLFW.GLFW_KEY_LEFT:
-            this.editingNoteCaret = Math.max(0, this.editingNoteCaret - 1);
-            this.resetNoteCaretBlink();
+            this.setNoteCaret(controlHeld ? this.previousNoteWord(this.editingNoteCaret) : this.editingNoteCaret - 1, shiftHeld);
             return true;
          case GLFW.GLFW_KEY_RIGHT:
-            this.editingNoteCaret = Math.min(this.editingNoteText.length(), this.editingNoteCaret + 1);
-            this.resetNoteCaretBlink();
+            this.setNoteCaret(controlHeld ? this.nextNoteWord(this.editingNoteCaret) : this.editingNoteCaret + 1, shiftHeld);
+            return true;
+         case GLFW.GLFW_KEY_UP:
+            this.moveNoteCaretVertical(-1, shiftHeld);
+            return true;
+         case GLFW.GLFW_KEY_DOWN:
+            this.moveNoteCaretVertical(1, shiftHeld);
             return true;
          case GLFW.GLFW_KEY_HOME:
-            this.editingNoteCaret = 0;
-            this.resetNoteCaretBlink();
+            this.setNoteCaret(controlHeld ? 0 : this.noteLineStart(this.editingNoteCaret), shiftHeld);
             return true;
          case GLFW.GLFW_KEY_END:
-            this.editingNoteCaret = this.editingNoteText.length();
-            this.resetNoteCaretBlink();
+            this.setNoteCaret(controlHeld ? this.editingNoteText.length() : this.noteLineEnd(this.editingNoteCaret), shiftHeld);
             return true;
          case GLFW.GLFW_KEY_ENTER:
          case GLFW.GLFW_KEY_KP_ENTER:
@@ -2766,6 +2863,7 @@ final class MacroBuilderScreen extends Screen {
          case GLFW.GLFW_KEY_A:
             if (controlHeld) {
                this.editingNoteCaret = this.editingNoteText.length();
+               this.editingNoteSelectionAnchor = 0;
                this.resetNoteCaretBlink();
                return true;
             }
@@ -2773,16 +2871,22 @@ final class MacroBuilderScreen extends Screen {
             return false;
          case GLFW.GLFW_KEY_C:
             if (controlHeld) {
-               this.setClipboardText(this.editingNoteText);
+               this.setClipboardText(this.selectedNoteTextOrAll());
                return true;
             }
 
             return false;
          case GLFW.GLFW_KEY_X:
             if (controlHeld) {
-               this.setClipboardText(this.editingNoteText);
-               this.editingNoteText = "";
-               this.editingNoteCaret = 0;
+               this.setClipboardText(this.selectedNoteTextOrAll());
+               if (this.hasNoteSelection()) {
+                  this.deleteNoteSelection();
+               } else {
+                  this.editingNoteText = "";
+                  this.editingNoteCaret = 0;
+                  this.editingNoteSelectionAnchor = 0;
+               }
+
                this.noteTextChanged();
                return true;
             }
@@ -2814,22 +2918,238 @@ final class MacroBuilderScreen extends Screen {
          return true;
       }
 
-      int allowed = NOTE_MAX_CHARS - this.editingNoteText.length();
+      int selectionStart = this.noteSelectionStart();
+      int selectionEnd = this.noteSelectionEnd();
+      int selectedLength = selectionEnd - selectionStart;
+      int allowed = NOTE_MAX_CHARS - (this.editingNoteText.length() - selectedLength);
       if (allowed <= 0) {
          return true;
       }
 
       String insert = safe.length() > allowed ? safe.substring(0, allowed) : safe.toString();
-      int caret = clamp(this.editingNoteCaret, 0, this.editingNoteText.length());
-      this.editingNoteText = this.editingNoteText.substring(0, caret) + insert + this.editingNoteText.substring(caret);
+      int caret = this.hasNoteSelection() ? selectionStart : clamp(this.editingNoteCaret, 0, this.editingNoteText.length());
+      int tailStart = this.hasNoteSelection() ? selectionEnd : caret;
+      this.editingNoteText = this.editingNoteText.substring(0, caret) + insert + this.editingNoteText.substring(tailStart);
       this.editingNoteCaret = caret + insert.length();
+      this.editingNoteSelectionAnchor = this.editingNoteCaret;
+      this.editingNotePreferredX = -1;
       this.noteTextChanged();
       return true;
+   }
+
+   private boolean hasNoteSelection() {
+      return this.editingNote != null && this.editingNoteSelectionAnchor != this.editingNoteCaret;
+   }
+
+   private int noteSelectionStart() {
+      return Math.min(clamp(this.editingNoteSelectionAnchor, 0, this.editingNoteText.length()), clamp(this.editingNoteCaret, 0, this.editingNoteText.length()));
+   }
+
+   private int noteSelectionEnd() {
+      return Math.max(clamp(this.editingNoteSelectionAnchor, 0, this.editingNoteText.length()), clamp(this.editingNoteCaret, 0, this.editingNoteText.length()));
+   }
+
+   private boolean deleteNoteSelection() {
+      if (!this.hasNoteSelection()) {
+         return false;
+      }
+
+      int start = this.noteSelectionStart();
+      int end = this.noteSelectionEnd();
+      this.editingNoteText = this.editingNoteText.substring(0, start) + this.editingNoteText.substring(end);
+      this.editingNoteCaret = start;
+      this.editingNoteSelectionAnchor = start;
+      this.editingNotePreferredX = -1;
+      return true;
+   }
+
+   private String selectedNoteTextOrAll() {
+      if (this.hasNoteSelection()) {
+         return this.editingNoteText.substring(this.noteSelectionStart(), this.noteSelectionEnd());
+      }
+
+      return this.editingNoteText;
+   }
+
+   private void setNoteCaret(int caret, boolean selecting) {
+      int before = clamp(this.editingNoteCaret, 0, this.editingNoteText.length());
+      int next = clamp(caret, 0, this.editingNoteText.length());
+      if (selecting) {
+         if (!this.hasNoteSelection()) {
+            this.editingNoteSelectionAnchor = before;
+         }
+      } else {
+         this.editingNoteSelectionAnchor = next;
+      }
+
+      this.editingNoteCaret = next;
+      this.editingNotePreferredX = -1;
+      this.resetNoteCaretBlink();
+   }
+
+   private int previousNoteWord(int caret) {
+      int index = clamp(caret, 0, this.editingNoteText.length());
+      while (index > 0 && Character.isWhitespace(this.editingNoteText.charAt(index - 1))) {
+         index--;
+      }
+
+      while (index > 0 && !Character.isWhitespace(this.editingNoteText.charAt(index - 1))) {
+         index--;
+      }
+
+      return index;
+   }
+
+   private int nextNoteWord(int caret) {
+      int index = clamp(caret, 0, this.editingNoteText.length());
+      while (index < this.editingNoteText.length() && !Character.isWhitespace(this.editingNoteText.charAt(index))) {
+         index++;
+      }
+
+      while (index < this.editingNoteText.length() && Character.isWhitespace(this.editingNoteText.charAt(index))) {
+         index++;
+      }
+
+      return index;
+   }
+
+   private int noteLineStart(int caret) {
+      List<StickyNoteTextLayout.Line> lines = this.currentNoteLines();
+      StickyNoteTextLayout.Line line = this.noteLineForCaret(caret, lines);
+      return line == null ? 0 : line.start();
+   }
+
+   private int noteLineEnd(int caret) {
+      List<StickyNoteTextLayout.Line> lines = this.currentNoteLines();
+      StickyNoteTextLayout.Line line = this.noteLineForCaret(caret, lines);
+      return line == null ? this.editingNoteText.length() : line.end();
+   }
+
+   private void moveNoteCaretVertical(int delta, boolean selecting) {
+      List<StickyNoteTextLayout.Line> lines = this.currentNoteLines();
+      if (lines.isEmpty()) {
+         this.setNoteCaret(0, selecting);
+         return;
+      }
+
+      int currentLine = this.noteLineIndexForCaret(this.editingNoteCaret, lines);
+      int targetLine = clamp(currentLine + delta, 0, lines.size() - 1);
+      int preferredX = this.editingNotePreferredX >= 0 ? this.editingNotePreferredX : this.noteCaretPixelX(lines.get(currentLine), this.editingNoteCaret);
+      this.editingNotePreferredX = preferredX;
+      this.setNoteCaret(this.noteCaretForPixelX(lines.get(targetLine), preferredX), selecting);
+      this.editingNotePreferredX = preferredX;
+   }
+
+   private List<StickyNoteTextLayout.Line> currentNoteLines() {
+      if (this.editingNote == null) {
+         return List.of(new StickyNoteTextLayout.Line("", 0, 0));
+      }
+
+      MacroBuilderScreen.NoteTextMetrics metrics = this.noteTextMetrics(this.editingNote);
+      return StickyNoteTextLayout.layoutLines(this.editingNoteText, this.font, metrics.bodyWidth(), metrics.maxLines());
+   }
+
+   private StickyNoteTextLayout.Line noteLineForCaret(int caret, List<StickyNoteTextLayout.Line> lines) {
+      if (lines.isEmpty()) {
+         return null;
+      }
+
+      return lines.get(this.noteLineIndexForCaret(caret, lines));
+   }
+
+   private int noteLineIndexForCaret(int caret, List<StickyNoteTextLayout.Line> lines) {
+      int target = clamp(caret, 0, this.editingNoteText.length());
+      for (int index = 0; index < lines.size(); index++) {
+         StickyNoteTextLayout.Line line = lines.get(index);
+         if (target >= line.start() && target <= line.end()) {
+            return index;
+         }
+      }
+
+      return Math.max(0, lines.size() - 1);
+   }
+
+   private int noteCaretPixelX(StickyNoteTextLayout.Line line, int caret) {
+      int position = clamp(caret, line.start(), line.end());
+      return this.font.width(this.editingNoteText.substring(line.start(), position));
+   }
+
+   private int noteCaretForPixelX(StickyNoteTextLayout.Line line, int pixelX) {
+      int best = line.start();
+      for (int index = line.start(); index <= line.end(); index++) {
+         int width = this.font.width(this.editingNoteText.substring(line.start(), index));
+         if (width >= pixelX) {
+            return Math.abs(width - pixelX) < Math.abs(this.font.width(this.editingNoteText.substring(line.start(), best)) - pixelX) ? index : best;
+         }
+
+         best = index;
+      }
+
+      return line.end();
+   }
+
+   private MacroBuilderScreen.NoteTextMetrics noteTextMetrics(MacroModel.Node node) {
+      int sx = this.screenX(node.x);
+      int sy = this.screenY(node.y);
+      int nodeWidth = this.nodeScreenWidth(node);
+      int nodeHeight = this.nodeScreenHeight(node);
+      int headerHeight = Math.max(2, this.scaled(NOTE_HEADER_HEIGHT));
+      int bodyMargin = Math.max(6, this.scaled(NOTE_TEXT_MARGIN));
+      int bodyLeft = sx + bodyMargin;
+      int bodyTop = sy + headerHeight + Math.max(7, this.scaled(8));
+      int bodyBottom = sy + nodeHeight - Math.max(6, this.scaled(8));
+      int bodyWidth = Math.max(1, nodeWidth - bodyMargin * 2);
+      int lineStep = this.noteLineStep();
+      int maxLines = Math.max(1, (bodyBottom - bodyTop + 1) / Math.max(1, lineStep));
+      return new MacroBuilderScreen.NoteTextMetrics(bodyLeft, bodyTop, bodyBottom, bodyWidth, lineStep, maxLines);
+   }
+
+   private int noteCaretAt(MacroModel.Node node, int mouseX, int mouseY) {
+      if (node == null) {
+         return 0;
+      }
+
+      MacroBuilderScreen.NoteTextMetrics metrics = this.noteTextMetrics(node);
+      List<StickyNoteTextLayout.Line> lines = StickyNoteTextLayout.layoutLines(this.editingNoteText, this.font, metrics.bodyWidth(), metrics.maxLines());
+      if (lines.isEmpty()) {
+         return 0;
+      }
+
+      int lineIndex = clamp((mouseY - metrics.bodyTop()) / Math.max(1, metrics.lineStep()), 0, lines.size() - 1);
+      int pixelX = clamp(mouseX - metrics.bodyLeft(), 0, metrics.bodyWidth());
+      return this.noteCaretForPixelX(lines.get(lineIndex), pixelX);
+   }
+
+   private void drawNoteSelection(
+      GuiGraphicsExtractor context, List<StickyNoteTextLayout.Line> lines, int bodyLeft, int bodyTop, int lineStep, int bodyBottom
+   ) {
+      if (!this.hasNoteSelection()) {
+         return;
+      }
+
+      int selectionStart = this.noteSelectionStart();
+      int selectionEnd = this.noteSelectionEnd();
+      for (int index = 0; index < lines.size(); index++) {
+         StickyNoteTextLayout.Line line = lines.get(index);
+         int from = Math.max(selectionStart, line.start());
+         int to = Math.min(selectionEnd, line.end());
+         if (from < to) {
+            int lineY = bodyTop + index * lineStep;
+            if (lineY + this.font.lineHeight > bodyBottom) {
+               break;
+            }
+
+            int selectionLeft = bodyLeft + this.font.width(this.editingNoteText.substring(line.start(), from));
+            int selectionRight = bodyLeft + this.font.width(this.editingNoteText.substring(line.start(), to));
+            context.fill(selectionLeft, lineY - 1, Math.max(selectionLeft + 1, selectionRight), Math.min(bodyBottom, lineY + this.font.lineHeight), 0x884AA3FF);
+         }
+      }
    }
 
    private void noteTextChanged() {
       this.resetNoteCaretBlink();
       this.commitEditingNote();
+      this.recordHistorySnapshot();
    }
 
    private void resetNoteCaretBlink() {
@@ -2957,6 +3277,7 @@ final class MacroBuilderScreen extends Screen {
 
    private boolean fieldFocused() {
       return this.componentSearchField != null && this.componentSearchField.isFocused()
+         || this.componentNameField != null && this.componentNameField.isFocused()
          || this.nameField != null && this.nameField.isFocused()
          || this.delayField != null && this.delayField.isFocused()
          || this.primaryField != null && this.primaryField.isFocused()
@@ -2973,6 +3294,171 @@ final class MacroBuilderScreen extends Screen {
       return this.minecraft != null
          && (InputConstants.isKeyDown(this.minecraft.getWindow(), InputConstants.KEY_LCONTROL)
             || InputConstants.isKeyDown(this.minecraft.getWindow(), InputConstants.KEY_RCONTROL));
+   }
+
+   private boolean shiftDown() {
+      return this.minecraft != null
+         && (InputConstants.isKeyDown(this.minecraft.getWindow(), InputConstants.KEY_LSHIFT)
+            || InputConstants.isKeyDown(this.minecraft.getWindow(), InputConstants.KEY_RSHIFT));
+   }
+
+   private boolean hasCopiedComponents() {
+      this.refreshCopiedComponentsFromShared();
+      return !this.copiedComponents.isEmpty();
+   }
+
+   private void refreshCopiedComponentsFromShared() {
+      if (this.copiedComponents.isEmpty() && !sharedCopiedComponents.isEmpty()) {
+         this.copiedComponents = sharedCopiedComponents;
+         this.copiedComponent = this.copiedComponents.get(0);
+      }
+   }
+
+   private boolean canDeleteNode(MacroModel.Node node) {
+      return node != null && (!"official:start".equals(node.type) || this.model.startNodes().size() > 1);
+   }
+
+   private boolean selectionHasDeletableNode() {
+      for (MacroModel.Node node : this.movableSelection()) {
+         if (this.canDeleteNode(node)) {
+            return true;
+         }
+      }
+
+      return false;
+   }
+
+   private String cleanComponentName(String value) {
+      if (value == null) {
+         return "";
+      }
+
+      String cleaned = value.replace('\n', ' ').replace('\r', ' ').trim();
+      while (cleaned.contains("  ")) {
+         cleaned = cleaned.replace("  ", " ");
+      }
+
+      return cleaned.length() <= 60 ? cleaned : cleaned.substring(0, 60);
+   }
+
+   private boolean handleConnectionShortcut(int keyCode) {
+      if (this.selectedNode == null || this.selectedNode.descriptor().outputs().isEmpty()) {
+         return false;
+      }
+
+      String output = this.shortcutOutputForKey(keyCode);
+      if (output == null || !this.selectedNode.descriptor().outputs().contains(output)) {
+         return false;
+      }
+
+      this.startConnection(output);
+      return true;
+   }
+
+   private String shortcutOutputForKey(int keyCode) {
+      if (keyCode == GLFW.GLFW_KEY_D) {
+         if (this.selectedNode.descriptor().outputs().contains("completed")) {
+            return "completed";
+         }
+
+         return this.selectedNode.descriptor().outputs().contains("started") ? "started" : null;
+      } else if (keyCode == GLFW.GLFW_KEY_F) {
+         if (this.selectedNode.descriptor().outputs().contains("failed")) {
+            return "failed";
+         }
+
+         return this.selectedNode.descriptor().outputs().contains("false") ? "false" : null;
+      } else {
+         return keyCode == GLFW.GLFW_KEY_T && this.selectedNode.descriptor().outputs().contains("true") ? "true" : null;
+      }
+   }
+
+   private void recordHistorySnapshot() {
+      String current = this.model.toJson();
+      if (current.equals(this.lastHistorySnapshot)) {
+         return;
+      }
+
+      if (this.lastHistorySnapshot != null && !this.lastHistorySnapshot.isBlank()) {
+         this.undoSnapshots.add(this.lastHistorySnapshot);
+         while (this.undoSnapshots.size() > HISTORY_LIMIT) {
+            this.undoSnapshots.remove(0);
+         }
+      }
+
+      this.lastHistorySnapshot = current;
+      this.redoSnapshots.clear();
+   }
+
+   private void undo() {
+      this.syncSelectedFromFields();
+      String current = this.model.toJson();
+      if (!current.equals(this.lastHistorySnapshot)) {
+         this.recordHistorySnapshot();
+      }
+
+      if (this.undoSnapshots.isEmpty()) {
+         this.status = "Nothing to undo";
+         this.statusColor = -11382;
+         return;
+      }
+
+      this.redoSnapshots.add(this.model.toJson());
+      String snapshot = this.undoSnapshots.remove(this.undoSnapshots.size() - 1);
+      this.restoreHistorySnapshot(snapshot, "Undid change", -4200769);
+   }
+
+   private void redo() {
+      this.syncSelectedFromFields();
+      if (this.redoSnapshots.isEmpty()) {
+         this.status = "Nothing to redo";
+         this.statusColor = -11382;
+         return;
+      }
+
+      this.undoSnapshots.add(this.model.toJson());
+      while (this.undoSnapshots.size() > HISTORY_LIMIT) {
+         this.undoSnapshots.remove(0);
+      }
+
+      String snapshot = this.redoSnapshots.remove(this.redoSnapshots.size() - 1);
+      this.restoreHistorySnapshot(snapshot, "Redid change", -4200769);
+   }
+
+   private void restoreHistorySnapshot(String snapshot, String message, int color) {
+      String selectedId = this.selectedNode == null ? "" : this.selectedNode.id;
+      List<String> selectedIds = this.selectedNodes.stream().map(node -> node.id).toList();
+      this.stopNoteEditing(false);
+
+      try {
+         this.model.restoreFromJson(snapshot);
+         this.selectedNodes.clear();
+         for (String nodeId : selectedIds) {
+            MacroModel.Node node = this.model.node(nodeId);
+            if (node != null) {
+               this.selectedNodes.add(node);
+            }
+         }
+
+         this.selectedNode = selectedId.isBlank() ? null : this.model.node(selectedId);
+         if (this.selectedNode == null && !this.selectedNodes.isEmpty()) {
+            this.selectedNode = this.selectedNodes.get(this.selectedNodes.size() - 1);
+         }
+
+         this.highlightedConnection = null;
+         this.draggedConnection = null;
+         this.draggedNode = null;
+         this.pendingConnectionSource = null;
+         this.pendingConnectionOutput = null;
+         this.lastHistorySnapshot = this.model.toJson();
+         this.status = message;
+         this.statusColor = color;
+         this.refreshProperties();
+      } catch (IOException error) {
+         MacroBuilderClient.LOGGER.error("Failed to restore Litemacro history snapshot", error);
+         this.status = "Undo failed";
+         this.statusColor = -30070;
+      }
    }
 
    private void drawSelectedItemPreview(GuiGraphicsExtractor context) {
@@ -3090,7 +3576,7 @@ final class MacroBuilderScreen extends Screen {
          int delayBadgeWidth = node.delayMs >= 0 ? Math.max(34, this.font.width(node.delayMs + "ms") + 8) : 0;
          int indicatorWidth = 14;
          int titleWidth = nodeWidth - 12 - indicatorWidth - (delayBadgeWidth > 0 ? delayBadgeWidth + 4 : 0);
-         this.drawNodeText(context, descriptor.label(), sx + Math.max(3, this.scaled(6)), sy + Math.max(2, this.scaled(5)), titleWidth, -1);
+         this.drawNodeText(context, node.displayLabel(), sx + Math.max(3, this.scaled(6)), sy + Math.max(2, this.scaled(5)), titleWidth, -1);
          this.drawMainMenuIndicator(context, node, sx + nodeWidth - indicatorWidth - Math.max(3, this.scaled(4)), sy + Math.max(2, this.scaled(3)));
          if (delayBadgeWidth > 0 && delayBadgeWidth < nodeWidth - 12) {
             int badgeRight = sx + nodeWidth - indicatorWidth - Math.max(5, this.scaled(7));
@@ -3107,7 +3593,12 @@ final class MacroBuilderScreen extends Screen {
          }
 
          if (!node.enabled) {
-            this.drawNodeTextRight(context, "OFF", sx + nodeWidth - 6, sy + nodeHeight - 12, nodeWidth - 12, -30070);
+            int badgeLeft = sx + Math.max(3, this.scaled(5));
+            int badgeTop = sy + nodeHeight - Math.max(13, this.scaled(14));
+            int badgeRight = badgeLeft + Math.max(22, this.font.width("OFF") + 6);
+            int badgeBottom = Math.min(sy + nodeHeight - 2, badgeTop + 11);
+            context.fill(badgeLeft, badgeTop, badgeRight, badgeBottom, 0xCC2A1118);
+            this.drawNodeText(context, "OFF", badgeLeft + 3, badgeTop + 2, badgeRight - badgeLeft - 6, -30070);
          }
       }
 
@@ -3146,14 +3637,18 @@ final class MacroBuilderScreen extends Screen {
          int bodyWidth = Math.max(1, nodeWidth - bodyMargin * 2);
          int lineStep = this.noteLineStep();
          int maxLines = Math.max(1, (bodyBottom - bodyTop + 1) / Math.max(1, lineStep));
-         List<String> lines = StickyNoteTextLayout.wrapLines(value, this.font, bodyWidth, maxLines);
+         List<StickyNoteTextLayout.Line> lines = StickyNoteTextLayout.layoutLines(value, this.font, bodyWidth, maxLines);
+         if (this.editingNote == node) {
+            this.drawNoteSelection(context, lines, bodyLeft, bodyTop, lineStep, bodyBottom);
+         }
+
          for (int index = 0; index < lines.size(); index++) {
             int lineY = bodyTop + index * lineStep;
             if (lineY + this.font.lineHeight > bodyBottom) {
                break;
             }
 
-            this.drawReadableNoteText(context, lines.get(index), bodyLeft, lineY, NOTE_TEXT_COLOR);
+            this.drawReadableNoteText(context, lines.get(index).text(), bodyLeft, lineY, NOTE_TEXT_COLOR);
          }
 
          this.drawNoteCaret(context, node, bodyLeft, bodyTop, bodyWidth, maxLines, lineStep, bodyBottom);
@@ -3193,19 +3688,14 @@ final class MacroBuilderScreen extends Screen {
       }
 
       int caret = clamp(this.editingNoteCaret, 0, this.editingNoteText.length());
-      String beforeCaret = this.editingNoteText.substring(0, caret);
-      List<String> wrappedBeforeCaret = StickyNoteTextLayout.wrapLines(beforeCaret, this.font, bodyWidth, maxLines + 1);
-      if (wrappedBeforeCaret.isEmpty()) {
-         wrappedBeforeCaret = List.of("");
-      }
-
-      int lineIndex = wrappedBeforeCaret.size() - 1;
-      if (lineIndex >= maxLines) {
+      List<StickyNoteTextLayout.Line> lines = StickyNoteTextLayout.layoutLines(this.editingNoteText, this.font, bodyWidth, maxLines);
+      int lineIndex = this.noteLineIndexForCaret(caret, lines);
+      if (lineIndex >= maxLines || lineIndex >= lines.size()) {
          return;
       }
 
-      String lineText = wrappedBeforeCaret.get(lineIndex);
-      int caretX = Math.min(bodyLeft + this.font.width(lineText), bodyLeft + bodyWidth - 1);
+      StickyNoteTextLayout.Line line = lines.get(lineIndex);
+      int caretX = Math.min(bodyLeft + this.noteCaretPixelX(line, caret), bodyLeft + bodyWidth - 1);
       int caretY = bodyTop + lineIndex * lineStep;
       context.fill(caretX, caretY, caretX + Math.max(1, this.scaled(2)), Math.min(bottom, caretY + this.font.lineHeight), NOTE_TEXT_COLOR);
    }
@@ -3460,7 +3950,7 @@ final class MacroBuilderScreen extends Screen {
 
    private String labelForTarget(String targetId) {
       MacroModel.Node target = this.model.node(targetId);
-      return target == null ? targetId : target.descriptor().label();
+      return target == null ? targetId : target.displayLabel();
    }
 
    private String connectionClearOutputAt(int mouseX, int mouseY) {
@@ -4344,6 +4834,7 @@ final class MacroBuilderScreen extends Screen {
       String value3,
       String value4,
       String value5,
+      String displayName,
       int delayMs,
       boolean enabled,
       int x,
@@ -4354,6 +4845,13 @@ final class MacroBuilderScreen extends Screen {
       Map<String, String> routes,
       Map<String, String> colors
    ) {
+      String displayLabel() {
+         String label = this.displayName == null ? "" : this.displayName.trim();
+         return label.isBlank() ? MacroModel.descriptor(this.type).label() : label;
+      }
+   }
+
+   private record NoteTextMetrics(int bodyLeft, int bodyTop, int bodyBottom, int bodyWidth, int lineStep, int maxLines) {
    }
 
    private record ItemEntry(Identifier id, Item item) {

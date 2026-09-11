@@ -177,10 +177,10 @@ final class MacroModel {
          "minecraft:bone_block"
       ),
       new MacroModel.Descriptor(
-         "official:inventory.hotbarSelect", "Hotbar Select", "Inventory", -3040666, COMPLETED_OR_FAILED, true, "Item id or blank", "Slot 1-9", ""
+         "official:inventory.hotbarSelect", "Hotbar Select", "Inventory", -3040666, COMPLETED_OR_FAILED, true, "Item id, last.item, or blank", "Slot 1-36, last.slot, or blank", ""
       ),
       new MacroModel.Descriptor(
-         "official:inventory.hotbarUse", "Hotbar Use", "Inventory", -3040666, COMPLETED_OR_FAILED, true, "Item id or blank", "Slot 1-9", ""
+         "official:inventory.hotbarUse", "Hotbar Use", "Inventory", -3040666, COMPLETED_OR_FAILED, true, "Item id, last.item, or blank", "Slot 1-36, last.slot, or blank", ""
       ),
       new MacroModel.Descriptor(
          "official:inventory.dropItems", "Drop Items", "Inventory", -3040666, COMPLETED_OR_FAILED, true, "Item id, slot, or blank", "Drop stack true/false", ""
@@ -270,13 +270,13 @@ final class MacroModel {
          COMPLETED_OR_FAILED,
          true,
          "Mode",
-         "Input item",
+         "Input item; outputs last.slot",
          "disenchant"
       ),
       new MacroModel.Descriptor("official:inventory.openInventory", "Open Inventory", "Inventory", -3040666, COMPLETED_OR_FAILED, true, "", "", ""),
       new MacroModel.Descriptor("official:inventory.closeOpenContainer", "Close GUI", "Inventory", -2069387, COMPLETED_OR_FAILED, true, "", "", ""),
       new MacroModel.Descriptor(
-         "builder:inventory.selectHotbarSlot", "Select Hotbar Slot", "Inventory", -3040666, COMPLETED_OR_FAILED, true, "Slot 1-9", "", "1"
+         "builder:inventory.selectHotbarSlot", "Select Hotbar Slot", "Inventory", -3040666, COMPLETED_OR_FAILED, true, "Slot 1-36 or last.slot", "", "1"
       ),
       new MacroModel.Descriptor(
          "builder:inventory.dropSelectedItem", "Drop Selected Item", "Inventory", -3040666, COMPLETED_OR_FAILED, true, "Drop stack: true/false", "", "false"
@@ -341,6 +341,9 @@ final class MacroModel {
       new MacroModel.Descriptor("builder:misc.repeatSection", "Repeat", "Flow", -7366491, REPEAT_COMPLETED_OR_FAILED, true, "Repeat count", "", "3"),
       new MacroModel.Descriptor(
          "builder:misc.idleUntil", "Idle Until", "Flow", -7366491, List.of("triggered", "failed"), true, "Condition: chat/player/full/kicked", "Filter", "chat"
+      ),
+      new MacroModel.Descriptor(
+         "builder:flow.skipIfTrue", "Skip If True", "Flow", -7366491, TRUE_FALSE_OR_FAILED, true, "Condition true/false", "Component name/id to skip", "true"
       ),
       new MacroModel.Descriptor("builder:flow.endConnection", "End Connection", "Flow", -7366491, List.of(), true, "", "", ""),
       new MacroModel.Descriptor("builder:flow.note", "Note", "Flow", -7366491, List.of(), true, "Text", "", "Write notes here"),
@@ -489,6 +492,7 @@ final class MacroModel {
                      integer(nodeObject, "x", 240),
                      integer(nodeObject, "y", 140)
                   );
+                  node.displayName = string(nodeObject, "displayName", "");
                   node.value = string(nodeObject, "value", descriptor(node.type).defaultValue());
                   node.value2 = string(nodeObject, "value2", descriptor(node.type).defaultValue2());
                   node.value3 = string(nodeObject, "value3", defaultValue3(node.type));
@@ -547,6 +551,32 @@ final class MacroModel {
       }
    }
 
+   static MacroModel fromJson(String json) throws IOException {
+      Path temp = Files.createTempFile("litemacro-snapshot-", ".json");
+
+      try {
+         Files.writeString(temp, json == null ? "" : json, StandardCharsets.UTF_8);
+         return load(temp);
+      } finally {
+         Files.deleteIfExists(temp);
+      }
+   }
+
+   void restoreFromJson(String json) throws IOException {
+      MacroModel restored = fromJson(json);
+      this.nodes.clear();
+      this.nodes.addAll(restored.nodes);
+      this.nextIndex = restored.nextIndex;
+      this.name = restored.name;
+      this.stepDelayMs = restored.stepDelayMs;
+      this.alwaysOn = restored.alwaysOn;
+      this.autoStartMode = restored.autoStartMode;
+      this.autoStartFilter = restored.autoStartFilter;
+      this.randomDelayEnabled = restored.randomDelayEnabled;
+      this.randomDelayMinMs = restored.randomDelayMinMs;
+      this.randomDelayMaxMs = restored.randomDelayMaxMs;
+   }
+
    void save(Path path) throws IOException {
       Files.createDirectories(path.getParent());
       Files.writeString(path, this.toJson());
@@ -572,6 +602,7 @@ final class MacroModel {
          nodeObject.addProperty("type", node.type);
          nodeObject.addProperty("x", node.x);
          nodeObject.addProperty("y", node.y);
+         nodeObject.addProperty("displayName", node.displayName);
          nodeObject.addProperty("value", node.value);
          nodeObject.addProperty("value2", node.value2);
          nodeObject.addProperty("value3", node.value3);
@@ -633,7 +664,7 @@ final class MacroModel {
    }
 
    boolean removeNode(MacroModel.Node node) {
-      if (node != null && !"official:start".equals(node.type)) {
+      if (node != null && (!"official:start".equals(node.type) || this.startNodes().size() > 1)) {
          boolean removed = this.nodes.remove(node);
          if (removed) {
             for (MacroModel.Node existing : this.nodes) {
@@ -879,6 +910,7 @@ final class MacroModel {
             "builder:misc.repeatMacro",
             "builder:misc.repeatSection",
             "builder:misc.idleUntil",
+            "builder:flow.skipIfTrue",
             "builder:stop",
             "official:misc.rejoinServer",
             "official:misc.joinServer",
@@ -935,7 +967,7 @@ final class MacroModel {
          case "official:inventory.isOpenContainerFull" -> "True when open GUI has no empty slots";
          case "builder:inventory.openContainerHasItem" -> "Checks for an item in open GUI";
          case "builder:inventory.autoEnchant" -> "Loads item/lapis when possible and clicks an enchanting table option";
-         case "builder:inventory.autoGrindstone" -> "Loads items, repairs or removes enchants, then takes the grindstone result";
+         case "builder:inventory.autoGrindstone" -> "Loads items, handles one grindstone result, and saves last.slot/last.item";
          case "official:inventory.openInventory" -> "Opens the player inventory";
          case "official:inventory.closeOpenContainer" -> "Closes the current GUI or chest";
          case "builder:inventory.selectHotbarSlot" -> "Selects a numbered hotbar slot";
@@ -960,6 +992,7 @@ final class MacroModel {
          case "builder:misc.repeatMacro" -> "Repeats the whole macro a set number of times, then stops";
          case "builder:misc.repeatSection" -> "Repeats a linked section a set number of times";
          case "builder:misc.idleUntil" -> "Waits here until chat, player, full inventory, or disconnect is detected";
+         case "builder:flow.skipIfTrue" -> "When true, jumps past a named component";
          case "builder:flow.endConnection" -> "Ends this connection path without stopping other running branches";
          case "builder:flow.note" -> "Adds a saved note to explain part of the macro";
          case "builder:stop" -> "Stops the current macro run";
@@ -1545,6 +1578,7 @@ final class MacroModel {
       String value3 = "";
       String value4 = "";
       String value5 = "";
+      String displayName = "";
       int delayMs = -1;
       boolean enabled = true;
       int noteWidth = 0;
@@ -1559,6 +1593,11 @@ final class MacroModel {
 
       MacroModel.Descriptor descriptor() {
          return MacroModel.descriptor(this.type);
+      }
+
+      String displayLabel() {
+         String label = this.displayName == null ? "" : this.displayName.trim();
+         return label.isBlank() ? this.descriptor().label() : label;
       }
 
       String next(String outputKey) {

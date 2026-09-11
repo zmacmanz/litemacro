@@ -165,7 +165,7 @@ Build info:
 
 ```text
 Name: Litemacro
-Version: 1.0.66
+Version: 1.0.67
 Built for: letgio
 Build date: 2026-05-09
 Minecraft compatibility: 26.1.x

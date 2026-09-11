@@ -51,6 +51,7 @@ For exact text-box values, examples, and coordinate setup, see [Component Inputs
 | `Repeat Macro` | Repeats the whole macro. |
 | `Repeat` | Repeats a connected section. |
 | `Idle Until` | Waits until chat, player nearby, inventory full, or kicked. |
+| `Skip If True` | Jumps past another named component when the condition is true. |
 | `Stop At XP Level` | Waits until the player reaches a level, then releases held actions or stops the macro. |
 | `End Connection` | Ends one branch without stopping other branches. |
 | `Stop Macro` | Stops the current macro. |
@@ -81,7 +82,7 @@ For exact text-box values, examples, and coordinate setup, see [Component Inputs
 | `Open GUI Is Full` | True when the open GUI has no empty slots. |
 | `Open GUI Has Item` | Checks for an item in the open GUI. |
 | `Auto Enchant` | Clicks an enchanting table option when the item, lapis, and XP level are ready. |
-| `Auto Grindstone` | Loads grindstone input items, removes enchants or repairs matching items, then takes the result. |
+| `Auto Grindstone` | Loads grindstone input items, removes enchants or repairs matching items, then takes the result and saves `last.item`, `last.slot`, and `last.hotbar_slot`. |
 | `Open Inventory` | Opens the player inventory. |
 | `Close GUI` | Closes the current GUI. |
 | `Select Hotbar Slot` | Selects hotbar slot 1-9. |

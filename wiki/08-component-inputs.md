@@ -13,6 +13,42 @@ When you click a component in the builder, the right panel shows its editable fi
 - Use Minecraft item IDs like `minecraft:diamond_pickaxe`.
 - Connect every important output, especially `failed`, so the macro does not stop with no explanation.
 
+## Component Data Inputs And Outputs
+
+Some components save a value while the macro is running. A later component can use that value by typing its name into a field.
+
+Useful values:
+
+```text
+last.item          last item ID saved by a component
+last.slot          player inventory slot 1-36 saved by a component
+last.inventory_slot same as last.slot
+last.hotbar_slot   hotbar slot 1-9, only saved when the item was placed in the hotbar
+last.action        what the component did, such as inventory or drop
+```
+
+You can also use a named component output. If you name an `Auto Grindstone` component `Repair Sword`, the same values are available as:
+
+```text
+repair_sword.item
+repair_sword.slot
+repair_sword.hotbar_slot
+```
+
+Examples:
+
+```text
+Auto Grindstone
+  Result: Inv
+  completed -> Hotbar Select
+
+Hotbar Select
+  Item ID or blank: last.item
+  Slot 1-9: blank
+```
+
+Use `last.item` when the macro should find the item by item ID. Use `last.slot` when you want Hotbar Select to select the exact saved slot. If `last.slot` is 10-36, Litemacro moves that stack into the hotbar first.
+
 ## Coordinates
 
 Use Minecraft's debug screen to get coordinates.
@@ -133,6 +169,7 @@ failed    -> local message or recovery path
 | `Repeat Macro` | Count or forever | Empty | `forever` |
 | `Repeat` | Count or forever | Empty | `3` |
 | `Idle Until` | Condition | Filter | `chat` and `sold` |
+| `Skip If True` | true/false | Component name or id to skip | `true` and `Wait Before Sell` |
 | `Stop At XP Level` | Target level | `release` or `stop` | `30` and `release` |
 | `End Connection` | Empty | Empty | Ends this branch without failing the macro. |
 | `Note` | Text | Empty | `Repair path starts here` |
@@ -159,9 +196,9 @@ kicked
 | Component | Field 1 | Field 2 | Example |
 | --- | --- | --- | --- |
 | `Click GUI Item` | Item, tag, price, or slot | Shift click true/false | `slot 10` and `false` |
-| `Hotbar Select` | Item ID or blank | Slot 1-9 | `minecraft:diamond_pickaxe` or `1` |
-| `Hotbar Use` | Item ID or blank | Slot 1-9 | `minecraft:ender_pearl` and `2` |
-| `Drop Items` | Item ID, slot, or blank | Drop stack true/false | `minecraft:cobblestone` and `true` |
+| `Hotbar Select` | Item ID, runtime value, or blank | Slot 1-36 or runtime value | `minecraft:diamond_pickaxe`, `last.item`, or `last.slot` |
+| `Hotbar Use` | Item ID, runtime value, or blank | Slot 1-36 or runtime value | `minecraft:ender_pearl`, `last.item`, or `last.slot` |
+| `Drop Items` | Item ID, slot, runtime value, or blank | Drop stack true/false | `minecraft:cobblestone`, `last.slot`, and `true` |
 | `Withdraw Items` | `all` or `specific` | Specific item | `specific` and `minecraft:bone` |
 | `Deposit Items` | `all` or `specific` | Specific item | `specific` and `minecraft:white_wool` |
 | `Held Item Is` | Item ID | Empty | `minecraft:shears` |
@@ -176,7 +213,7 @@ kicked
 | `Auto Grindstone` | Mode: remove enchants or repair | Input item selector | `remove enchants` and `held` |
 | `Open Inventory` | Empty | Empty | Opens your inventory. |
 | `Close GUI` | Empty | Empty | Closes the open GUI. |
-| `Select Hotbar Slot` | Slot 1-9 | Empty | `1` |
+| `Select Hotbar Slot` | Slot 1-36 or runtime value | Empty | `1` or `last.slot` |
 | `Drop Selected Item` | Drop stack true/false | Empty | `true` |
 
 Slot examples:
@@ -221,6 +258,30 @@ Close: On closes the grindstone after taking the result
 ```
 
 Auto Grindstone only handles one grindstone output each time the component runs. Connect it back into a loop only when you want it to keep processing more tools.
+
+Auto Grindstone saves output values after it takes the result:
+
+```text
+last.item          result item ID
+last.slot          inventory slot where the result was placed, 1-36
+last.hotbar_slot   hotbar slot, 1-9, only if the result went to the hotbar
+last.action        inventory or drop
+```
+
+To select the output item after grindstone:
+
+```text
+Hotbar Select Field 1: last.item
+Hotbar Select Field 2: blank
+```
+
+To select by exact saved slot:
+
+```text
+Select Hotbar Slot Field 1: last.slot
+```
+
+If `last.slot` is 10-36, Litemacro swaps that stack into an empty hotbar slot when possible, then selects it. If the hotbar is full, it swaps into the currently selected hotbar slot.
 
 ### World
 

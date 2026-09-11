@@ -135,6 +135,36 @@ Repeat
 
 Auto Enchant skips items that are already enchanted. For a different batch, change `minecraft:iron_sword` to the item you are enchanting.
 
+## Tutorial: Grindstone Result Then Select It
+
+Use this to test component outputs. The grindstone saves the result item and slot, then the hotbar step uses that saved value.
+
+```text
+Macro Entry Point
+  started -> Open Nearest Grindstone
+
+Open Nearest Grindstone
+  Radius 1-16: 8
+  Move true/false: move=true
+  completed -> Auto Grindstone
+
+Auto Grindstone
+  Mode: Remove Enchants
+  Input item: held
+  Result: Inv
+  Close: On
+  completed -> Hotbar Select
+  failed -> Local Message
+
+Hotbar Select
+  Item ID or blank: last.item
+  Slot 1-9: blank
+  completed -> Local Message
+  failed -> Local Message
+```
+
+If you want to select by slot instead, put `last.slot` into `Select Hotbar Slot`. If the result lands in inventory slot 10-36, Litemacro swaps it into the hotbar first.
+
 ## Tutorial: Mine Area Coordinates
 
 Use `Mine Area` when you want the macro to mine a box.
