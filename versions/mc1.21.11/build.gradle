@@ -3,7 +3,7 @@ plugins {
     id 'maven-publish'
 }
 
-version = '1.0.68'
+version = '1.0.69'
 group = 'com.alfre'
 
 def buildOwner = 'letgio'

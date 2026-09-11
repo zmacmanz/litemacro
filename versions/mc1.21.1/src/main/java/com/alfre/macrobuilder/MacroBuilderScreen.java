@@ -1676,11 +1676,69 @@ final class MacroBuilderScreen extends Screen {
       }
 
       String[] tokens = text.split("[,\\s]+");
-      if (tokens.length >= 3 && this.isNumberText(tokens[0]) && this.isNumberText(tokens[1]) && this.isNumberText(tokens[2])) {
-         return tokens[0] + " " + tokens[1] + " " + tokens[2];
+      StringBuilder coordinates = new StringBuilder();
+      int coordinateCount = 0;
+
+      for (String token : tokens) {
+         String cleaned = token.trim();
+         if (cleaned.isBlank() || this.isMineAreaOptionToken(cleaned)) {
+            continue;
+         }
+
+         if (coordinates.length() > 0) {
+            coordinates.append(' ');
+         }
+
+         coordinates.append(cleaned);
+         coordinateCount++;
+         if (coordinateCount >= 3 || this.isRuntimeCoordinateValue(cleaned)) {
+            break;
+         }
       }
 
-      return text;
+      return coordinates.toString();
+   }
+
+   private boolean isRuntimeCoordinateValue(String value) {
+      String text = value == null ? "" : value.trim();
+      return text.startsWith("${") && text.endsWith("}") || text.startsWith("{{") && text.endsWith("}}") || text.contains(".pos");
+   }
+
+   private boolean isMineAreaOptionToken(String token) {
+      String normalized = token == null ? "" : token.trim().toLowerCase(Locale.ROOT).replace('-', '_');
+      if (normalized.isBlank()) {
+         return false;
+      }
+
+      if (normalized.equals("auto_tool")
+         || normalized.equals("autotool")
+         || normalized.equals("tool_auto")
+         || normalized.equals("select_tool")
+         || normalized.equals("smart_tool")
+         || normalized.equals("move")
+         || normalized.equals("walk")
+         || normalized.equals("true")
+         || normalized.equals("false")
+         || normalized.equals("on")
+         || normalized.equals("off")) {
+         return true;
+      }
+
+      int equalsIndex = normalized.indexOf('=');
+      if (equalsIndex <= 0) {
+         return false;
+      }
+
+      String key = normalized.substring(0, equalsIndex);
+      return key.equals("tool")
+         || key.equals("low")
+         || key.equals("durability")
+         || key.equals("move")
+         || key.equals("auto_tool")
+         || key.equals("autotool")
+         || key.equals("tool_auto")
+         || key.equals("select_tool")
+         || key.equals("smart_tool");
    }
 
    private String cleanMineAreaToolLow(String value) {
@@ -1704,6 +1762,15 @@ final class MacroBuilderScreen extends Screen {
                return this.optionTruthy(normalized.substring(prefix.length()), fallback);
             }
          }
+
+         if ("move=".equals(prefix)) {
+            for (String token : options.split("[,\\s]+")) {
+               String normalized = token.trim().toLowerCase(Locale.ROOT);
+               if (normalized.equals("true") || normalized.equals("false") || normalized.equals("on") || normalized.equals("off")) {
+                  return this.optionTruthy(normalized, fallback);
+               }
+            }
+         }
       }
 
       return fallback;
@@ -1724,15 +1791,6 @@ final class MacroBuilderScreen extends Screen {
       }
 
       return fallback;
-   }
-
-   private boolean isNumberText(String value) {
-      try {
-         Double.parseDouble(value);
-         return true;
-      } catch (NumberFormatException ignored) {
-         return false;
-      }
    }
 
    private String autoGrindstoneInputText(MacroModel.Node node) {
