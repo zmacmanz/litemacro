@@ -1,0 +1,113 @@
+{
+  "format": "litemacro-v1",
+  "name": "Runtime Data - Relative Mine Area Auto Tool",
+  "stepDelayMs": 0,
+  "alwaysOn": false,
+  "autoStartMode": "off",
+  "autoStartFilter": "",
+  "randomDelayEnabled": false,
+  "randomDelayMinMs": 250,
+  "randomDelayMaxMs": 1250,
+  "nextIndex": 7,
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "official:start",
+      "x": 90,
+      "y": 150,
+      "displayName": "",
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "started": "node-2"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "builder:world.mineArea",
+      "x": 360,
+      "y": 150,
+      "displayName": "Mine Near Player",
+      "value": "~-2 ~-1 ~-2",
+      "value2": "~2 ~-1 ~2 tool=10 move=false auto_tool=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-3",
+        "tool_low": "node-4",
+        "failed": "node-5"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "builder:localMessage",
+      "x": 690,
+      "y": 90,
+      "displayName": "Done Message",
+      "value": "Mine Area finished near ${player.pos}. Held ${player.held_item}. Looking at ${target.block.id} ${target.block.pos}.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    },
+    {
+      "id": "node-4",
+      "type": "builder:localMessage",
+      "x": 690,
+      "y": 210,
+      "displayName": "Tool Low Message",
+      "value": "Tool is low while mining near ${player.pos}. Held item: ${player.held_item}.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    },
+    {
+      "id": "node-5",
+      "type": "builder:localMessage",
+      "x": 690,
+      "y": 330,
+      "displayName": "Fail Message",
+      "value": "Mine Area failed near ${player.pos}. Try a smaller area, safe singleplayer, and pickaxe/shovel/axe in hotbar.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    },
+    {
+      "id": "node-6",
+      "type": "builder:flow.note",
+      "x": 90,
+      "y": 350,
+      "displayName": "",
+      "value": "Runtime data Mine Area test:\n\nThis uses relative coordinates.\nField 1: ~-2 ~-1 ~-2\nField 2: ~2 ~-1 ~2 tool=10 move=false auto_tool=true\n\nThe mine is based on where you are standing when the macro runs.\nPut pickaxe, shovel, and axe in the hotbar to test Auto Tool.\nUse this in a safe test world first.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "stickyNoteText": "Runtime data Mine Area test:\n\nThis uses relative coordinates.\nField 1: ~-2 ~-1 ~-2\nField 2: ~2 ~-1 ~2 tool=10 move=false auto_tool=true\n\nThe mine is based on where you are standing when the macro runs.\nPut pickaxe, shovel, and axe in the hotbar to test Auto Tool.\nUse this in a safe test world first.",
+      "stickyNoteWidth": 610,
+      "stickyNoteHeight": 255,
+      "outputs": {}
+    }
+  ]
+}

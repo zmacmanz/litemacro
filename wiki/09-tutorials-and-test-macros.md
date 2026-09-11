@@ -15,6 +15,9 @@ Ready-to-import examples are in the repo `test-macros` folder:
 | `batch-enchant-6-iron-swords.json` | Opens a nearby enchanting table and enchants up to six unenchanted iron swords, skipping already-enchanted ones. |
 | `mine-area-deposit-chest-template.json` | Mines a small coordinate box, opens a nearby chest, deposits inventory, and loops. Edit the coordinates before running. |
 | `mine-area-auto-tool-template.json` | Mines a small area while switching to the best hotbar tool for stone, dirt, wood, and similar blocks. |
+| `runtime-data-grindstone-output-hotbar.json` | Tests named runtime outputs. Auto Grindstone saves `clean_item.slot`, then Select Hotbar Slot uses it. |
+| `runtime-data-relative-mine-area-auto-tool.json` | Tests relative coordinates with Mine Area and Auto Tool. |
+| `runtime-data-target-block-message.json` | Tests live values in messages, including player position, target block, world, and server. |
 
 To use one:
 
@@ -164,6 +167,21 @@ Hotbar Select
 ```
 
 If you want to select by slot instead, put `last.slot` into `Select Hotbar Slot`. If the result lands in inventory slot 10-36, Litemacro swaps it into the hotbar first.
+
+You can also name the Auto Grindstone component and use that name later:
+
+```text
+Auto Grindstone component name:
+Clean Item
+
+Select Hotbar Slot
+  Slot 1-36 or runtime value: clean_item.slot
+
+Local Message
+  Message: Cleaned ${clean_item.item} in slot ${clean_item.slot}
+```
+
+Component names are turned into lowercase data keys. Spaces become underscores, so `Clean Item` becomes `clean_item`.
 
 ## Tutorial: Mine Area Coordinates
 

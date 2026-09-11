@@ -1,0 +1,98 @@
+{
+  "format": "litemacro-v1",
+  "name": "Runtime Data - Target Block Message",
+  "stepDelayMs": 0,
+  "alwaysOn": false,
+  "autoStartMode": "off",
+  "autoStartFilter": "",
+  "randomDelayEnabled": false,
+  "randomDelayMinMs": 250,
+  "randomDelayMaxMs": 1250,
+  "nextIndex": 8,
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "official:start",
+      "x": 90,
+      "y": 150,
+      "displayName": "",
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "started": "node-3"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "builder:flow.note",
+      "x": 90,
+      "y": 350,
+      "displayName": "",
+      "value": "Runtime data message test:\n\nLook at any block, then run this macro.\nIt reads target.block.id and target.block.pos.\nIt also prints player.name, player.pos, world.dimension, and server.ip.\n\nThis is the safest way to test live values before using them in commands or notifications.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "stickyNoteText": "Runtime data message test:\n\nLook at any block, then run this macro.\nIt reads target.block.id and target.block.pos.\nIt also prints player.name, player.pos, world.dimension, and server.ip.\n\nThis is the safest way to test live values before using them in commands or notifications.",
+      "stickyNoteWidth": 610,
+      "stickyNoteHeight": 225,
+      "outputs": {}
+    },
+    {
+      "id": "node-3",
+      "type": "builder:world.lookingAtBlock",
+      "x": 360,
+      "y": 150,
+      "displayName": "Read Target",
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "node-4",
+        "false": "node-5",
+        "failed": "node-5"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "builder:localMessage",
+      "x": 660,
+      "y": 100,
+      "displayName": "Target Message",
+      "value": "${player.name} is at ${player.pos}, looking at ${target.block.id} at ${target.block.pos}. World ${world.dimension}. Server ${server.ip}.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    },
+    {
+      "id": "node-5",
+      "type": "builder:localMessage",
+      "x": 660,
+      "y": 250,
+      "displayName": "No Target Message",
+      "value": "No block target found. ${player.name} is at ${player.pos}. Try looking at a block within reach.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    }
+  ]
+}
