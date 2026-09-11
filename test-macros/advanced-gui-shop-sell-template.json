@@ -1,0 +1,207 @@
+{
+  "format": "litemacro-v1",
+  "name": "Advanced - GUI Shop Sell Template",
+  "stepDelayMs": 0,
+  "alwaysOn": false,
+  "autoStartMode": "off",
+  "autoStartFilter": "",
+  "randomDelayEnabled": false,
+  "randomDelayMinMs": 250,
+  "randomDelayMaxMs": 1250,
+  "nextIndex": 12,
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "official:start",
+      "x": 80,
+      "y": 165,
+      "displayName": "",
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "started": "node-3"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "builder:flow.note",
+      "x": 80,
+      "y": 430,
+      "displayName": "",
+      "value": "Advanced GUI shop sell template:\n\nThis waits until you have enough of one item, opens a sell command, clicks the GUI item, closes, then loops.\nIt is server-specific. Edit before running.\n\nEdit these components:\nEDIT Sell Item Count: item ID and amount.\nEDIT Sell Command: command that opens your server sell GUI.\nEDIT GUI Click: slot or item in the sell GUI.\nEDIT Wait After Sell: delay before checking again.\n\nSafe test: change Sell Command to /help and disconnect GUI Click before trying on a server.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "stickyNoteText": "Advanced GUI shop sell template:\n\nThis waits until you have enough of one item, opens a sell command, clicks the GUI item, closes, then loops.\nIt is server-specific. Edit before running.\n\nEdit these components:\nEDIT Sell Item Count: item ID and amount.\nEDIT Sell Command: command that opens your server sell GUI.\nEDIT GUI Click: slot or item in the sell GUI.\nEDIT Wait After Sell: delay before checking again.\n\nSafe test: change Sell Command to /help and disconnect GUI Click before trying on a server.",
+      "stickyNoteWidth": 660,
+      "stickyNoteHeight": 300,
+      "outputs": {}
+    },
+    {
+      "id": "node-3",
+      "type": "official:inventory.hasItem",
+      "x": 350,
+      "y": 165,
+      "displayName": "EDIT Sell Item Count",
+      "value": "minecraft:bone",
+      "value2": "300",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "node-4",
+        "false": "node-8",
+        "failed": "node-10"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "official:misc.chat",
+      "x": 650,
+      "y": 110,
+      "displayName": "EDIT Sell Command",
+      "value": "/sell",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-5",
+        "failed": "node-10"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "official:misc.wait",
+      "x": 930,
+      "y": 110,
+      "displayName": "Wait For GUI",
+      "value": "1000",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-6",
+        "failed": "node-10"
+      }
+    },
+    {
+      "id": "node-6",
+      "type": "official:inventory.clickOpenContainerSlot",
+      "x": 1210,
+      "y": 110,
+      "displayName": "EDIT GUI Click",
+      "value": "minecraft:bone",
+      "value2": "true",
+      "value3": "left",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-7",
+        "failed": "node-10"
+      }
+    },
+    {
+      "id": "node-7",
+      "type": "official:inventory.closeOpenContainer",
+      "x": 1510,
+      "y": 110,
+      "displayName": "Close Sell GUI",
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-9",
+        "failed": "node-10"
+      }
+    },
+    {
+      "id": "node-8",
+      "type": "official:misc.wait",
+      "x": 650,
+      "y": 285,
+      "displayName": "Wait For Items",
+      "value": "5000",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-3",
+        "failed": "node-10"
+      }
+    },
+    {
+      "id": "node-9",
+      "type": "builder:localMessage",
+      "x": 1790,
+      "y": 110,
+      "displayName": "Sold Message",
+      "value": "Sell template clicked ${macro.name} for ${player.name} at ${player.pos}. Check chat/server balance.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-8"
+      }
+    },
+    {
+      "id": "node-10",
+      "type": "builder:localMessage",
+      "x": 1210,
+      "y": 300,
+      "displayName": "Fail Message",
+      "value": "GUI sell template failed. Edit item ID, count, sell command, GUI slot/item, and wait time for this server.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-11"
+      }
+    },
+    {
+      "id": "node-11",
+      "type": "builder:flow.endConnection",
+      "x": 1510,
+      "y": 300,
+      "displayName": "",
+      "value": "end branch",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    }
+  ]
+}

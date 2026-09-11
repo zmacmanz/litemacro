@@ -1,0 +1,279 @@
+{
+  "format": "litemacro-v1",
+  "name": "Advanced - XP 30 Enchant Repair Loop",
+  "stepDelayMs": 0,
+  "alwaysOn": false,
+  "autoStartMode": "off",
+  "autoStartFilter": "",
+  "randomDelayEnabled": false,
+  "randomDelayMinMs": 250,
+  "randomDelayMaxMs": 1250,
+  "nextIndex": 16,
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "official:start",
+      "x": 80,
+      "y": 170,
+      "displayName": "",
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "started": "node-3"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "builder:flow.note",
+      "x": 80,
+      "y": 455,
+      "displayName": "",
+      "value": "Advanced XP 30 enchant and repair loop:\n\nUse in a safe mob farm where holding left click attacks mobs.\nHold the item you want to enchant or repair.\nKeep lapis in inventory.\nKeep a second matching item if you want repair mode to work.\nPlace an enchanting table and grindstone within 8 blocks.\n\nEdit these components:\nEDIT XP Level: level before enchanting.\nEDIT Durability Check: lower percent before repair.\nEDIT Open Grindstone/Table: radius and move.\nRepair Item: mode/input/repair/result/close.\nEnchant Item: option, XP, item, lapis, close.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "stickyNoteText": "Advanced XP 30 enchant and repair loop:\n\nUse in a safe mob farm where holding left click attacks mobs.\nHold the item you want to enchant or repair.\nKeep lapis in inventory.\nKeep a second matching item if you want repair mode to work.\nPlace an enchanting table and grindstone within 8 blocks.\n\nEdit these components:\nEDIT XP Level: level before enchanting.\nEDIT Durability Check: lower percent before repair.\nEDIT Open Grindstone/Table: radius and move.\nRepair Item: mode/input/repair/result/close.\nEnchant Item: option, XP, item, lapis, close.",
+      "stickyNoteWidth": 660,
+      "stickyNoteHeight": 330,
+      "outputs": {}
+    },
+    {
+      "id": "node-3",
+      "type": "official:player.setMouseButton",
+      "x": 330,
+      "y": 170,
+      "displayName": "Hold Attack",
+      "value": "press",
+      "value2": "left",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-4",
+        "failed": "node-12"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "builder:player.stopAtXpLevel",
+      "x": 610,
+      "y": 170,
+      "displayName": "EDIT XP Level",
+      "value": "30",
+      "value2": "release",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-5",
+        "failed": "node-12"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "builder:inventory.itemDurability",
+      "x": 900,
+      "y": 170,
+      "displayName": "EDIT Durability Check",
+      "value": "held",
+      "value2": "lower 20",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "node-6",
+        "false": "node-9",
+        "failed": "node-9"
+      }
+    },
+    {
+      "id": "node-6",
+      "type": "builder:world.openNearestGrindstone",
+      "x": 1180,
+      "y": 65,
+      "displayName": "EDIT Open Grindstone",
+      "value": "8",
+      "value2": "move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-7",
+        "failed": "node-12"
+      }
+    },
+    {
+      "id": "node-7",
+      "type": "builder:inventory.autoGrindstone",
+      "x": 1480,
+      "y": 65,
+      "displayName": "Repair Item",
+      "value": "repair",
+      "value2": "held",
+      "value3": "same",
+      "value4": "inventory",
+      "value5": "true",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-8",
+        "failed": "node-12"
+      }
+    },
+    {
+      "id": "node-8",
+      "type": "builder:inventory.selectHotbarSlot",
+      "x": 1780,
+      "y": 65,
+      "displayName": "Select Repaired Item",
+      "value": "repair_item.slot",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-9",
+        "failed": "node-12"
+      }
+    },
+    {
+      "id": "node-9",
+      "type": "builder:world.openNearestEnchantingTable",
+      "x": 1180,
+      "y": 285,
+      "displayName": "EDIT Open Table",
+      "value": "8",
+      "value2": "move=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-10",
+        "failed": "node-12"
+      }
+    },
+    {
+      "id": "node-10",
+      "type": "builder:inventory.autoEnchant",
+      "x": 1480,
+      "y": 285,
+      "displayName": "Enchant Item",
+      "value": "3",
+      "value2": "30",
+      "value3": "held",
+      "value4": "minecraft:lapis_lazuli",
+      "value5": "true",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-11",
+        "failed": "node-12"
+      }
+    },
+    {
+      "id": "node-11",
+      "type": "builder:localMessage",
+      "x": 1780,
+      "y": 285,
+      "displayName": "Done Message",
+      "value": "XP loop finished one enchant step for ${player.name} at ${player.pos}. Held item now ${player.held_item}.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-13"
+      }
+    },
+    {
+      "id": "node-12",
+      "type": "builder:localMessage",
+      "x": 1180,
+      "y": 470,
+      "displayName": "Fail Message",
+      "value": "XP enchant loop needs mobs, XP ${player.xp_level}/30, lapis, table, grindstone, free inventory, and matching repair item if durability is low.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-14"
+      }
+    },
+    {
+      "id": "node-13",
+      "type": "official:misc.wait",
+      "x": 2070,
+      "y": 285,
+      "displayName": "Loop Wait",
+      "value": "1000",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-3",
+        "failed": "node-12"
+      }
+    },
+    {
+      "id": "node-14",
+      "type": "official:player.setMouseButton",
+      "x": 1480,
+      "y": 470,
+      "displayName": "Release Attack",
+      "value": "release",
+      "value2": "left",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-15",
+        "failed": "node-15"
+      }
+    },
+    {
+      "id": "node-15",
+      "type": "builder:flow.endConnection",
+      "x": 1780,
+      "y": 470,
+      "displayName": "",
+      "value": "end branch",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    }
+  ]
+}

@@ -1,0 +1,152 @@
+{
+  "format": "litemacro-v1",
+  "name": "Advanced - Kick Rejoin Watchdog",
+  "stepDelayMs": 0,
+  "alwaysOn": true,
+  "autoStartMode": "off",
+  "autoStartFilter": "",
+  "randomDelayEnabled": true,
+  "randomDelayMinMs": 1000,
+  "randomDelayMaxMs": 3000,
+  "nextIndex": 9,
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "official:start",
+      "x": 80,
+      "y": 160,
+      "displayName": "",
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "started": "node-3"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "builder:flow.note",
+      "x": 80,
+      "y": 350,
+      "displayName": "",
+      "value": "Advanced kick rejoin watchdog:\n\nThis macro waits in an idle state until you are kicked or disconnected, then rejoins.\nIt is always-on so it can keep watching after server changes.\n\nEdit these components:\nEDIT Kick Filter: use any, or a reason like restart, transfer, kicked.\nEDIT Rejoin: delay and optional server IP.\nLoop Wait: pause before watching again.\n\nLeave Rejoin server IP blank to use the last server. Put a server IP in field 2 to force one server.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "stickyNoteText": "Advanced kick rejoin watchdog:\n\nThis macro waits in an idle state until you are kicked or disconnected, then rejoins.\nIt is always-on so it can keep watching after server changes.\n\nEdit these components:\nEDIT Kick Filter: use any, or a reason like restart, transfer, kicked.\nEDIT Rejoin: delay and optional server IP.\nLoop Wait: pause before watching again.\n\nLeave Rejoin server IP blank to use the last server. Put a server IP in field 2 to force one server.",
+      "stickyNoteWidth": 650,
+      "stickyNoteHeight": 270,
+      "outputs": {}
+    },
+    {
+      "id": "node-3",
+      "type": "builder:misc.idleUntil",
+      "x": 340,
+      "y": 160,
+      "displayName": "EDIT Kick Filter",
+      "value": "kicked",
+      "value2": "any",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "triggered": "node-4",
+        "failed": "node-7"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "official:misc.rejoinServer",
+      "x": 640,
+      "y": 160,
+      "displayName": "EDIT Rejoin",
+      "value": "5000",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-5",
+        "failed": "node-7"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "official:misc.wait",
+      "x": 940,
+      "y": 160,
+      "displayName": "Loop Wait",
+      "value": "3000",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-6",
+        "failed": "node-7"
+      }
+    },
+    {
+      "id": "node-6",
+      "type": "builder:localMessage",
+      "x": 1240,
+      "y": 160,
+      "displayName": "Status Message",
+      "value": "Watchdog active for ${player.name}. Server: ${server.ip}. Screen: ${screen.name}.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-3"
+      }
+    },
+    {
+      "id": "node-7",
+      "type": "builder:localMessage",
+      "x": 940,
+      "y": 310,
+      "displayName": "Fail Message",
+      "value": "Kick watchdog failed. Check server IP, delay, and whether reconnect is allowed.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-8"
+      }
+    },
+    {
+      "id": "node-8",
+      "type": "builder:flow.endConnection",
+      "x": 1240,
+      "y": 310,
+      "displayName": "",
+      "value": "end branch",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    }
+  ]
+}

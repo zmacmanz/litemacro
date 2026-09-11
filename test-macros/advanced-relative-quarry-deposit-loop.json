@@ -1,0 +1,244 @@
+{
+  "format": "litemacro-v1",
+  "name": "Advanced - Relative Quarry Deposit Loop",
+  "stepDelayMs": 0,
+  "alwaysOn": false,
+  "autoStartMode": "off",
+  "autoStartFilter": "",
+  "randomDelayEnabled": false,
+  "randomDelayMinMs": 250,
+  "randomDelayMaxMs": 1250,
+  "nextIndex": 14,
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "official:start",
+      "x": 80,
+      "y": 175,
+      "displayName": "",
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "started": "node-3"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "builder:flow.note",
+      "x": 80,
+      "y": 455,
+      "displayName": "",
+      "value": "Advanced quarry deposit loop:\n\nThis mines a small box around where you stand, switches tools, and deposits when inventory space is low.\nUse in a safe test world first.\n\nEdit these components:\nEDIT Empty Space: how many empty slots to keep.\nEDIT Mine Box: From and To relative coordinates.\nEDIT Tool Low: durability number in Mine Area.\nEDIT Chest Search: chest radius/type/move.\nEDIT Deposit: all or specific item.\n\nPut pickaxe, shovel, and axe in your hotbar. Put a chest within the search radius.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "stickyNoteText": "Advanced quarry deposit loop:\n\nThis mines a small box around where you stand, switches tools, and deposits when inventory space is low.\nUse in a safe test world first.\n\nEdit these components:\nEDIT Empty Space: how many empty slots to keep.\nEDIT Mine Box: From and To relative coordinates.\nEDIT Tool Low: durability number in Mine Area.\nEDIT Chest Search: chest radius/type/move.\nEDIT Deposit: all or specific item.\n\nPut pickaxe, shovel, and axe in your hotbar. Put a chest within the search radius.",
+      "stickyNoteWidth": 660,
+      "stickyNoteHeight": 310,
+      "outputs": {}
+    },
+    {
+      "id": "node-3",
+      "type": "builder:inventory.emptySlotsAtLeast",
+      "x": 340,
+      "y": 175,
+      "displayName": "EDIT Empty Space",
+      "value": "3",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "node-4",
+        "false": "node-7",
+        "failed": "node-12"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "builder:world.mineArea",
+      "x": 640,
+      "y": 175,
+      "displayName": "EDIT Mine Box",
+      "value": "~-3 ~-1 ~-3",
+      "value2": "~3 ~2 ~3 tool=15 move=true auto_tool=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-5",
+        "tool_low": "node-10",
+        "failed": "node-12"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "official:inventory.isFull",
+      "x": 950,
+      "y": 175,
+      "displayName": "Check Full",
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "node-7",
+        "false": "node-6",
+        "failed": "node-12"
+      }
+    },
+    {
+      "id": "node-6",
+      "type": "official:misc.wait",
+      "x": 1220,
+      "y": 290,
+      "displayName": "Loop Wait",
+      "value": "500",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-3",
+        "failed": "node-12"
+      }
+    },
+    {
+      "id": "node-7",
+      "type": "builder:world.openNearestContainer",
+      "x": 1220,
+      "y": 65,
+      "displayName": "EDIT Chest Search",
+      "value": "8",
+      "value2": "move=true type=chest",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-8",
+        "failed": "node-12"
+      }
+    },
+    {
+      "id": "node-8",
+      "type": "official:inventory.chestDepositItems",
+      "x": 1510,
+      "y": 65,
+      "displayName": "EDIT Deposit",
+      "value": "all",
+      "value2": "",
+      "value3": "true",
+      "value4": "true",
+      "value5": "0-8",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-9",
+        "failed": "node-12"
+      }
+    },
+    {
+      "id": "node-9",
+      "type": "official:inventory.closeOpenContainer",
+      "x": 1800,
+      "y": 65,
+      "displayName": "Close Chest",
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-11",
+        "failed": "node-12"
+      }
+    },
+    {
+      "id": "node-10",
+      "type": "builder:localMessage",
+      "x": 950,
+      "y": 360,
+      "displayName": "Tool Low Message",
+      "value": "Tool is low while quarrying near ${player.pos}. Held item: ${player.held_item}.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-13"
+      }
+    },
+    {
+      "id": "node-11",
+      "type": "builder:localMessage",
+      "x": 2090,
+      "y": 65,
+      "displayName": "Deposit Message",
+      "value": "Deposited quarry loot near ${player.pos}. Macro ${macro.number}: ${macro.name}.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-6"
+      }
+    },
+    {
+      "id": "node-12",
+      "type": "builder:localMessage",
+      "x": 1220,
+      "y": 455,
+      "displayName": "Fail Message",
+      "value": "Quarry loop stopped near ${player.pos}. Check Mine Area size, chest radius, permissions, and tool durability.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-13"
+      }
+    },
+    {
+      "id": "node-13",
+      "type": "builder:flow.endConnection",
+      "x": 1510,
+      "y": 455,
+      "displayName": "",
+      "value": "end branch",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    }
+  ]
+}

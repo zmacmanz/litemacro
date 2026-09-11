@@ -18,6 +18,10 @@ Ready-to-import examples are in the repo `test-macros` folder:
 | `runtime-data-grindstone-output-hotbar.json` | Tests named runtime outputs. Auto Grindstone saves `clean_item.slot`, then Select Hotbar Slot uses it. |
 | `runtime-data-relative-mine-area-auto-tool.json` | Tests relative coordinates with Mine Area and Auto Tool. |
 | `runtime-data-target-block-message.json` | Tests live values in messages, including player position, target block, world, and server. |
+| `advanced-xp30-enchant-repair-loop.json` | Holds attack until XP 30, repairs low-durability held items, enchants, then loops. |
+| `advanced-relative-quarry-deposit-loop.json` | Mines a relative quarry with Auto Tool, deposits to a nearby chest, and handles low tools. |
+| `advanced-kick-rejoin-watchdog.json` | Always-on idle watcher that rejoins after a kick or disconnect. |
+| `advanced-gui-shop-sell-template.json` | Server shop GUI template that waits for item count, opens sell GUI, clicks, closes, and loops. |
 
 To use one:
 
@@ -182,6 +186,36 @@ Local Message
 ```
 
 Component names are turned into lowercase data keys. Spaces become underscores, so `Clean Item` becomes `clean_item`.
+
+## Advanced Editable Templates
+
+These templates are bigger on purpose. Each one has yellow notes and component names starting with `EDIT` so players know exactly what to change.
+
+| File | Main components to edit | What to change |
+| --- | --- | --- |
+| `advanced-xp30-enchant-repair-loop.json` | `EDIT XP Level`, `EDIT Durability Check`, `EDIT Open Grindstone`, `EDIT Open Table`, `Repair Item`, `Enchant Item` | XP target, durability percent, table/grindstone radius, repair mode, enchant option, lapis item. |
+| `advanced-relative-quarry-deposit-loop.json` | `EDIT Empty Space`, `EDIT Mine Box`, `EDIT Chest Search`, `EDIT Deposit` | Empty slot limit, relative mine corners, tool-low number, chest radius/type, deposit mode and excluded hotbar slots. |
+| `advanced-kick-rejoin-watchdog.json` | `EDIT Kick Filter`, `EDIT Rejoin`, `Loop Wait` | Kick reason filter, reconnect delay, optional fixed server IP, wait before watching again. |
+| `advanced-gui-shop-sell-template.json` | `EDIT Sell Item Count`, `EDIT Sell Command`, `EDIT GUI Click`, `Wait For GUI`, `Wait For Items` | Item ID, minimum count, command, GUI slot/item, wait times. |
+
+Good names for editable components:
+
+```text
+EDIT Sell Item Count
+EDIT Mine Box
+EDIT Rejoin
+EDIT Open Table
+```
+
+Good names for data-output components:
+
+```text
+Repair Item -> repair_item.slot
+Clean Item  -> clean_item.item
+Find Target -> find_target.pos
+```
+
+Spaces become underscores and the name becomes lowercase.
 
 ## Tutorial: Mine Area Coordinates
 
