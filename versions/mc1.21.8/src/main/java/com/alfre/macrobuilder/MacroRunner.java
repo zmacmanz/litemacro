@@ -3226,6 +3226,16 @@ final class MacroRunner {
             }
          }
 
+          BlockState selectedState = client.level.getBlockState(this.activeMineAreaPos);
+          String selectedBlockId = blockId(selectedState);
+          if (!options.stopBeforeBlock().isBlank() && options.stopBeforeBlock().equals(selectedBlockId)) {
+             this.putRuntimeValue("mine.protected_block.id", selectedBlockId);
+             this.putRuntimeValue("mine.protected_block.pos", blockPosText(this.activeMineAreaPos));
+             this.releaseHeldKeys(client);
+             this.stop(client, "Stopped: Mine Area found protected block " + selectedBlockId + " at " + blockPosText(this.activeMineAreaPos) + ".");
+             return;
+          }
+
          if (!canReachBlock(client, this.activeMineAreaPos)) {
             this.activeMineAreaTicks = 0;
             if (!options.move()) {
@@ -5308,12 +5318,18 @@ final class MacroRunner {
          if (!areaWithinLimit(min, max, 16)) {
             return null;
          } else {
-            int toolLowThreshold = mineToolLowThreshold(options);
-            boolean move = moveOption(options, true);
-            boolean autoTool = mineAreaAutoTool(options);
-            return new MacroRunner.MineAreaOptions(min, max, toolLowThreshold, move, autoTool);
-         }
-      } else {
+             int toolLowThreshold = mineToolLowThreshold(options);
+             boolean move = moveOption(options, true);
+             boolean autoTool = mineAreaAutoTool(options);
+             String stopBeforeBlockText = this.resolveRuntimeText(node.value3).trim();
+             String stopBeforeBlock = stopBeforeBlockText.isBlank() ? "" : MacroModel.normalizeItemId(stopBeforeBlockText);
+             if (!stopBeforeBlock.isBlank() && !isKnownBlockId(stopBeforeBlock)) {
+                return null;
+             }
+
+             return new MacroRunner.MineAreaOptions(min, max, toolLowThreshold, move, autoTool, stopBeforeBlock);
+          }
+       } else {
          return null;
       }
    }
@@ -5327,6 +5343,8 @@ final class MacroRunner {
          return "Failed: Mine Area needs From X Y Z in the first field.";
       } else if (to == null) {
          return "Failed: Mine Area needs To X Y Z in the second field.";
+       } else if (node.value3 != null && !node.value3.isBlank() && !isKnownBlockId(this.resolveRuntimeText(node.value3))) {
+          return "Failed: Mine Area Stop Before Block needs a valid block ID, such as minecraft:diamond_ore.";
       } else {
          BlockPos min = minPos(from, to);
          BlockPos max = maxPos(from, to);
@@ -7763,7 +7781,7 @@ final class MacroRunner {
    private record FarmOptions(int radius, BlockPos min, BlockPos max, boolean replant, boolean depositWhenFull, boolean move) {
    }
 
-   private record MineAreaOptions(BlockPos min, BlockPos max, int toolLowThreshold, boolean move, boolean autoTool) {
+   private record MineAreaOptions(BlockPos min, BlockPos max, int toolLowThreshold, boolean move, boolean autoTool, String stopBeforeBlock) {
    }
 
    private record PressKeyOptions(boolean hold, int durationMs) {

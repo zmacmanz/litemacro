@@ -17,6 +17,7 @@ Ready-to-import examples are in the repo `test-macros` folder:
 | `batch-enchant-6-iron-swords.json` | Opens a nearby enchanting table and enchants up to six unenchanted iron swords, skipping already-enchanted ones. |
 | `mine-area-deposit-chest-template.json` | Mines a small coordinate box, opens a nearby chest, deposits inventory, and loops. Edit the coordinates before running. |
 | `mine-area-auto-tool-template.json` | Mines a small area while switching to the best hotbar tool for stone, dirt, wood, and similar blocks. |
+| `mine-area-stop-before-block.json` | Mines an area but stops the whole macro before breaking a selected protected block. Includes editing notes and block ID examples. |
 | `mine-deposit-wool-nearest-chest-loop.json` | Mines, opens the nearest chest, deposits wool, and loops. |
 | `working-mine-area-16x16x16.json` | Safe Mine Area test for one max-size area. |
 | `working-mine-area-full-chunked.json` | Larger Mine Area example split into smaller chunks. |

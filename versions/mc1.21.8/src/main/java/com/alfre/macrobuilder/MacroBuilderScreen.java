@@ -62,7 +62,9 @@ final class MacroBuilderScreen extends Screen {
    private static final int RIGHT_MINE_AREA_TOOL_LABEL_Y = 296;
    private static final int RIGHT_MINE_AREA_TOOL_FIELD_Y = 310;
    private static final int RIGHT_MINE_AREA_TOGGLE_Y = 334;
-   private static final int RIGHT_MINE_AREA_HINT_Y = 358;
+   private static final int RIGHT_MINE_AREA_PROTECTED_LABEL_Y = 360;
+   private static final int RIGHT_MINE_AREA_PROTECTED_FIELD_Y = 374;
+   private static final int RIGHT_MINE_AREA_HINT_Y = 398;
    private static final int RIGHT_AUTO_ENCHANT_ITEM_LABEL_Y = 296;
    private static final int RIGHT_AUTO_ENCHANT_ITEM_FIELD_Y = 310;
    private static final int RIGHT_AUTO_ENCHANT_ITEM_BUTTON_Y = 334;
@@ -121,6 +123,7 @@ final class MacroBuilderScreen extends Screen {
    private EditBox primaryField;
    private EditBox secondaryField;
    private EditBox mineAreaToolLowField;
+   private EditBox mineAreaProtectedBlockField;
    private EditBox autoEnchantItemField;
    private EditBox autoEnchantLapisField;
    private EditBox autoGrindstoneInputField;
@@ -318,6 +321,9 @@ final class MacroBuilderScreen extends Screen {
       this.mineAreaToolLowField = new EditBox(this.font, rightX + 14, RIGHT_MINE_AREA_TOOL_FIELD_Y, rightWidth, 20, Component.empty());
       this.mineAreaToolLowField.setMaxLength(6);
       this.addRenderableWidget(this.mineAreaToolLowField);
+      this.mineAreaProtectedBlockField = new EditBox(this.font, rightX + 14, RIGHT_MINE_AREA_PROTECTED_FIELD_Y, rightWidth, 20, Component.empty());
+      this.mineAreaProtectedBlockField.setMaxLength(128);
+      this.addRenderableWidget(this.mineAreaProtectedBlockField);
       this.autoEnchantItemField = new EditBox(this.font, rightX + 14, RIGHT_AUTO_ENCHANT_ITEM_FIELD_Y, rightWidth, 20, Component.empty());
       this.autoEnchantItemField.setMaxLength(128);
       this.addRenderableWidget(this.autoEnchantItemField);
@@ -1038,6 +1044,7 @@ final class MacroBuilderScreen extends Screen {
          && this.primaryField != null
          && this.secondaryField != null
          && this.mineAreaToolLowField != null
+          && this.mineAreaProtectedBlockField != null
          && this.autoEnchantItemField != null
          && this.autoEnchantLapisField != null
          && this.autoGrindstoneInputField != null
@@ -1063,6 +1070,7 @@ final class MacroBuilderScreen extends Screen {
 
          if (mineAreaNode) {
             this.syncMineAreaFieldsToNode();
+             this.selectedNode.value3 = this.mineAreaProtectedBlockField.getValue().trim();
          }
 
          if (this.isAutoEnchantNode(this.selectedNode)) {
@@ -1092,6 +1100,7 @@ final class MacroBuilderScreen extends Screen {
          && this.secondaryField != null
          && this.componentNameField != null
          && this.mineAreaToolLowField != null
+          && this.mineAreaProtectedBlockField != null
          && this.mineAreaMoveButton != null
          && this.mineAreaAutoToolButton != null
          && this.containerMoveButton != null
@@ -1147,6 +1156,7 @@ final class MacroBuilderScreen extends Screen {
          String primaryText = hasPrimary && this.selectedNode.value != null ? this.selectedNode.value : "";
          String secondaryText = mineAreaNode ? this.mineAreaToText(this.selectedNode) : (hasSecondary && this.selectedNode.value2 != null ? this.selectedNode.value2 : "");
          String mineAreaToolLowText = mineAreaNode ? this.mineAreaToolLowText(this.selectedNode) : "";
+          String mineAreaProtectedBlockText = mineAreaNode && this.selectedNode.value3 != null ? this.selectedNode.value3 : "";
          String autoEnchantItemText = autoEnchantNode ? this.autoEnchantItemText(this.selectedNode) : "";
          String autoEnchantLapisText = autoEnchantNode ? this.autoEnchantLapisText(this.selectedNode) : "";
          String autoGrindstoneInputText = autoGrindstoneNode ? this.autoGrindstoneInputText(this.selectedNode) : "";
@@ -1165,6 +1175,10 @@ final class MacroBuilderScreen extends Screen {
          this.mineAreaToolLowField.active = mineAreaNode;
          this.mineAreaToolLowField.setValue(mineAreaToolLowText);
          this.mineAreaToolLowField.setSuggestion(mineAreaNode && mineAreaToolLowText.isBlank() ? "10" : "");
+          this.mineAreaProtectedBlockField.visible = mineAreaNode;
+          this.mineAreaProtectedBlockField.active = mineAreaNode;
+          this.mineAreaProtectedBlockField.setValue(mineAreaProtectedBlockText);
+          this.mineAreaProtectedBlockField.setSuggestion(mineAreaNode && mineAreaProtectedBlockText.isBlank() ? "minecraft:diamond_ore" : "");
          this.autoEnchantItemField.visible = autoEnchantNode;
          this.autoEnchantItemField.active = autoEnchantNode;
          this.autoEnchantItemField.setValue(autoEnchantItemText);
@@ -2671,7 +2685,8 @@ final class MacroBuilderScreen extends Screen {
 
          if (this.isMineAreaNode(this.selectedNode)) {
             context.drawString(this.font, "Tool low durability", rightX + 14, RIGHT_MINE_AREA_TOOL_LABEL_Y, -2565928);
-            this.drawWrappedText(context, "Auto Tool picks the best hotbar tool for each block.", rightX + 14, RIGHT_MINE_AREA_HINT_Y, rightWidth, -7366491, 2);
+             context.drawString(this.font, "Stop before block (optional)", rightX + 14, RIGHT_MINE_AREA_PROTECTED_LABEL_Y, -2565928);
+             this.drawWrappedText(context, "Stops before mining this block ID.", rightX + 14, RIGHT_MINE_AREA_HINT_Y, rightWidth, -7366491, 2);
          }
 
          if (this.isAutoEnchantNode(this.selectedNode)) {

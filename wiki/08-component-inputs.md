@@ -143,6 +143,7 @@ Field 2: -11864 41 12115
 Tool Low: 10
 Move: On
 Auto Tool: On
+Stop before block: minecraft:diamond_ore
 ```
 
 Relative example around your current position:
@@ -153,6 +154,7 @@ Field 2: ~3 ~2 ~3
 Tool Low: 10
 Move: Off
 Auto Tool: On
+Stop before block: minecraft:diamond_ore
 ```
 
 Options:
@@ -166,11 +168,14 @@ tool=0      do not stop for low tool durability
 tool=10     send the tool_low output when the selected tool has 10 durability left
 ```
 
+`Stop before block` is a separate optional field in the right panel. Enter one exact block ID, such as `minecraft:diamond_ore`, `minecraft:ancient_debris`, `minecraft:chest`, or `minecraft:spawner`. Leave it blank to disable this protection.
+
 Limits and behavior:
 
 - Max size is `16x16x16` for one `Mine Area`.
 - Bigger mines must be split into multiple `Mine Area` components.
 - `Auto Tool` checks your hotbar and switches between pickaxe, shovel, axe, or another faster tool based on the block being mined.
+- When `Stop before block` matches the next target, Litemacro leaves that block untouched and stops the whole macro before sending a mining action.
 - If one block is protected, unreachable, or will not break, Litemacro skips that block and keeps checking the rest of the area.
 - If the whole area is unloaded and `move=true`, Litemacro walks toward the area for a limited time. If it still cannot load the area, the component fails instead of walking forever.
 
@@ -180,6 +185,13 @@ Outputs:
 completed -> next step after the area is mined
 tool_low  -> repair, swap tool, local message, or stop path
 failed    -> local message or recovery path
+```
+
+Protected-block runtime data:
+
+```text
+${mine.protected_block.id}   matched block ID
+${mine.protected_block.pos}  matched block X Y Z
 ```
 
 ## Component Field Guide
@@ -382,7 +394,7 @@ If `last.slot` is 10-36, Litemacro swaps that stack into an empty hotbar slot wh
 | --- | --- | --- | --- |
 | `Interact With Block` | Target X Y Z, `~`, or runtime value | Button 0/1 | `${target.block.pos}` and `1` |
 | `Mine Block` | Target X Y Z, `~`, or runtime value | Select tool true/false | `~ ~-1 ~` and `true` |
-| `Mine Area` | From X Y Z, `~`, or runtime value | To X Y Z, plus Tool Low, Move, and Auto Tool controls | `~-3 ~-1 ~-3`, `~3 ~2 ~3`, `Tool Low: 10`, `Auto Tool: On` |
+| `Mine Area` | From X Y Z, `~`, or runtime value | To X Y Z, Tool Low, Move, Auto Tool, and optional Stop before block | `~-3 ~-1 ~-3`, `~3 ~2 ~3`, `Tool Low: 10`, `Auto Tool: On`, `minecraft:diamond_ore` |
 | `Place Block` | Target X Y Z | Select block/item | `100 64 100` and `minecraft:dirt` |
 | `Jump And Place Block` | Select block/item | Empty | `minecraft:dirt` |
 | `Farm Area` | Radius, X Y Z, `~`, or runtime value | To X Y Z plus options | `8`, or `~-4 ~-1 ~-4` and `~4 ~1 ~4 replant move=true` |

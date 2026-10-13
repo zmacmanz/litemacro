@@ -1031,7 +1031,7 @@ final class MacroModel {
          case "builder:inventory.dropSelectedItem" -> "Drops the held hotbar item";
          case "official:world.interactWithBlock" -> "Clicks or attacks a target block";
          case "official:world.mineBlock" -> "Mines a target block";
-         case "builder:world.mineArea" -> "Mines up to a 16x16x16 box between two corner positions";
+         case "builder:world.mineArea" -> "Mines up to a 16x16x16 box and can stop before a protected block";
          case "official:world.placeBlock" -> "Places a selected block on target";
          case "official:world.jumpAndPlaceBlock" -> "Jumps and places below player";
          case "builder:world.farmArea" -> "Harvests crops between two XYZ points and can move";

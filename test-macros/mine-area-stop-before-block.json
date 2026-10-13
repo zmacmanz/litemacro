@@ -1,0 +1,113 @@
+{
+  "format": "litemacro-v1",
+  "name": "Mine Area - Stop Before Protected Block",
+  "stepDelayMs": 0,
+  "alwaysOn": false,
+  "autoStartMode": "off",
+  "autoStartFilter": "",
+  "randomDelayEnabled": false,
+  "randomDelayMinMs": 250,
+  "randomDelayMaxMs": 1250,
+  "nextIndex": 7,
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "official:start",
+      "x": 100,
+      "y": 140,
+      "displayName": "Start Protected Mine",
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "started": "node-2"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "builder:world.mineArea",
+      "x": 390,
+      "y": 140,
+      "displayName": "EDIT Mine Until Protected Block",
+      "value": "~-3 ~-1 ~-3",
+      "value2": "~3 ~2 ~3 tool=10 move=true auto_tool=true",
+      "value3": "minecraft:diamond_ore",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-3",
+        "tool_low": "node-4",
+        "failed": "node-5"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "builder:localMessage",
+      "x": 750,
+      "y": 80,
+      "displayName": "Area Finished",
+      "value": "Mine Area finished without finding the protected block.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    },
+    {
+      "id": "node-4",
+      "type": "builder:localMessage",
+      "x": 750,
+      "y": 200,
+      "displayName": "Tool Low",
+      "value": "Mining stopped because the selected tool is low.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    },
+    {
+      "id": "node-5",
+      "type": "builder:localMessage",
+      "x": 750,
+      "y": 320,
+      "displayName": "Mine Failed",
+      "value": "Mine Area failed. Check the coordinates, block ID, reach, and tools.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    },
+    {
+      "id": "node-6",
+      "type": "builder:flow.note",
+      "x": 100,
+      "y": 390,
+      "displayName": "Protected Block Setup Guide",
+      "value": "MINE AREA - STOP BEFORE A BLOCK\n\nWHAT THIS EXAMPLE DOES\n- Mines a small area around where you stand.\n- Switches to the best hotbar tool.\n- Stops the whole macro before breaking minecraft:diamond_ore.\n- Leaves the protected block untouched.\n\nWHAT TO EDIT\n1. Select EDIT Mine Until Protected Block.\n2. Set From and To for the area you want mined.\n3. Set Stop before block to the exact block ID you want protected.\n4. Leave Stop before block blank to disable this protection.\n\nBLOCK ID EXAMPLES\n- minecraft:diamond_ore\n- minecraft:ancient_debris\n- minecraft:chest\n- minecraft:spawner\n\nRUNTIME DATA AFTER A MATCH\n- ${mine.protected_block.id} is the block ID.\n- ${mine.protected_block.pos} is its X Y Z position.\n\nTest in a safe world first. The protected block must be inside the Mine Area box.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "stickyNoteText": "MINE AREA - STOP BEFORE A BLOCK\n\nWHAT THIS EXAMPLE DOES\n- Mines a small area around where you stand.\n- Switches to the best hotbar tool.\n- Stops the whole macro before breaking minecraft:diamond_ore.\n- Leaves the protected block untouched.\n\nWHAT TO EDIT\n1. Select EDIT Mine Until Protected Block.\n2. Set From and To for the area you want mined.\n3. Set Stop before block to the exact block ID you want protected.\n4. Leave Stop before block blank to disable this protection.\n\nBLOCK ID EXAMPLES\n- minecraft:diamond_ore\n- minecraft:ancient_debris\n- minecraft:chest\n- minecraft:spawner\n\nRUNTIME DATA AFTER A MATCH\n- ${mine.protected_block.id} is the block ID.\n- ${mine.protected_block.pos} is its X Y Z position.\n\nTest in a safe world first. The protected block must be inside the Mine Area box.",
+      "stickyNoteWidth": 720,
+      "stickyNoteHeight": 500,
+      "outputs": {}
+    }
+  ]
+}
