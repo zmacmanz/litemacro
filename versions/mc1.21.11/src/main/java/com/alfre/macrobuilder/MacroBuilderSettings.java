@@ -15,6 +15,7 @@ final class MacroBuilderSettings {
    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
    private final int[] macroKeys = new int[100];
    private boolean chatNotifications = true;
+   private boolean runningOverlay = true;
 
    MacroBuilderSettings() {
       for (int index = 0; index < this.macroKeys.length; index++) {
@@ -33,6 +34,11 @@ final class MacroBuilderSettings {
             JsonElement notifications = root.get("chatNotifications");
             if (notifications != null && !notifications.isJsonNull()) {
                settings.chatNotifications = notifications.getAsBoolean();
+            }
+
+            JsonElement overlay = root.get("runningOverlay");
+            if (overlay != null && !overlay.isJsonNull()) {
+               settings.runningOverlay = overlay.getAsBoolean();
             }
 
             JsonArray keys = root.getAsJsonArray("macroKeys");
@@ -54,6 +60,7 @@ final class MacroBuilderSettings {
       Files.createDirectories(path.getParent());
       JsonObject root = new JsonObject();
       root.addProperty("chatNotifications", this.chatNotifications);
+      root.addProperty("runningOverlay", this.runningOverlay);
       JsonArray keys = new JsonArray();
 
       for (int key : this.macroKeys) {
@@ -70,6 +77,14 @@ final class MacroBuilderSettings {
 
    void setChatNotifications(boolean chatNotifications) {
       this.chatNotifications = chatNotifications;
+   }
+
+   boolean runningOverlay() {
+      return this.runningOverlay;
+   }
+
+   void setRunningOverlay(boolean runningOverlay) {
+      this.runningOverlay = runningOverlay;
    }
 
    int macroKey(int macroNumber) {

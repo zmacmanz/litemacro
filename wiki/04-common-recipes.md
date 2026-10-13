@@ -27,7 +27,8 @@ Mouse Button
 
 Open Nearest Container
   Radius 1-16: 8
-  Move/type: move=true type=chest
+  Move: On
+  Type: Chest
   completed -> Deposit Items
   failed -> Local Message
 
@@ -65,7 +66,8 @@ Inventory Is Full
 
 Open Nearest Container
   Radius 1-16: 8
-  Move/type: move=true type=chest
+  Move: On
+  Type: Chest
   completed -> Deposit Items
 
 Deposit Items
@@ -247,3 +249,59 @@ Scoreboard Contains
 ```
 
 Use this when server information appears on the sidebar scoreboard.
+
+## Actionbar Trigger
+
+Use this when a server sends progress or warning text above the hotbar.
+
+```text
+Macro Entry Point
+  started -> Actionbar Contains
+
+Actionbar Contains
+  Text or regex: Sold
+  Mode: contains
+  true -> Local Message
+  false -> Wait
+```
+
+Use `Event: Actionbar` when you want the macro to wait for the next matching actionbar message instead of checking once.
+
+## Repeat Until Actionbar Or Safety Condition
+
+Use `Repeat Until` when one section should repeat until a condition appears.
+
+```text
+Macro Entry Point
+  started -> Repeat Until
+
+Repeat Until
+  Condition: actionbar
+  Filter/value: Sold
+  repeat -> Click GUI Item
+  completed -> Close GUI
+  failed -> Local Message
+```
+
+The condition can also be `chat`, `player`, `full`, `kicked`, `item`, `xp`, `health`, `food`, or `water`.
+
+## Open Different Container Types
+
+For a simple chest, use the direct component:
+
+```text
+Open Nearest Chest
+  Radius: 8
+  Move: On
+```
+
+For one component that can be edited between types, use:
+
+```text
+Open Nearest Container
+  Radius: 8
+  Move: On
+  Type: Barrel
+```
+
+The `Type` dropdown supports `Any`, `Chest`, `Barrel`, `Shulker`, `Ender Chest`, `Furnace`, `Blast Furnace`, `Smoker`, `Brewing Stand`, `Hopper`, `Dispenser`, and `Dropper`.

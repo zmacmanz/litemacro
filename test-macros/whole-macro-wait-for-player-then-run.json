@@ -1,0 +1,184 @@
+{
+  "format": "litemacro-v1",
+  "name": "Wait For Player Then Run All",
+  "stepDelayMs": 0,
+  "alwaysOn": false,
+  "autoStartMode": "off",
+  "autoStartFilter": "",
+  "randomDelayEnabled": false,
+  "randomDelayMinMs": 250,
+  "randomDelayMaxMs": 1250,
+  "nextIndex": 10,
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "official:start",
+      "x": 90,
+      "y": 160,
+      "displayName": "",
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "started": "node-2"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "builder:misc.idleUntil",
+      "x": 350,
+      "y": 160,
+      "displayName": "EDIT Wait For Player",
+      "value": "player",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "triggered": "node-3\nnode-5",
+        "failed": "node-7"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "builder:localMessage",
+      "x": 650,
+      "y": 80,
+      "displayName": "Action 1 Starts",
+      "value": "A player is nearby. Action 1 is running.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-4",
+        "failed": "node-7"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "official:misc.wait",
+      "x": 960,
+      "y": 80,
+      "displayName": "Action 1 Delay",
+      "value": "1000",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-8",
+        "failed": "node-7"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "builder:localMessage",
+      "x": 650,
+      "y": 260,
+      "displayName": "Action 2 Starts",
+      "value": "The same player trigger started Action 2 too.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-6",
+        "failed": "node-7"
+      }
+    },
+    {
+      "id": "node-6",
+      "type": "official:misc.wait",
+      "x": 960,
+      "y": 260,
+      "displayName": "Action 2 Delay",
+      "value": "3000",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-9",
+        "failed": "node-7"
+      }
+    },
+    {
+      "id": "node-7",
+      "type": "builder:localMessage",
+      "x": 650,
+      "y": 430,
+      "displayName": "Fail Message",
+      "value": "Idle Until failed. Set condition to player. Leave filter blank for any player or enter a name.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    },
+    {
+      "id": "node-8",
+      "type": "builder:localMessage",
+      "x": 1260,
+      "y": 80,
+      "displayName": "Action 1 Done",
+      "value": "Action 1 finished.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    },
+    {
+      "id": "node-9",
+      "type": "builder:localMessage",
+      "x": 1260,
+      "y": 260,
+      "displayName": "Action 2 Done",
+      "value": "Action 2 finished.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    },
+    {
+      "id": "node-note",
+      "type": "builder:flow.note",
+      "x": 90,
+      "y": 360,
+      "displayName": "",
+      "value": "Whole macro waits for a player:\n\nThe macro does nothing until another player is nearby.\n\nEdit this component:\nEDIT Wait For Player\nCondition = player\nFilter = blank for any player, or type a player name\n\nAfter the player is detected, the triggered output starts both action branches.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "stickyNoteText": "Whole macro waits for a player:\n\nThe macro does nothing until another player is nearby.\n\nEdit this component:\nEDIT Wait For Player\nCondition = player\nFilter = blank for any player, or type a player name\n\nAfter the player is detected, the triggered output starts both action branches.",
+      "stickyNoteWidth": 620,
+      "stickyNoteHeight": 250,
+      "outputs": {}
+    }
+  ]
+}

@@ -9,6 +9,8 @@ When you click a component in the builder, the right panel shows its editable fi
 - `Field 1` means the first text box for that component.
 - `Field 2` means the second text box for that component.
 - Empty means leave the field blank.
+- Some settings are buttons instead of text. Click them to toggle `On` or `Off`.
+- Some settings are dropdowns. Click the button, then pick the option from the list.
 - Use spaces between coordinates: `X Y Z`.
 - Use Minecraft item IDs like `minecraft:diamond_pickaxe`.
 - Connect every important output, especially `failed`, so the macro does not stop with no explanation.
@@ -147,7 +149,10 @@ Relative example around your current position:
 
 ```text
 Field 1: ~-3 ~-1 ~-3
-Field 2: ~3 ~2 ~3 move=false auto_tool=true tool=10
+Field 2: ~3 ~2 ~3
+Tool Low: 10
+Move: Off
+Auto Tool: On
 ```
 
 Options:
@@ -217,6 +222,12 @@ failed    -> local message or recovery path
 | `Player At Location` | X Y Z, `~`, or runtime value | Max distance | `${player.pos}` and `5` |
 | `Player Nearby` | Names or regex | Mode | `Steve` and `any` |
 | `Scoreboard Contains` | Text or regex | Mode | `Purse:` and `contains` |
+| `Actionbar Contains` | Text or regex | Mode | `Sold` and `contains` |
+| `Has Status Effect` | Effect id or short name | Minimum level | `minecraft:speed` and `1` |
+| `Bossbar Contains` | Visible boss-bar text or regex | Mode | `Litemacro Test` and `contains` |
+| `Macro Active State` | Other macro slot | `active` or `inactive` | `2` and `active` |
+
+`Macro Active State` also works as an automatic trigger. For example, place it in Macro 2, set the slot to `1`, and set the state to `active`. When Macro 1 starts, Macro 2 starts automatically from this component and follows its `true` connection, even when Macro 2 is not selected in the menu. Use `inactive` to trigger when Macro 1 stops. The component must point to a different macro slot.
 
 ### Flow
 
@@ -225,6 +236,7 @@ failed    -> local message or recovery path
 | `Wait` | Duration ms | Empty | `1000` |
 | `Repeat Macro` | Count or forever | Empty | `forever` |
 | `Repeat` | Count or forever | Empty | `3` |
+| `Repeat Until` | Condition | Filter/value | `actionbar` and `Sold` |
 | `Idle Until` | Condition | Filter | `chat` and `sold` |
 | `Skip If True` | true/false | Component name or id to skip | `true` and `Wait Before Sell` |
 | `Stop At XP Level` | Target level | `release` or `stop` | `30` and `release` |
@@ -236,9 +248,33 @@ Idle conditions:
 
 ```text
 chat
+actionbar
 player
 full
 kicked
+item
+xp
+health
+food
+water
+```
+
+`Repeat Until` uses the same condition names. For item, XP, health, food, and water conditions, put the value or filter in Field 2.
+
+Examples:
+
+```text
+Repeat Until
+  Condition: xp
+  Filter/value: 30
+
+Idle Until
+  Condition: actionbar
+  Filter: Sold
+
+Idle Until
+  Condition: water
+  Filter:
 ```
 
 ### Action
@@ -346,11 +382,14 @@ If `last.slot` is 10-36, Litemacro swaps that stack into an empty hotbar slot wh
 | --- | --- | --- | --- |
 | `Interact With Block` | Target X Y Z, `~`, or runtime value | Button 0/1 | `${target.block.pos}` and `1` |
 | `Mine Block` | Target X Y Z, `~`, or runtime value | Select tool true/false | `~ ~-1 ~` and `true` |
-| `Mine Area` | From X Y Z, `~`, or runtime value | To X Y Z plus options | `~-3 ~-1 ~-3` and `~3 ~2 ~3 tool=10 auto_tool=true` |
+| `Mine Area` | From X Y Z, `~`, or runtime value | To X Y Z, plus Tool Low, Move, and Auto Tool controls | `~-3 ~-1 ~-3`, `~3 ~2 ~3`, `Tool Low: 10`, `Auto Tool: On` |
 | `Place Block` | Target X Y Z | Select block/item | `100 64 100` and `minecraft:dirt` |
 | `Jump And Place Block` | Select block/item | Empty | `minecraft:dirt` |
 | `Farm Area` | Radius, X Y Z, `~`, or runtime value | To X Y Z plus options | `8`, or `~-4 ~-1 ~-4` and `~4 ~1 ~4 replant move=true` |
-| `Open Nearest Container` | Radius 1-16 | Move/type | `8` and `move=true type=chest` |
+| `Open Nearest Container` | Radius 1-16 | Move button and Type dropdown | `8`, `Move: On`, `Type: Chest` |
+| `Open Nearest Chest` | Radius 1-16 | Move button | `8`, `Move: On` |
+| `Open Nearest Barrel` | Radius 1-16 | Move button | `8`, `Move: On` |
+| `Open Nearest Shulker` | Radius 1-16 | Move button | `8`, `Move: On` |
 | `Open Nearest Enchanting Table` | Radius 1-16 | Move true/false | `8` and `move=true` |
 | `Open Nearest Grindstone` | Radius 1-16 | Move true/false | `8` and `move=true` |
 | `Auto Bone Meal` | Item ID | Options | `minecraft:bone_meal` and `refill radius=8` |
@@ -362,6 +401,39 @@ Block button values:
 ```text
 0 = left/attack
 1 = right/use
+```
+
+Open Nearest Container:
+
+```text
+Radius: 8
+Move: On
+Type: Chest
+```
+
+Use the `Type` dropdown instead of typing `type=chest`. Supported types:
+
+```text
+Any
+Chest
+Barrel
+Shulker
+Ender Chest
+Furnace
+Blast Furnace
+Smoker
+Brewing Stand
+Hopper
+Dispenser
+Dropper
+```
+
+Use the direct components when you do not need a dropdown:
+
+```text
+Open Nearest Chest
+Open Nearest Barrel
+Open Nearest Shulker
 ```
 
 ### Entity
@@ -406,21 +478,66 @@ Do not upload public macros with private webhook URLs.
 | --- | --- | --- | --- |
 | `If Chat Same` | Chat text | Mode | `Sold` and `contains` |
 | `Event: Chat` | Filter text/regex | Mode | `Welcome` and `contains` |
+| `Event: Actionbar` | Filter text/regex | Mode | `Sold` and `contains` |
+| `Event: Status Effect` | Effect id or short name | Minimum level | `minecraft:speed` and `1` |
+| `Event: Bossbar` | Visible boss-bar text or regex | Mode | `Litemacro Test` and `contains` |
 | `If Kicked` | Reason text/regex | Mode | `any` and `contains` |
 | `Event: Death` | Empty | Empty | Triggers when you die. |
 | `Event: Damage` | Empty | Empty | Triggers when you take damage. |
 | `Event: Teleport` | Empty | Empty | Triggers after teleport/world change. |
-| `Event: Schedule` | Time or cron | Target type | `12:30` or `* * * * *` |
+| `Event: Schedule` | Delay, local time, or minute wildcard | Leave blank | `10s`, `2m`, `14:30`, or `* * * * *` |
 | `Event: Player Spawned` | Player/filter | Mode | `Steve` and `contains` |
 | `Event: Player Despawned` | Player/filter | Mode | `Steve` and `contains` |
 
-Modes usually accept:
+`Event: Schedule` only counts while the macro is running and has reached that component.
 
 ```text
-contains
-exact
-regex
-any
-allow
-block
+10s       trigger after 10 seconds
+2m        trigger after 2 minutes
+14:30     trigger at 2:30 PM using the computer's local time
+* * * * * trigger no more than once per wall-clock minute
+```
+
+The first `* * * * *` activation can trigger immediately. Other cron expressions, including `*/5 * * * *`, are not currently supported. Connect the `triggered` output to the action that should run.
+
+### Text matching modes
+
+`Bossbar Contains` and `Event: Bossbar` use the same three matching modes. Matching is not case-sensitive.
+
+| Mode | What it does | Filter example | Matches |
+| --- | --- | --- | --- |
+| `contains` | Finds the filter anywhere in the visible text. | `Wither` | `Wither`, `Enraged Wither`, or `WITHER` |
+| `exact` | Requires the complete visible line to equal the filter. | `Wither` | `Wither`, but not `Enraged Wither` |
+| `regex` | Searches the visible text with a Java regular expression. | `Wither|Dragon` | Text containing either `Wither` or `Dragon` |
+
+An empty filter matches any visible boss bar. The mode can remain `contains` when the filter is empty.
+
+Useful exact regex filters:
+
+```text
+Wither|Dragon                 contains either word
+^Wither$                      exactly Wither
+^(Wither|Ender Dragon)$       exactly either complete name
+Phase [1-3]                   Phase 1, Phase 2, or Phase 3
+Health: [0-9]+%               Health followed by a whole-number percentage
+```
+
+Regex matching is case-insensitive and searches anywhere in the boss-bar text. Use `^` and `$` when the entire text must match. An invalid regex sends the component through its `failed` output.
+
+`any`, `allow`, and `block` are used by some player or chat filters. They are not boss-bar matching modes.
+
+`Event: Status Effect` and `Event: Bossbar` can start the currently selected macro even when it is stopped. They trigger on the change from not matching to matching, so a boss bar or effect that stays active does not restart the macro repeatedly. Remove the effect or boss bar before testing it again.
+
+For an auto-start and auto-stop boss-bar watcher, set the same filter and mode on both `Event: Bossbar` and `Bossbar Contains`. Keep that macro slot selected and leave `Auto` set to `Off`; the event starts it. The `true` output from `Bossbar Contains` should loop back through a short `Wait`, and its `false` output should lead to `Stop Macro`.
+
+Matching components provide these runtime values:
+
+```text
+${effect.id}
+${effect.level}
+${effect.duration_ticks}
+${effect.duration_seconds}
+${bossbar.text}
+${bossbar.progress}
+${bossbar.percent}
 ```

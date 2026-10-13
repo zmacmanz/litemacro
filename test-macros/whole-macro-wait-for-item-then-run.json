@@ -1,0 +1,203 @@
+{
+  "format": "litemacro-v1",
+  "name": "Wait For Item Then Run All",
+  "stepDelayMs": 0,
+  "alwaysOn": false,
+  "autoStartMode": "off",
+  "autoStartFilter": "",
+  "randomDelayEnabled": false,
+  "randomDelayMinMs": 250,
+  "randomDelayMaxMs": 1250,
+  "nextIndex": 11,
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "official:start",
+      "x": 90,
+      "y": 160,
+      "displayName": "",
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "started": "node-2"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "official:inventory.hasItem",
+      "x": 350,
+      "y": 160,
+      "displayName": "EDIT Wait For Item",
+      "value": "minecraft:diamond",
+      "value2": "1",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "node-4\nnode-6",
+        "false": "node-3",
+        "failed": "node-8"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "official:misc.wait",
+      "x": 350,
+      "y": 310,
+      "displayName": "Check Again Delay",
+      "value": "1000",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-2",
+        "failed": "node-8"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "builder:localMessage",
+      "x": 650,
+      "y": 80,
+      "displayName": "Action 1 Starts",
+      "value": "The item is in inventory. Action 1 is running.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-5",
+        "failed": "node-8"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "official:misc.wait",
+      "x": 960,
+      "y": 80,
+      "displayName": "Action 1 Delay",
+      "value": "1000",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-9",
+        "failed": "node-8"
+      }
+    },
+    {
+      "id": "node-6",
+      "type": "builder:localMessage",
+      "x": 650,
+      "y": 260,
+      "displayName": "Action 2 Starts",
+      "value": "The item trigger started Action 2 too.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-7",
+        "failed": "node-8"
+      }
+    },
+    {
+      "id": "node-7",
+      "type": "official:misc.wait",
+      "x": 960,
+      "y": 260,
+      "displayName": "Action 2 Delay",
+      "value": "3000",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-10",
+        "failed": "node-8"
+      }
+    },
+    {
+      "id": "node-8",
+      "type": "builder:localMessage",
+      "x": 650,
+      "y": 430,
+      "displayName": "Fail Message",
+      "value": "Inventory Has Item failed. Check the item id and count fields.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    },
+    {
+      "id": "node-9",
+      "type": "builder:localMessage",
+      "x": 1260,
+      "y": 80,
+      "displayName": "Action 1 Done",
+      "value": "Action 1 finished.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    },
+    {
+      "id": "node-10",
+      "type": "builder:localMessage",
+      "x": 1260,
+      "y": 260,
+      "displayName": "Action 2 Done",
+      "value": "Action 2 finished.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    },
+    {
+      "id": "node-note",
+      "type": "builder:flow.note",
+      "x": 90,
+      "y": 450,
+      "displayName": "",
+      "value": "Whole macro waits for an item:\n\nThe macro does nothing until the item check is true.\n\nEdit this component:\nEDIT Wait For Item\nItem id = minecraft:diamond\nMinimum count = 1\n\nThe false output goes to Check Again Delay, then back to the item check. When the item enters inventory, the true output starts both action branches.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "stickyNoteText": "Whole macro waits for an item:\n\nThe macro does nothing until the item check is true.\n\nEdit this component:\nEDIT Wait For Item\nItem id = minecraft:diamond\nMinimum count = 1\n\nThe false output goes to Check Again Delay, then back to the item check. When the item enters inventory, the true output starts both action branches.",
+      "stickyNoteWidth": 650,
+      "stickyNoteHeight": 270,
+      "outputs": {}
+    }
+  ]
+}

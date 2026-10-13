@@ -1,0 +1,3906 @@
+{
+  "format": "litemacro-v1",
+  "name": "Player Near Mine Nearest Spawners EChest Logoff",
+  "stepDelayMs": 0,
+  "alwaysOn": false,
+  "autoStartMode": "off",
+  "autoStartFilter": "",
+  "randomDelayEnabled": false,
+  "randomDelayMinMs": 250,
+  "randomDelayMaxMs": 1250,
+  "nextIndex": 300,
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "official:start",
+      "x": 80,
+      "y": 175,
+      "displayName": "",
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "started": "node-2"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "builder:misc.idleUntil",
+      "x": 350,
+      "y": 175,
+      "displayName": "1 EDIT Wait Player Near",
+      "value": "player",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "triggered": "node-3",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "official:notification.discord",
+      "x": 650,
+      "y": 175,
+      "displayName": "2 EDIT Start Webhook",
+      "value": "PASTE_WEBHOOK_URL_HERE",
+      "value2": "Player nearby trigger fired for ${player.name} at ${player.pos}. Starting nearest spawner scan.",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-4",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "node-4",
+      "type": "official:misc.wait",
+      "x": 980,
+      "y": 175,
+      "displayName": "3 EDIT Wait After Trigger",
+      "value": "2000",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "check-1",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-1",
+      "type": "builder:world.blockIs",
+      "x": 1280,
+      "y": -620,
+      "displayName": "Scan 1",
+      "value": "~0 ~-1 ~0",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-1",
+        "false": "check-2",
+        "failed": "check-2"
+      }
+    },
+    {
+      "id": "mine-1",
+      "type": "official:world.mineBlock",
+      "x": 1530,
+      "y": -620,
+      "displayName": "Mine ~0 ~-1 ~0",
+      "value": "~0 ~-1 ~0",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-2",
+      "type": "builder:world.blockIs",
+      "x": 1280,
+      "y": -515,
+      "displayName": "Scan 2",
+      "value": "~-1 ~0 ~0",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-2",
+        "false": "check-3",
+        "failed": "check-3"
+      }
+    },
+    {
+      "id": "mine-2",
+      "type": "official:world.mineBlock",
+      "x": 1530,
+      "y": -515,
+      "displayName": "Mine ~-1 ~0 ~0",
+      "value": "~-1 ~0 ~0",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-3",
+      "type": "builder:world.blockIs",
+      "x": 1280,
+      "y": -410,
+      "displayName": "Scan 3",
+      "value": "~0 ~0 ~-1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-3",
+        "false": "check-4",
+        "failed": "check-4"
+      }
+    },
+    {
+      "id": "mine-3",
+      "type": "official:world.mineBlock",
+      "x": 1530,
+      "y": -410,
+      "displayName": "Mine ~0 ~0 ~-1",
+      "value": "~0 ~0 ~-1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-4",
+      "type": "builder:world.blockIs",
+      "x": 1280,
+      "y": -305,
+      "displayName": "Scan 4",
+      "value": "~0 ~0 ~1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-4",
+        "false": "check-5",
+        "failed": "check-5"
+      }
+    },
+    {
+      "id": "mine-4",
+      "type": "official:world.mineBlock",
+      "x": 1530,
+      "y": -305,
+      "displayName": "Mine ~0 ~0 ~1",
+      "value": "~0 ~0 ~1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-5",
+      "type": "builder:world.blockIs",
+      "x": 1280,
+      "y": -200,
+      "displayName": "Scan 5",
+      "value": "~1 ~0 ~0",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-5",
+        "false": "check-6",
+        "failed": "check-6"
+      }
+    },
+    {
+      "id": "mine-5",
+      "type": "official:world.mineBlock",
+      "x": 1530,
+      "y": -200,
+      "displayName": "Mine ~1 ~0 ~0",
+      "value": "~1 ~0 ~0",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-6",
+      "type": "builder:world.blockIs",
+      "x": 1280,
+      "y": -95,
+      "displayName": "Scan 6",
+      "value": "~0 ~1 ~0",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-6",
+        "false": "check-7",
+        "failed": "check-7"
+      }
+    },
+    {
+      "id": "mine-6",
+      "type": "official:world.mineBlock",
+      "x": 1530,
+      "y": -95,
+      "displayName": "Mine ~0 ~1 ~0",
+      "value": "~0 ~1 ~0",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-7",
+      "type": "builder:world.blockIs",
+      "x": 1280,
+      "y": 10,
+      "displayName": "Scan 7",
+      "value": "~-1 ~-1 ~0",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-7",
+        "false": "check-8",
+        "failed": "check-8"
+      }
+    },
+    {
+      "id": "mine-7",
+      "type": "official:world.mineBlock",
+      "x": 1530,
+      "y": 10,
+      "displayName": "Mine ~-1 ~-1 ~0",
+      "value": "~-1 ~-1 ~0",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-8",
+      "type": "builder:world.blockIs",
+      "x": 1280,
+      "y": 115,
+      "displayName": "Scan 8",
+      "value": "~0 ~-1 ~-1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-8",
+        "false": "check-9",
+        "failed": "check-9"
+      }
+    },
+    {
+      "id": "mine-8",
+      "type": "official:world.mineBlock",
+      "x": 1530,
+      "y": 115,
+      "displayName": "Mine ~0 ~-1 ~-1",
+      "value": "~0 ~-1 ~-1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-9",
+      "type": "builder:world.blockIs",
+      "x": 1280,
+      "y": 220,
+      "displayName": "Scan 9",
+      "value": "~0 ~-1 ~1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-9",
+        "false": "check-10",
+        "failed": "check-10"
+      }
+    },
+    {
+      "id": "mine-9",
+      "type": "official:world.mineBlock",
+      "x": 1530,
+      "y": 220,
+      "displayName": "Mine ~0 ~-1 ~1",
+      "value": "~0 ~-1 ~1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-10",
+      "type": "builder:world.blockIs",
+      "x": 1280,
+      "y": 325,
+      "displayName": "Scan 10",
+      "value": "~1 ~-1 ~0",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-10",
+        "false": "check-11",
+        "failed": "check-11"
+      }
+    },
+    {
+      "id": "mine-10",
+      "type": "official:world.mineBlock",
+      "x": 1530,
+      "y": 325,
+      "displayName": "Mine ~1 ~-1 ~0",
+      "value": "~1 ~-1 ~0",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-11",
+      "type": "builder:world.blockIs",
+      "x": 1280,
+      "y": 430,
+      "displayName": "Scan 11",
+      "value": "~-1 ~0 ~-1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-11",
+        "false": "check-12",
+        "failed": "check-12"
+      }
+    },
+    {
+      "id": "mine-11",
+      "type": "official:world.mineBlock",
+      "x": 1530,
+      "y": 430,
+      "displayName": "Mine ~-1 ~0 ~-1",
+      "value": "~-1 ~0 ~-1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-12",
+      "type": "builder:world.blockIs",
+      "x": 1280,
+      "y": 535,
+      "displayName": "Scan 12",
+      "value": "~-1 ~0 ~1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-12",
+        "false": "check-13",
+        "failed": "check-13"
+      }
+    },
+    {
+      "id": "mine-12",
+      "type": "official:world.mineBlock",
+      "x": 1530,
+      "y": 535,
+      "displayName": "Mine ~-1 ~0 ~1",
+      "value": "~-1 ~0 ~1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-13",
+      "type": "builder:world.blockIs",
+      "x": 1280,
+      "y": 640,
+      "displayName": "Scan 13",
+      "value": "~1 ~0 ~-1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-13",
+        "false": "check-14",
+        "failed": "check-14"
+      }
+    },
+    {
+      "id": "mine-13",
+      "type": "official:world.mineBlock",
+      "x": 1530,
+      "y": 640,
+      "displayName": "Mine ~1 ~0 ~-1",
+      "value": "~1 ~0 ~-1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-14",
+      "type": "builder:world.blockIs",
+      "x": 1280,
+      "y": 745,
+      "displayName": "Scan 14",
+      "value": "~1 ~0 ~1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-14",
+        "false": "check-15",
+        "failed": "check-15"
+      }
+    },
+    {
+      "id": "mine-14",
+      "type": "official:world.mineBlock",
+      "x": 1530,
+      "y": 745,
+      "displayName": "Mine ~1 ~0 ~1",
+      "value": "~1 ~0 ~1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-15",
+      "type": "builder:world.blockIs",
+      "x": 1280,
+      "y": 850,
+      "displayName": "Scan 15",
+      "value": "~-1 ~1 ~0",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-15",
+        "false": "check-16",
+        "failed": "check-16"
+      }
+    },
+    {
+      "id": "mine-15",
+      "type": "official:world.mineBlock",
+      "x": 1530,
+      "y": 850,
+      "displayName": "Mine ~-1 ~1 ~0",
+      "value": "~-1 ~1 ~0",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-16",
+      "type": "builder:world.blockIs",
+      "x": 1280,
+      "y": 955,
+      "displayName": "Scan 16",
+      "value": "~0 ~1 ~-1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-16",
+        "false": "check-17",
+        "failed": "check-17"
+      }
+    },
+    {
+      "id": "mine-16",
+      "type": "official:world.mineBlock",
+      "x": 1530,
+      "y": 955,
+      "displayName": "Mine ~0 ~1 ~-1",
+      "value": "~0 ~1 ~-1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-17",
+      "type": "builder:world.blockIs",
+      "x": 1280,
+      "y": 1060,
+      "displayName": "Scan 17",
+      "value": "~0 ~1 ~1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-17",
+        "false": "check-18",
+        "failed": "check-18"
+      }
+    },
+    {
+      "id": "mine-17",
+      "type": "official:world.mineBlock",
+      "x": 1530,
+      "y": 1060,
+      "displayName": "Mine ~0 ~1 ~1",
+      "value": "~0 ~1 ~1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-18",
+      "type": "builder:world.blockIs",
+      "x": 1280,
+      "y": 1165,
+      "displayName": "Scan 18",
+      "value": "~1 ~1 ~0",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-18",
+        "false": "check-19",
+        "failed": "check-19"
+      }
+    },
+    {
+      "id": "mine-18",
+      "type": "official:world.mineBlock",
+      "x": 1530,
+      "y": 1165,
+      "displayName": "Mine ~1 ~1 ~0",
+      "value": "~1 ~1 ~0",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-19",
+      "type": "builder:world.blockIs",
+      "x": 1800,
+      "y": -620,
+      "displayName": "Scan 19",
+      "value": "~-1 ~-1 ~-1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-19",
+        "false": "check-20",
+        "failed": "check-20"
+      }
+    },
+    {
+      "id": "mine-19",
+      "type": "official:world.mineBlock",
+      "x": 2050,
+      "y": -620,
+      "displayName": "Mine ~-1 ~-1 ~-1",
+      "value": "~-1 ~-1 ~-1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-20",
+      "type": "builder:world.blockIs",
+      "x": 1800,
+      "y": -515,
+      "displayName": "Scan 20",
+      "value": "~-1 ~-1 ~1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-20",
+        "false": "check-21",
+        "failed": "check-21"
+      }
+    },
+    {
+      "id": "mine-20",
+      "type": "official:world.mineBlock",
+      "x": 2050,
+      "y": -515,
+      "displayName": "Mine ~-1 ~-1 ~1",
+      "value": "~-1 ~-1 ~1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-21",
+      "type": "builder:world.blockIs",
+      "x": 1800,
+      "y": -410,
+      "displayName": "Scan 21",
+      "value": "~1 ~-1 ~-1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-21",
+        "false": "check-22",
+        "failed": "check-22"
+      }
+    },
+    {
+      "id": "mine-21",
+      "type": "official:world.mineBlock",
+      "x": 2050,
+      "y": -410,
+      "displayName": "Mine ~1 ~-1 ~-1",
+      "value": "~1 ~-1 ~-1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-22",
+      "type": "builder:world.blockIs",
+      "x": 1800,
+      "y": -305,
+      "displayName": "Scan 22",
+      "value": "~1 ~-1 ~1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-22",
+        "false": "check-23",
+        "failed": "check-23"
+      }
+    },
+    {
+      "id": "mine-22",
+      "type": "official:world.mineBlock",
+      "x": 2050,
+      "y": -305,
+      "displayName": "Mine ~1 ~-1 ~1",
+      "value": "~1 ~-1 ~1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-23",
+      "type": "builder:world.blockIs",
+      "x": 1800,
+      "y": -200,
+      "displayName": "Scan 23",
+      "value": "~-1 ~1 ~-1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-23",
+        "false": "check-24",
+        "failed": "check-24"
+      }
+    },
+    {
+      "id": "mine-23",
+      "type": "official:world.mineBlock",
+      "x": 2050,
+      "y": -200,
+      "displayName": "Mine ~-1 ~1 ~-1",
+      "value": "~-1 ~1 ~-1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-24",
+      "type": "builder:world.blockIs",
+      "x": 1800,
+      "y": -95,
+      "displayName": "Scan 24",
+      "value": "~-1 ~1 ~1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-24",
+        "false": "check-25",
+        "failed": "check-25"
+      }
+    },
+    {
+      "id": "mine-24",
+      "type": "official:world.mineBlock",
+      "x": 2050,
+      "y": -95,
+      "displayName": "Mine ~-1 ~1 ~1",
+      "value": "~-1 ~1 ~1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-25",
+      "type": "builder:world.blockIs",
+      "x": 1800,
+      "y": 10,
+      "displayName": "Scan 25",
+      "value": "~1 ~1 ~-1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-25",
+        "false": "check-26",
+        "failed": "check-26"
+      }
+    },
+    {
+      "id": "mine-25",
+      "type": "official:world.mineBlock",
+      "x": 2050,
+      "y": 10,
+      "displayName": "Mine ~1 ~1 ~-1",
+      "value": "~1 ~1 ~-1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-26",
+      "type": "builder:world.blockIs",
+      "x": 1800,
+      "y": 115,
+      "displayName": "Scan 26",
+      "value": "~1 ~1 ~1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-26",
+        "false": "check-27",
+        "failed": "check-27"
+      }
+    },
+    {
+      "id": "mine-26",
+      "type": "official:world.mineBlock",
+      "x": 2050,
+      "y": 115,
+      "displayName": "Mine ~1 ~1 ~1",
+      "value": "~1 ~1 ~1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-27",
+      "type": "builder:world.blockIs",
+      "x": 1800,
+      "y": 220,
+      "displayName": "Scan 27",
+      "value": "~-2 ~0 ~0",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-27",
+        "false": "check-28",
+        "failed": "check-28"
+      }
+    },
+    {
+      "id": "mine-27",
+      "type": "official:world.mineBlock",
+      "x": 2050,
+      "y": 220,
+      "displayName": "Mine ~-2 ~0 ~0",
+      "value": "~-2 ~0 ~0",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-28",
+      "type": "builder:world.blockIs",
+      "x": 1800,
+      "y": 325,
+      "displayName": "Scan 28",
+      "value": "~0 ~0 ~-2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-28",
+        "false": "check-29",
+        "failed": "check-29"
+      }
+    },
+    {
+      "id": "mine-28",
+      "type": "official:world.mineBlock",
+      "x": 2050,
+      "y": 325,
+      "displayName": "Mine ~0 ~0 ~-2",
+      "value": "~0 ~0 ~-2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-29",
+      "type": "builder:world.blockIs",
+      "x": 1800,
+      "y": 430,
+      "displayName": "Scan 29",
+      "value": "~0 ~0 ~2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-29",
+        "false": "check-30",
+        "failed": "check-30"
+      }
+    },
+    {
+      "id": "mine-29",
+      "type": "official:world.mineBlock",
+      "x": 2050,
+      "y": 430,
+      "displayName": "Mine ~0 ~0 ~2",
+      "value": "~0 ~0 ~2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-30",
+      "type": "builder:world.blockIs",
+      "x": 1800,
+      "y": 535,
+      "displayName": "Scan 30",
+      "value": "~2 ~0 ~0",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-30",
+        "false": "check-31",
+        "failed": "check-31"
+      }
+    },
+    {
+      "id": "mine-30",
+      "type": "official:world.mineBlock",
+      "x": 2050,
+      "y": 535,
+      "displayName": "Mine ~2 ~0 ~0",
+      "value": "~2 ~0 ~0",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-31",
+      "type": "builder:world.blockIs",
+      "x": 1800,
+      "y": 640,
+      "displayName": "Scan 31",
+      "value": "~0 ~2 ~0",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-31",
+        "false": "check-32",
+        "failed": "check-32"
+      }
+    },
+    {
+      "id": "mine-31",
+      "type": "official:world.mineBlock",
+      "x": 2050,
+      "y": 640,
+      "displayName": "Mine ~0 ~2 ~0",
+      "value": "~0 ~2 ~0",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-32",
+      "type": "builder:world.blockIs",
+      "x": 1800,
+      "y": 745,
+      "displayName": "Scan 32",
+      "value": "~-2 ~-1 ~0",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-32",
+        "false": "check-33",
+        "failed": "check-33"
+      }
+    },
+    {
+      "id": "mine-32",
+      "type": "official:world.mineBlock",
+      "x": 2050,
+      "y": 745,
+      "displayName": "Mine ~-2 ~-1 ~0",
+      "value": "~-2 ~-1 ~0",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-33",
+      "type": "builder:world.blockIs",
+      "x": 1800,
+      "y": 850,
+      "displayName": "Scan 33",
+      "value": "~0 ~-1 ~-2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-33",
+        "false": "check-34",
+        "failed": "check-34"
+      }
+    },
+    {
+      "id": "mine-33",
+      "type": "official:world.mineBlock",
+      "x": 2050,
+      "y": 850,
+      "displayName": "Mine ~0 ~-1 ~-2",
+      "value": "~0 ~-1 ~-2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-34",
+      "type": "builder:world.blockIs",
+      "x": 1800,
+      "y": 955,
+      "displayName": "Scan 34",
+      "value": "~0 ~-1 ~2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-34",
+        "false": "check-35",
+        "failed": "check-35"
+      }
+    },
+    {
+      "id": "mine-34",
+      "type": "official:world.mineBlock",
+      "x": 2050,
+      "y": 955,
+      "displayName": "Mine ~0 ~-1 ~2",
+      "value": "~0 ~-1 ~2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-35",
+      "type": "builder:world.blockIs",
+      "x": 1800,
+      "y": 1060,
+      "displayName": "Scan 35",
+      "value": "~2 ~-1 ~0",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-35",
+        "false": "check-36",
+        "failed": "check-36"
+      }
+    },
+    {
+      "id": "mine-35",
+      "type": "official:world.mineBlock",
+      "x": 2050,
+      "y": 1060,
+      "displayName": "Mine ~2 ~-1 ~0",
+      "value": "~2 ~-1 ~0",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-36",
+      "type": "builder:world.blockIs",
+      "x": 1800,
+      "y": 1165,
+      "displayName": "Scan 36",
+      "value": "~-2 ~0 ~-1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-36",
+        "false": "check-37",
+        "failed": "check-37"
+      }
+    },
+    {
+      "id": "mine-36",
+      "type": "official:world.mineBlock",
+      "x": 2050,
+      "y": 1165,
+      "displayName": "Mine ~-2 ~0 ~-1",
+      "value": "~-2 ~0 ~-1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-37",
+      "type": "builder:world.blockIs",
+      "x": 2320,
+      "y": -620,
+      "displayName": "Scan 37",
+      "value": "~-2 ~0 ~1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-37",
+        "false": "check-38",
+        "failed": "check-38"
+      }
+    },
+    {
+      "id": "mine-37",
+      "type": "official:world.mineBlock",
+      "x": 2570,
+      "y": -620,
+      "displayName": "Mine ~-2 ~0 ~1",
+      "value": "~-2 ~0 ~1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-38",
+      "type": "builder:world.blockIs",
+      "x": 2320,
+      "y": -515,
+      "displayName": "Scan 38",
+      "value": "~-1 ~0 ~-2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-38",
+        "false": "check-39",
+        "failed": "check-39"
+      }
+    },
+    {
+      "id": "mine-38",
+      "type": "official:world.mineBlock",
+      "x": 2570,
+      "y": -515,
+      "displayName": "Mine ~-1 ~0 ~-2",
+      "value": "~-1 ~0 ~-2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-39",
+      "type": "builder:world.blockIs",
+      "x": 2320,
+      "y": -410,
+      "displayName": "Scan 39",
+      "value": "~-1 ~0 ~2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-39",
+        "false": "check-40",
+        "failed": "check-40"
+      }
+    },
+    {
+      "id": "mine-39",
+      "type": "official:world.mineBlock",
+      "x": 2570,
+      "y": -410,
+      "displayName": "Mine ~-1 ~0 ~2",
+      "value": "~-1 ~0 ~2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-40",
+      "type": "builder:world.blockIs",
+      "x": 2320,
+      "y": -305,
+      "displayName": "Scan 40",
+      "value": "~1 ~0 ~-2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-40",
+        "false": "check-41",
+        "failed": "check-41"
+      }
+    },
+    {
+      "id": "mine-40",
+      "type": "official:world.mineBlock",
+      "x": 2570,
+      "y": -305,
+      "displayName": "Mine ~1 ~0 ~-2",
+      "value": "~1 ~0 ~-2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-41",
+      "type": "builder:world.blockIs",
+      "x": 2320,
+      "y": -200,
+      "displayName": "Scan 41",
+      "value": "~1 ~0 ~2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-41",
+        "false": "check-42",
+        "failed": "check-42"
+      }
+    },
+    {
+      "id": "mine-41",
+      "type": "official:world.mineBlock",
+      "x": 2570,
+      "y": -200,
+      "displayName": "Mine ~1 ~0 ~2",
+      "value": "~1 ~0 ~2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-42",
+      "type": "builder:world.blockIs",
+      "x": 2320,
+      "y": -95,
+      "displayName": "Scan 42",
+      "value": "~2 ~0 ~-1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-42",
+        "false": "check-43",
+        "failed": "check-43"
+      }
+    },
+    {
+      "id": "mine-42",
+      "type": "official:world.mineBlock",
+      "x": 2570,
+      "y": -95,
+      "displayName": "Mine ~2 ~0 ~-1",
+      "value": "~2 ~0 ~-1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-43",
+      "type": "builder:world.blockIs",
+      "x": 2320,
+      "y": 10,
+      "displayName": "Scan 43",
+      "value": "~2 ~0 ~1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-43",
+        "false": "check-44",
+        "failed": "check-44"
+      }
+    },
+    {
+      "id": "mine-43",
+      "type": "official:world.mineBlock",
+      "x": 2570,
+      "y": 10,
+      "displayName": "Mine ~2 ~0 ~1",
+      "value": "~2 ~0 ~1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-44",
+      "type": "builder:world.blockIs",
+      "x": 2320,
+      "y": 115,
+      "displayName": "Scan 44",
+      "value": "~-2 ~1 ~0",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-44",
+        "false": "check-45",
+        "failed": "check-45"
+      }
+    },
+    {
+      "id": "mine-44",
+      "type": "official:world.mineBlock",
+      "x": 2570,
+      "y": 115,
+      "displayName": "Mine ~-2 ~1 ~0",
+      "value": "~-2 ~1 ~0",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-45",
+      "type": "builder:world.blockIs",
+      "x": 2320,
+      "y": 220,
+      "displayName": "Scan 45",
+      "value": "~0 ~1 ~-2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-45",
+        "false": "check-46",
+        "failed": "check-46"
+      }
+    },
+    {
+      "id": "mine-45",
+      "type": "official:world.mineBlock",
+      "x": 2570,
+      "y": 220,
+      "displayName": "Mine ~0 ~1 ~-2",
+      "value": "~0 ~1 ~-2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-46",
+      "type": "builder:world.blockIs",
+      "x": 2320,
+      "y": 325,
+      "displayName": "Scan 46",
+      "value": "~0 ~1 ~2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-46",
+        "false": "check-47",
+        "failed": "check-47"
+      }
+    },
+    {
+      "id": "mine-46",
+      "type": "official:world.mineBlock",
+      "x": 2570,
+      "y": 325,
+      "displayName": "Mine ~0 ~1 ~2",
+      "value": "~0 ~1 ~2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-47",
+      "type": "builder:world.blockIs",
+      "x": 2320,
+      "y": 430,
+      "displayName": "Scan 47",
+      "value": "~2 ~1 ~0",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-47",
+        "false": "check-48",
+        "failed": "check-48"
+      }
+    },
+    {
+      "id": "mine-47",
+      "type": "official:world.mineBlock",
+      "x": 2570,
+      "y": 430,
+      "displayName": "Mine ~2 ~1 ~0",
+      "value": "~2 ~1 ~0",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-48",
+      "type": "builder:world.blockIs",
+      "x": 2320,
+      "y": 535,
+      "displayName": "Scan 48",
+      "value": "~-1 ~2 ~0",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-48",
+        "false": "check-49",
+        "failed": "check-49"
+      }
+    },
+    {
+      "id": "mine-48",
+      "type": "official:world.mineBlock",
+      "x": 2570,
+      "y": 535,
+      "displayName": "Mine ~-1 ~2 ~0",
+      "value": "~-1 ~2 ~0",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-49",
+      "type": "builder:world.blockIs",
+      "x": 2320,
+      "y": 640,
+      "displayName": "Scan 49",
+      "value": "~0 ~2 ~-1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-49",
+        "false": "check-50",
+        "failed": "check-50"
+      }
+    },
+    {
+      "id": "mine-49",
+      "type": "official:world.mineBlock",
+      "x": 2570,
+      "y": 640,
+      "displayName": "Mine ~0 ~2 ~-1",
+      "value": "~0 ~2 ~-1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-50",
+      "type": "builder:world.blockIs",
+      "x": 2320,
+      "y": 745,
+      "displayName": "Scan 50",
+      "value": "~0 ~2 ~1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-50",
+        "false": "check-51",
+        "failed": "check-51"
+      }
+    },
+    {
+      "id": "mine-50",
+      "type": "official:world.mineBlock",
+      "x": 2570,
+      "y": 745,
+      "displayName": "Mine ~0 ~2 ~1",
+      "value": "~0 ~2 ~1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-51",
+      "type": "builder:world.blockIs",
+      "x": 2320,
+      "y": 850,
+      "displayName": "Scan 51",
+      "value": "~1 ~2 ~0",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-51",
+        "false": "check-52",
+        "failed": "check-52"
+      }
+    },
+    {
+      "id": "mine-51",
+      "type": "official:world.mineBlock",
+      "x": 2570,
+      "y": 850,
+      "displayName": "Mine ~1 ~2 ~0",
+      "value": "~1 ~2 ~0",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-52",
+      "type": "builder:world.blockIs",
+      "x": 2320,
+      "y": 955,
+      "displayName": "Scan 52",
+      "value": "~-2 ~-1 ~-1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-52",
+        "false": "check-53",
+        "failed": "check-53"
+      }
+    },
+    {
+      "id": "mine-52",
+      "type": "official:world.mineBlock",
+      "x": 2570,
+      "y": 955,
+      "displayName": "Mine ~-2 ~-1 ~-1",
+      "value": "~-2 ~-1 ~-1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-53",
+      "type": "builder:world.blockIs",
+      "x": 2320,
+      "y": 1060,
+      "displayName": "Scan 53",
+      "value": "~-2 ~-1 ~1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-53",
+        "false": "check-54",
+        "failed": "check-54"
+      }
+    },
+    {
+      "id": "mine-53",
+      "type": "official:world.mineBlock",
+      "x": 2570,
+      "y": 1060,
+      "displayName": "Mine ~-2 ~-1 ~1",
+      "value": "~-2 ~-1 ~1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-54",
+      "type": "builder:world.blockIs",
+      "x": 2320,
+      "y": 1165,
+      "displayName": "Scan 54",
+      "value": "~-1 ~-1 ~-2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-54",
+        "false": "check-55",
+        "failed": "check-55"
+      }
+    },
+    {
+      "id": "mine-54",
+      "type": "official:world.mineBlock",
+      "x": 2570,
+      "y": 1165,
+      "displayName": "Mine ~-1 ~-1 ~-2",
+      "value": "~-1 ~-1 ~-2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-55",
+      "type": "builder:world.blockIs",
+      "x": 2840,
+      "y": -620,
+      "displayName": "Scan 55",
+      "value": "~-1 ~-1 ~2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-55",
+        "false": "check-56",
+        "failed": "check-56"
+      }
+    },
+    {
+      "id": "mine-55",
+      "type": "official:world.mineBlock",
+      "x": 3090,
+      "y": -620,
+      "displayName": "Mine ~-1 ~-1 ~2",
+      "value": "~-1 ~-1 ~2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-56",
+      "type": "builder:world.blockIs",
+      "x": 2840,
+      "y": -515,
+      "displayName": "Scan 56",
+      "value": "~1 ~-1 ~-2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-56",
+        "false": "check-57",
+        "failed": "check-57"
+      }
+    },
+    {
+      "id": "mine-56",
+      "type": "official:world.mineBlock",
+      "x": 3090,
+      "y": -515,
+      "displayName": "Mine ~1 ~-1 ~-2",
+      "value": "~1 ~-1 ~-2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-57",
+      "type": "builder:world.blockIs",
+      "x": 2840,
+      "y": -410,
+      "displayName": "Scan 57",
+      "value": "~1 ~-1 ~2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-57",
+        "false": "check-58",
+        "failed": "check-58"
+      }
+    },
+    {
+      "id": "mine-57",
+      "type": "official:world.mineBlock",
+      "x": 3090,
+      "y": -410,
+      "displayName": "Mine ~1 ~-1 ~2",
+      "value": "~1 ~-1 ~2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-58",
+      "type": "builder:world.blockIs",
+      "x": 2840,
+      "y": -305,
+      "displayName": "Scan 58",
+      "value": "~2 ~-1 ~-1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-58",
+        "false": "check-59",
+        "failed": "check-59"
+      }
+    },
+    {
+      "id": "mine-58",
+      "type": "official:world.mineBlock",
+      "x": 3090,
+      "y": -305,
+      "displayName": "Mine ~2 ~-1 ~-1",
+      "value": "~2 ~-1 ~-1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-59",
+      "type": "builder:world.blockIs",
+      "x": 2840,
+      "y": -200,
+      "displayName": "Scan 59",
+      "value": "~2 ~-1 ~1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-59",
+        "false": "check-60",
+        "failed": "check-60"
+      }
+    },
+    {
+      "id": "mine-59",
+      "type": "official:world.mineBlock",
+      "x": 3090,
+      "y": -200,
+      "displayName": "Mine ~2 ~-1 ~1",
+      "value": "~2 ~-1 ~1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-60",
+      "type": "builder:world.blockIs",
+      "x": 2840,
+      "y": -95,
+      "displayName": "Scan 60",
+      "value": "~-2 ~1 ~-1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-60",
+        "false": "check-61",
+        "failed": "check-61"
+      }
+    },
+    {
+      "id": "mine-60",
+      "type": "official:world.mineBlock",
+      "x": 3090,
+      "y": -95,
+      "displayName": "Mine ~-2 ~1 ~-1",
+      "value": "~-2 ~1 ~-1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-61",
+      "type": "builder:world.blockIs",
+      "x": 2840,
+      "y": 10,
+      "displayName": "Scan 61",
+      "value": "~-2 ~1 ~1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-61",
+        "false": "check-62",
+        "failed": "check-62"
+      }
+    },
+    {
+      "id": "mine-61",
+      "type": "official:world.mineBlock",
+      "x": 3090,
+      "y": 10,
+      "displayName": "Mine ~-2 ~1 ~1",
+      "value": "~-2 ~1 ~1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-62",
+      "type": "builder:world.blockIs",
+      "x": 2840,
+      "y": 115,
+      "displayName": "Scan 62",
+      "value": "~-1 ~1 ~-2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-62",
+        "false": "check-63",
+        "failed": "check-63"
+      }
+    },
+    {
+      "id": "mine-62",
+      "type": "official:world.mineBlock",
+      "x": 3090,
+      "y": 115,
+      "displayName": "Mine ~-1 ~1 ~-2",
+      "value": "~-1 ~1 ~-2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-63",
+      "type": "builder:world.blockIs",
+      "x": 2840,
+      "y": 220,
+      "displayName": "Scan 63",
+      "value": "~-1 ~1 ~2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-63",
+        "false": "check-64",
+        "failed": "check-64"
+      }
+    },
+    {
+      "id": "mine-63",
+      "type": "official:world.mineBlock",
+      "x": 3090,
+      "y": 220,
+      "displayName": "Mine ~-1 ~1 ~2",
+      "value": "~-1 ~1 ~2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-64",
+      "type": "builder:world.blockIs",
+      "x": 2840,
+      "y": 325,
+      "displayName": "Scan 64",
+      "value": "~1 ~1 ~-2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-64",
+        "false": "check-65",
+        "failed": "check-65"
+      }
+    },
+    {
+      "id": "mine-64",
+      "type": "official:world.mineBlock",
+      "x": 3090,
+      "y": 325,
+      "displayName": "Mine ~1 ~1 ~-2",
+      "value": "~1 ~1 ~-2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-65",
+      "type": "builder:world.blockIs",
+      "x": 2840,
+      "y": 430,
+      "displayName": "Scan 65",
+      "value": "~1 ~1 ~2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-65",
+        "false": "check-66",
+        "failed": "check-66"
+      }
+    },
+    {
+      "id": "mine-65",
+      "type": "official:world.mineBlock",
+      "x": 3090,
+      "y": 430,
+      "displayName": "Mine ~1 ~1 ~2",
+      "value": "~1 ~1 ~2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-66",
+      "type": "builder:world.blockIs",
+      "x": 2840,
+      "y": 535,
+      "displayName": "Scan 66",
+      "value": "~2 ~1 ~-1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-66",
+        "false": "check-67",
+        "failed": "check-67"
+      }
+    },
+    {
+      "id": "mine-66",
+      "type": "official:world.mineBlock",
+      "x": 3090,
+      "y": 535,
+      "displayName": "Mine ~2 ~1 ~-1",
+      "value": "~2 ~1 ~-1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-67",
+      "type": "builder:world.blockIs",
+      "x": 2840,
+      "y": 640,
+      "displayName": "Scan 67",
+      "value": "~2 ~1 ~1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-67",
+        "false": "check-68",
+        "failed": "check-68"
+      }
+    },
+    {
+      "id": "mine-67",
+      "type": "official:world.mineBlock",
+      "x": 3090,
+      "y": 640,
+      "displayName": "Mine ~2 ~1 ~1",
+      "value": "~2 ~1 ~1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-68",
+      "type": "builder:world.blockIs",
+      "x": 2840,
+      "y": 745,
+      "displayName": "Scan 68",
+      "value": "~-1 ~2 ~-1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-68",
+        "false": "check-69",
+        "failed": "check-69"
+      }
+    },
+    {
+      "id": "mine-68",
+      "type": "official:world.mineBlock",
+      "x": 3090,
+      "y": 745,
+      "displayName": "Mine ~-1 ~2 ~-1",
+      "value": "~-1 ~2 ~-1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-69",
+      "type": "builder:world.blockIs",
+      "x": 2840,
+      "y": 850,
+      "displayName": "Scan 69",
+      "value": "~-1 ~2 ~1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-69",
+        "false": "check-70",
+        "failed": "check-70"
+      }
+    },
+    {
+      "id": "mine-69",
+      "type": "official:world.mineBlock",
+      "x": 3090,
+      "y": 850,
+      "displayName": "Mine ~-1 ~2 ~1",
+      "value": "~-1 ~2 ~1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-70",
+      "type": "builder:world.blockIs",
+      "x": 2840,
+      "y": 955,
+      "displayName": "Scan 70",
+      "value": "~1 ~2 ~-1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-70",
+        "false": "check-71",
+        "failed": "check-71"
+      }
+    },
+    {
+      "id": "mine-70",
+      "type": "official:world.mineBlock",
+      "x": 3090,
+      "y": 955,
+      "displayName": "Mine ~1 ~2 ~-1",
+      "value": "~1 ~2 ~-1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-71",
+      "type": "builder:world.blockIs",
+      "x": 2840,
+      "y": 1060,
+      "displayName": "Scan 71",
+      "value": "~1 ~2 ~1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-71",
+        "false": "check-72",
+        "failed": "check-72"
+      }
+    },
+    {
+      "id": "mine-71",
+      "type": "official:world.mineBlock",
+      "x": 3090,
+      "y": 1060,
+      "displayName": "Mine ~1 ~2 ~1",
+      "value": "~1 ~2 ~1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-72",
+      "type": "builder:world.blockIs",
+      "x": 2840,
+      "y": 1165,
+      "displayName": "Scan 72",
+      "value": "~-2 ~0 ~-2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-72",
+        "false": "check-73",
+        "failed": "check-73"
+      }
+    },
+    {
+      "id": "mine-72",
+      "type": "official:world.mineBlock",
+      "x": 3090,
+      "y": 1165,
+      "displayName": "Mine ~-2 ~0 ~-2",
+      "value": "~-2 ~0 ~-2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-73",
+      "type": "builder:world.blockIs",
+      "x": 3360,
+      "y": -620,
+      "displayName": "Scan 73",
+      "value": "~-2 ~0 ~2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-73",
+        "false": "check-74",
+        "failed": "check-74"
+      }
+    },
+    {
+      "id": "mine-73",
+      "type": "official:world.mineBlock",
+      "x": 3610,
+      "y": -620,
+      "displayName": "Mine ~-2 ~0 ~2",
+      "value": "~-2 ~0 ~2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-74",
+      "type": "builder:world.blockIs",
+      "x": 3360,
+      "y": -515,
+      "displayName": "Scan 74",
+      "value": "~2 ~0 ~-2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-74",
+        "false": "check-75",
+        "failed": "check-75"
+      }
+    },
+    {
+      "id": "mine-74",
+      "type": "official:world.mineBlock",
+      "x": 3610,
+      "y": -515,
+      "displayName": "Mine ~2 ~0 ~-2",
+      "value": "~2 ~0 ~-2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-75",
+      "type": "builder:world.blockIs",
+      "x": 3360,
+      "y": -410,
+      "displayName": "Scan 75",
+      "value": "~2 ~0 ~2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-75",
+        "false": "check-76",
+        "failed": "check-76"
+      }
+    },
+    {
+      "id": "mine-75",
+      "type": "official:world.mineBlock",
+      "x": 3610,
+      "y": -410,
+      "displayName": "Mine ~2 ~0 ~2",
+      "value": "~2 ~0 ~2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-76",
+      "type": "builder:world.blockIs",
+      "x": 3360,
+      "y": -305,
+      "displayName": "Scan 76",
+      "value": "~-2 ~2 ~0",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-76",
+        "false": "check-77",
+        "failed": "check-77"
+      }
+    },
+    {
+      "id": "mine-76",
+      "type": "official:world.mineBlock",
+      "x": 3610,
+      "y": -305,
+      "displayName": "Mine ~-2 ~2 ~0",
+      "value": "~-2 ~2 ~0",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-77",
+      "type": "builder:world.blockIs",
+      "x": 3360,
+      "y": -200,
+      "displayName": "Scan 77",
+      "value": "~0 ~2 ~-2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-77",
+        "false": "check-78",
+        "failed": "check-78"
+      }
+    },
+    {
+      "id": "mine-77",
+      "type": "official:world.mineBlock",
+      "x": 3610,
+      "y": -200,
+      "displayName": "Mine ~0 ~2 ~-2",
+      "value": "~0 ~2 ~-2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-78",
+      "type": "builder:world.blockIs",
+      "x": 3360,
+      "y": -95,
+      "displayName": "Scan 78",
+      "value": "~0 ~2 ~2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-78",
+        "false": "check-79",
+        "failed": "check-79"
+      }
+    },
+    {
+      "id": "mine-78",
+      "type": "official:world.mineBlock",
+      "x": 3610,
+      "y": -95,
+      "displayName": "Mine ~0 ~2 ~2",
+      "value": "~0 ~2 ~2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-79",
+      "type": "builder:world.blockIs",
+      "x": 3360,
+      "y": 10,
+      "displayName": "Scan 79",
+      "value": "~2 ~2 ~0",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-79",
+        "false": "check-80",
+        "failed": "check-80"
+      }
+    },
+    {
+      "id": "mine-79",
+      "type": "official:world.mineBlock",
+      "x": 3610,
+      "y": 10,
+      "displayName": "Mine ~2 ~2 ~0",
+      "value": "~2 ~2 ~0",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-80",
+      "type": "builder:world.blockIs",
+      "x": 3360,
+      "y": 115,
+      "displayName": "Scan 80",
+      "value": "~-3 ~0 ~0",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-80",
+        "false": "check-81",
+        "failed": "check-81"
+      }
+    },
+    {
+      "id": "mine-80",
+      "type": "official:world.mineBlock",
+      "x": 3610,
+      "y": 115,
+      "displayName": "Mine ~-3 ~0 ~0",
+      "value": "~-3 ~0 ~0",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-81",
+      "type": "builder:world.blockIs",
+      "x": 3360,
+      "y": 220,
+      "displayName": "Scan 81",
+      "value": "~0 ~0 ~-3",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-81",
+        "false": "check-82",
+        "failed": "check-82"
+      }
+    },
+    {
+      "id": "mine-81",
+      "type": "official:world.mineBlock",
+      "x": 3610,
+      "y": 220,
+      "displayName": "Mine ~0 ~0 ~-3",
+      "value": "~0 ~0 ~-3",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-82",
+      "type": "builder:world.blockIs",
+      "x": 3360,
+      "y": 325,
+      "displayName": "Scan 82",
+      "value": "~0 ~0 ~3",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-82",
+        "false": "check-83",
+        "failed": "check-83"
+      }
+    },
+    {
+      "id": "mine-82",
+      "type": "official:world.mineBlock",
+      "x": 3610,
+      "y": 325,
+      "displayName": "Mine ~0 ~0 ~3",
+      "value": "~0 ~0 ~3",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-83",
+      "type": "builder:world.blockIs",
+      "x": 3360,
+      "y": 430,
+      "displayName": "Scan 83",
+      "value": "~3 ~0 ~0",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-83",
+        "false": "check-84",
+        "failed": "check-84"
+      }
+    },
+    {
+      "id": "mine-83",
+      "type": "official:world.mineBlock",
+      "x": 3610,
+      "y": 430,
+      "displayName": "Mine ~3 ~0 ~0",
+      "value": "~3 ~0 ~0",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-84",
+      "type": "builder:world.blockIs",
+      "x": 3360,
+      "y": 535,
+      "displayName": "Scan 84",
+      "value": "~-2 ~-1 ~-2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-84",
+        "false": "check-85",
+        "failed": "check-85"
+      }
+    },
+    {
+      "id": "mine-84",
+      "type": "official:world.mineBlock",
+      "x": 3610,
+      "y": 535,
+      "displayName": "Mine ~-2 ~-1 ~-2",
+      "value": "~-2 ~-1 ~-2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-85",
+      "type": "builder:world.blockIs",
+      "x": 3360,
+      "y": 640,
+      "displayName": "Scan 85",
+      "value": "~-2 ~-1 ~2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-85",
+        "false": "check-86",
+        "failed": "check-86"
+      }
+    },
+    {
+      "id": "mine-85",
+      "type": "official:world.mineBlock",
+      "x": 3610,
+      "y": 640,
+      "displayName": "Mine ~-2 ~-1 ~2",
+      "value": "~-2 ~-1 ~2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-86",
+      "type": "builder:world.blockIs",
+      "x": 3360,
+      "y": 745,
+      "displayName": "Scan 86",
+      "value": "~2 ~-1 ~-2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-86",
+        "false": "check-87",
+        "failed": "check-87"
+      }
+    },
+    {
+      "id": "mine-86",
+      "type": "official:world.mineBlock",
+      "x": 3610,
+      "y": 745,
+      "displayName": "Mine ~2 ~-1 ~-2",
+      "value": "~2 ~-1 ~-2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-87",
+      "type": "builder:world.blockIs",
+      "x": 3360,
+      "y": 850,
+      "displayName": "Scan 87",
+      "value": "~2 ~-1 ~2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-87",
+        "false": "check-88",
+        "failed": "check-88"
+      }
+    },
+    {
+      "id": "mine-87",
+      "type": "official:world.mineBlock",
+      "x": 3610,
+      "y": 850,
+      "displayName": "Mine ~2 ~-1 ~2",
+      "value": "~2 ~-1 ~2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-88",
+      "type": "builder:world.blockIs",
+      "x": 3360,
+      "y": 955,
+      "displayName": "Scan 88",
+      "value": "~-2 ~1 ~-2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-88",
+        "false": "check-89",
+        "failed": "check-89"
+      }
+    },
+    {
+      "id": "mine-88",
+      "type": "official:world.mineBlock",
+      "x": 3610,
+      "y": 955,
+      "displayName": "Mine ~-2 ~1 ~-2",
+      "value": "~-2 ~1 ~-2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-89",
+      "type": "builder:world.blockIs",
+      "x": 3360,
+      "y": 1060,
+      "displayName": "Scan 89",
+      "value": "~-2 ~1 ~2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-89",
+        "false": "check-90",
+        "failed": "check-90"
+      }
+    },
+    {
+      "id": "mine-89",
+      "type": "official:world.mineBlock",
+      "x": 3610,
+      "y": 1060,
+      "displayName": "Mine ~-2 ~1 ~2",
+      "value": "~-2 ~1 ~2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-90",
+      "type": "builder:world.blockIs",
+      "x": 3360,
+      "y": 1165,
+      "displayName": "Scan 90",
+      "value": "~2 ~1 ~-2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-90",
+        "false": "check-91",
+        "failed": "check-91"
+      }
+    },
+    {
+      "id": "mine-90",
+      "type": "official:world.mineBlock",
+      "x": 3610,
+      "y": 1165,
+      "displayName": "Mine ~2 ~1 ~-2",
+      "value": "~2 ~1 ~-2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-91",
+      "type": "builder:world.blockIs",
+      "x": 3880,
+      "y": -620,
+      "displayName": "Scan 91",
+      "value": "~2 ~1 ~2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-91",
+        "false": "check-92",
+        "failed": "check-92"
+      }
+    },
+    {
+      "id": "mine-91",
+      "type": "official:world.mineBlock",
+      "x": 4130,
+      "y": -620,
+      "displayName": "Mine ~2 ~1 ~2",
+      "value": "~2 ~1 ~2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-92",
+      "type": "builder:world.blockIs",
+      "x": 3880,
+      "y": -515,
+      "displayName": "Scan 92",
+      "value": "~-2 ~2 ~-1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-92",
+        "false": "check-93",
+        "failed": "check-93"
+      }
+    },
+    {
+      "id": "mine-92",
+      "type": "official:world.mineBlock",
+      "x": 4130,
+      "y": -515,
+      "displayName": "Mine ~-2 ~2 ~-1",
+      "value": "~-2 ~2 ~-1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-93",
+      "type": "builder:world.blockIs",
+      "x": 3880,
+      "y": -410,
+      "displayName": "Scan 93",
+      "value": "~-2 ~2 ~1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-93",
+        "false": "check-94",
+        "failed": "check-94"
+      }
+    },
+    {
+      "id": "mine-93",
+      "type": "official:world.mineBlock",
+      "x": 4130,
+      "y": -410,
+      "displayName": "Mine ~-2 ~2 ~1",
+      "value": "~-2 ~2 ~1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-94",
+      "type": "builder:world.blockIs",
+      "x": 3880,
+      "y": -305,
+      "displayName": "Scan 94",
+      "value": "~-1 ~2 ~-2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-94",
+        "false": "check-95",
+        "failed": "check-95"
+      }
+    },
+    {
+      "id": "mine-94",
+      "type": "official:world.mineBlock",
+      "x": 4130,
+      "y": -305,
+      "displayName": "Mine ~-1 ~2 ~-2",
+      "value": "~-1 ~2 ~-2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-95",
+      "type": "builder:world.blockIs",
+      "x": 3880,
+      "y": -200,
+      "displayName": "Scan 95",
+      "value": "~-1 ~2 ~2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-95",
+        "false": "check-96",
+        "failed": "check-96"
+      }
+    },
+    {
+      "id": "mine-95",
+      "type": "official:world.mineBlock",
+      "x": 4130,
+      "y": -200,
+      "displayName": "Mine ~-1 ~2 ~2",
+      "value": "~-1 ~2 ~2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-96",
+      "type": "builder:world.blockIs",
+      "x": 3880,
+      "y": -95,
+      "displayName": "Scan 96",
+      "value": "~1 ~2 ~-2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-96",
+        "false": "check-97",
+        "failed": "check-97"
+      }
+    },
+    {
+      "id": "mine-96",
+      "type": "official:world.mineBlock",
+      "x": 4130,
+      "y": -95,
+      "displayName": "Mine ~1 ~2 ~-2",
+      "value": "~1 ~2 ~-2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-97",
+      "type": "builder:world.blockIs",
+      "x": 3880,
+      "y": 10,
+      "displayName": "Scan 97",
+      "value": "~1 ~2 ~2",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-97",
+        "false": "check-98",
+        "failed": "check-98"
+      }
+    },
+    {
+      "id": "mine-97",
+      "type": "official:world.mineBlock",
+      "x": 4130,
+      "y": 10,
+      "displayName": "Mine ~1 ~2 ~2",
+      "value": "~1 ~2 ~2",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-98",
+      "type": "builder:world.blockIs",
+      "x": 3880,
+      "y": 115,
+      "displayName": "Scan 98",
+      "value": "~2 ~2 ~-1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-98",
+        "false": "check-99",
+        "failed": "check-99"
+      }
+    },
+    {
+      "id": "mine-98",
+      "type": "official:world.mineBlock",
+      "x": 4130,
+      "y": 115,
+      "displayName": "Mine ~2 ~2 ~-1",
+      "value": "~2 ~2 ~-1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "check-99",
+      "type": "builder:world.blockIs",
+      "x": 3880,
+      "y": 220,
+      "displayName": "Scan 99",
+      "value": "~2 ~2 ~1",
+      "value2": "minecraft:spawner",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-99",
+        "false": "node-5",
+        "failed": "node-5"
+      }
+    },
+    {
+      "id": "mine-99",
+      "type": "official:world.mineBlock",
+      "x": 4130,
+      "y": 220,
+      "displayName": "Mine ~2 ~2 ~1",
+      "value": "~2 ~2 ~1",
+      "value2": "true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-loopwait",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "node-loopwait",
+      "type": "official:misc.wait",
+      "x": 980,
+      "y": 330,
+      "displayName": "Pickup Then Scan Again",
+      "value": "1000",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "check-1",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "node-5",
+      "type": "builder:world.openNearestContainer",
+      "x": 1280,
+      "y": 330,
+      "displayName": "4 Open Nearest EChest",
+      "value": "8",
+      "value2": "move=true type=ender_chest",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-6",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "node-6",
+      "type": "official:inventory.chestDepositItems",
+      "x": 1600,
+      "y": 330,
+      "displayName": "5 Deposit Spawners",
+      "value": "specific",
+      "value2": "minecraft:spawner",
+      "value3": "true",
+      "value4": "true",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-7",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "node-7",
+      "type": "official:inventory.closeOpenContainer",
+      "x": 1920,
+      "y": 330,
+      "displayName": "6 Close EChest",
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-8",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "node-8",
+      "type": "official:notification.discord",
+      "x": 2240,
+      "y": 330,
+      "displayName": "7 EDIT Done Webhook",
+      "value": "PASTE_WEBHOOK_URL_HERE",
+      "value2": "Spawner scan and echest deposit finished for ${player.name} at ${player.pos}. Logging off.",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-9",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "node-9",
+      "type": "official:misc.disconnect",
+      "x": 2560,
+      "y": 330,
+      "displayName": "8 Log Off",
+      "value": "true",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-end",
+        "failed": "node-fail"
+      }
+    },
+    {
+      "id": "node-fail",
+      "type": "builder:localMessage",
+      "x": 980,
+      "y": 520,
+      "displayName": "Fail Message",
+      "value": "Spawner safety macro stopped. Check webhook URL, nearby player trigger, spawner search range, ender chest radius, Silk Touch/tool, and permissions.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "node-end"
+      }
+    },
+    {
+      "id": "node-end",
+      "type": "builder:flow.endConnection",
+      "x": 1280,
+      "y": 520,
+      "displayName": "",
+      "value": "end branch",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    },
+    {
+      "id": "node-note",
+      "type": "builder:flow.note",
+      "x": 80,
+      "y": 430,
+      "displayName": "",
+      "value": "Player near -> webhook -> wait -> nearest spawner scan -> echest -> done webhook -> logoff\n\nThis macro waits until another player is nearby. The second wait does not count early because it is after the player trigger and webhook.\n\nWhat it does:\n1. Waits for a nearby player.\n2. Sends the start Discord webhook.\n3. Waits 2 seconds.\n4. Scans 99 nearby relative positions for minecraft:spawner, nearest first.\n5. Mines the first spawner found with auto tool select.\n6. Waits 1 second, then scans again to find the next nearest spawner.\n7. When no spawners are left in the scan range, opens the nearest ender chest.\n8. Deposits minecraft:spawner only.\n9. Sends the done webhook and logs off.\n\nEdit before use:\n- 1 EDIT Wait Player Near: leave filter blank for any player, or type a player name.\n- 2 EDIT Start Webhook: paste your Discord webhook URL.\n- 3 EDIT Wait After Trigger: 2000 = 2 seconds.\n- 4 Open Nearest EChest: ender chest must be within 8 blocks.\n- 7 EDIT Done Webhook: paste the same Discord webhook URL.\n\nStand near the spawners before running. Current scan range is about 3 blocks around where you stand. Use in a safe test world first.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "stickyNoteText": "Player near -> webhook -> wait -> nearest spawner scan -> echest -> done webhook -> logoff\n\nThis macro waits until another player is nearby. The second wait does not count early because it is after the player trigger and webhook.\n\nWhat it does:\n1. Waits for a nearby player.\n2. Sends the start Discord webhook.\n3. Waits 2 seconds.\n4. Scans 99 nearby relative positions for minecraft:spawner, nearest first.\n5. Mines the first spawner found with auto tool select.\n6. Waits 1 second, then scans again to find the next nearest spawner.\n7. When no spawners are left in the scan range, opens the nearest ender chest.\n8. Deposits minecraft:spawner only.\n9. Sends the done webhook and logs off.\n\nEdit before use:\n- 1 EDIT Wait Player Near: leave filter blank for any player, or type a player name.\n- 2 EDIT Start Webhook: paste your Discord webhook URL.\n- 3 EDIT Wait After Trigger: 2000 = 2 seconds.\n- 4 Open Nearest EChest: ender chest must be within 8 blocks.\n- 7 EDIT Done Webhook: paste the same Discord webhook URL.\n\nStand near the spawners before running. Current scan range is about 3 blocks around where you stand. Use in a safe test world first.",
+      "stickyNoteWidth": 820,
+      "stickyNoteHeight": 520,
+      "outputs": {}
+    }
+  ]
+}

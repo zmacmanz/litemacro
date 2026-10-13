@@ -28,10 +28,35 @@ Good Mine Area settings:
 
 ```text
 From X Y Z: -11879 26 12100
-To X Y Z / tool low / move: -11864 41 12115 tool=0 move=true
+To X Y Z: -11864 41 12115
+Tool low durability: 0
+Move: On
+Auto Tool: On
 ```
 
 Use `tool=10` only when you connect the `tool_low` output to something useful, such as a local message, repair macro, or stop path.
+
+## Open Nearest Container Opens The Wrong Thing
+
+Use the right container type:
+
+- `Open Nearest Chest` only searches for chests.
+- `Open Nearest Barrel` only searches for barrels.
+- `Open Nearest Shulker` only searches for shulker boxes.
+- `Open Nearest Container` uses the `Type` dropdown.
+
+If the player should walk toward the container, turn `Move` on. If the macro should only open a container already in reach, turn `Move` off.
+
+Supported generic container types are `Any`, `Chest`, `Barrel`, `Shulker`, `Ender Chest`, `Furnace`, `Blast Furnace`, `Smoker`, `Brewing Stand`, `Hopper`, `Dispenser`, and `Dropper`.
+
+## Actionbar Or Repeat Until Does Not Trigger
+
+Check:
+
+- Use `Actionbar Contains` to check the latest actionbar once.
+- Use `Event: Actionbar` or `Idle Until` with condition `actionbar` to wait for a future actionbar message.
+- Use `Repeat Until` when a section should keep repeating until actionbar/chat/player/item/XP/health/food/water/full/kicked becomes true.
+- If the actionbar text changes quickly, use a short wait before checking again.
 
 ## Click GUI Item Does Nothing
 
@@ -136,6 +161,19 @@ Check:
 - Your network can reach Discord.
 
 Do not put private webhooks in macros you upload publicly.
+
+## Event Schedule Does Not Trigger
+
+Check:
+
+- The macro is still running and has reached `Event: Schedule`.
+- Use `10s` for a simple ten-second test.
+- Use 24-hour local time such as `14:30`, not `2:30 PM`.
+- Use exactly `* * * * *` for the minute wildcard.
+- Leave the second field blank.
+- Connect the `triggered` output to another component.
+
+Full cron expressions such as `*/5 * * * *` are not supported. Use a relative delay with `Repeat` or `Repeat Macro` when you need a repeating interval.
 
 ## A Component Needs World State
 

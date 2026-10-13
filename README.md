@@ -4,8 +4,10 @@ Litemacro is a Fabric client mod for Minecraft Java Edition. It adds a drag-and-
 
 ## Source Layout
 
+- `versions/mc26.3` - Litemacro for Minecraft 26.3.
 - `versions/mc26.2` - Litemacro for Minecraft 26.2.
 - `versions/mc1.21.11` - Litemacro for Minecraft 1.21.11.
+- `versions/mc1.21.8` - Litemacro for Minecraft 1.21.8.
 - `versions/mc1.21.1` - Litemacro for Minecraft 1.21.1.
 - `wiki` - user guide and component reference.
 - `database` - Supabase SQL setup for the Litemacro marketplace.
@@ -28,7 +30,17 @@ cd versions\mc26.2
 ```
 
 ```powershell
+cd versions\mc26.3
+.\gradlew.bat build
+```
+
+```powershell
 cd versions\mc1.21.1
+.\gradlew.bat build
+```
+
+```powershell
+cd versions\mc1.21.8
 .\gradlew.bat build
 ```
 

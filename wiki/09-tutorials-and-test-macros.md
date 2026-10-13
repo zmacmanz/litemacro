@@ -11,10 +11,15 @@ Ready-to-import examples are in the repo `test-macros` folder:
 | File | What it tests |
 | --- | --- |
 | `zombie-attack-loop.json` | Finds nearby zombies, attacks, waits, and checks again. |
+| `hold-left-until-inventory-full.json` | Holds left click until inventory is full. |
+| `shear-sheep-deposit-wool-loop.json` | Shears sheep, deposits wool, and loops. |
 | `mob-farm-xp30-attack-enchant-loop.json` | Attacks mobs until XP level 30, opens an enchanting table, enchants the held item with lapis, then returns to grinding. |
 | `batch-enchant-6-iron-swords.json` | Opens a nearby enchanting table and enchants up to six unenchanted iron swords, skipping already-enchanted ones. |
 | `mine-area-deposit-chest-template.json` | Mines a small coordinate box, opens a nearby chest, deposits inventory, and loops. Edit the coordinates before running. |
 | `mine-area-auto-tool-template.json` | Mines a small area while switching to the best hotbar tool for stone, dirt, wood, and similar blocks. |
+| `mine-deposit-wool-nearest-chest-loop.json` | Mines, opens the nearest chest, deposits wool, and loops. |
+| `working-mine-area-16x16x16.json` | Safe Mine Area test for one max-size area. |
+| `working-mine-area-full-chunked.json` | Larger Mine Area example split into smaller chunks. |
 | `runtime-data-grindstone-output-hotbar.json` | Tests named runtime outputs. Auto Grindstone saves `clean_item.slot`, then Select Hotbar Slot uses it. |
 | `runtime-data-relative-mine-area-auto-tool.json` | Tests relative coordinates with Mine Area and Auto Tool. |
 | `runtime-data-target-block-message.json` | Tests live values in messages, including player position, target block, world, and server. |
@@ -22,6 +27,19 @@ Ready-to-import examples are in the repo `test-macros` folder:
 | `advanced-relative-quarry-deposit-loop.json` | Mines a relative quarry with Auto Tool, deposits to a nearby chest, and handles low tools. |
 | `advanced-kick-rejoin-watchdog.json` | Always-on idle watcher that rejoins after a kick or disconnect. |
 | `advanced-gui-shop-sell-template.json` | Server shop GUI template that waits for item count, opens sell GUI, clicks, closes, and loops. |
+| `whole-macro-wait-for-chat-then-run.json` | Shows a macro that does nothing until a chat message appears, then starts two action branches. |
+| `whole-macro-wait-for-item-then-run.json` | Shows a macro that waits for an inventory item before starting the rest of the macro. |
+| `whole-macro-wait-for-player-then-run.json` | Shows a macro that waits for a nearby player before starting. |
+| `parallel-mine-with-safety-checker.json` | Shows a mining branch plus a safety checker branch for water, health, hunger, and tool repair commands. |
+| `player-near-webhook-mine-spawners-echest-logoff.json` | Waits for a nearby player, sends a webhook, mines nearby spawners, deposits them, sends a done webhook, then logs off. |
+| `mob-farm-xp30-auto-enchant-loop.json` | Clicks mobs until XP 30, opens the nearest enchanting table, enchants, then loops. |
+| `mob-farm-xp30-auto-grindstone-repair-loop.json` | XP farm pattern that opens a grindstone and repairs or clears items. |
+| `rejoin-last-server-watchdog.json` | Simple rejoin watcher using the last server. |
+| `kick-rejoin-test.json` | Basic kick/disconnect rejoin test. |
+| `event-schedule-10-second-test.json` | Waits 10 seconds, then shows a local confirmation message. |
+| `bossbar-auto-start-stop-watcher.json` | Starts itself when any or a matching boss bar appears, watches it, and stops when it disappears. Includes editing notes. |
+| `bossbar-trigger-test.json` | One-time named boss-bar trigger test using `Litemacro Test`. |
+| `status-effect-trigger-test.json` | Starts itself when Speed I or higher appears and displays the effect runtime values. |
 
 To use one:
 
@@ -31,6 +49,35 @@ To use one:
 4. Read the yellow note component.
 5. Edit any server-specific fields.
 6. Save, test, then upload to the marketplace if it works.
+
+## Tutorial: Event Schedule
+
+Use `Event: Schedule` when a branch should wait for a delay or a specific local time.
+
+```text
+Macro Entry Point
+  started -> Event: Schedule
+
+Event: Schedule
+  Time: 10s
+  triggered -> Local Message
+
+Local Message
+  Message: Schedule test worked after 10 seconds.
+```
+
+Start with `10s` because it is easy to verify. The macro must stay running and remain on `Event: Schedule` while it waits.
+
+Accepted values:
+
+```text
+10s       relative delay in seconds
+2m        relative delay in minutes
+14:30     24-hour local clock time
+* * * * * once per wall-clock minute; first activation may be immediate
+```
+
+Full cron syntax is not supported. Import `test-macros/event-schedule-10-second-test.json` for a ready-to-run example.
 
 ## Tutorial: Attack Mobs Near You
 
@@ -186,6 +233,159 @@ Local Message
 ```
 
 Component names are turned into lowercase data keys. Spaces become underscores, so `Clean Item` becomes `clean_item`.
+
+## Tutorial: Wait For Something, Then Start Everything
+
+Use `Idle Until` at the very start when the whole macro should wait before any real work begins.
+
+Example: wait until a player is near, then run both branches.
+
+```text
+Macro Entry Point
+  started -> Idle Until
+
+Idle Until
+  Condition: player
+  Filter: blank for any player, or type a name
+
+Discord Notification
+  Name: Start Webhook
+  Webhook URL: paste your private webhook
+  Message: Player near ${player.name} at ${player.pos}
+
+Idle Until triggered -> Discord Notification named Start Webhook
+Idle Until triggered -> first mining/action component
+```
+
+The important part is that the branches are connected after `Idle Until`. They cannot run early because nothing reaches them until the trigger happens.
+
+Good starting conditions:
+
+```text
+chat       wait for chat text
+actionbar  wait for actionbar text
+player     wait for a nearby player
+item       wait until an item exists in inventory
+xp         wait until XP reaches a level
+water      wait until the player is in water
+kicked     wait until kicked or disconnected
+```
+
+## Tutorial: Mine With A Safety Checker
+
+Use this when one branch mines while another branch watches for danger.
+
+```text
+Macro Entry Point
+  started -> Mine Area
+  started -> Player In Water
+
+Mine Area
+  From: ~-2 ~-1 ~-2
+  To: ~2 ~-1 ~2
+  Move: On
+  Auto Tool: On
+  tool_low -> Chat / Command
+
+Player In Water
+  true -> Chat / Command
+  false -> Health Below
+
+Health Below
+  Health: 10
+  true -> Chat / Command
+  false -> Food Below
+```
+
+Example recovery commands:
+
+```text
+Water path: /home
+Low health path: /heal
+Tool low path: /repair
+```
+
+This does not magically override server rules or permissions. The commands must work on the server.
+
+## Tutorial: Use Actionbar Text
+
+Use actionbar checks when a server writes status above the hotbar.
+
+```text
+Macro Entry Point
+  started -> Event: Actionbar
+
+Event: Actionbar
+  Filter text/regex: Sold
+  Mode: contains
+  triggered -> Local Message
+```
+
+For a one-time check, use `Actionbar Contains`. For waiting, use `Event: Actionbar` or `Idle Until` with condition `actionbar`.
+
+## Tutorial: Start And Stop On A Bossbar
+
+Import `test-macros/bossbar-auto-start-stop-watcher.json`, keep its macro slot selected, leave `Auto` set to `Off`, and leave the macro stopped. Its blank filter means any visible boss bar can start it, including a Wither boss bar.
+
+Edit both `Wake When Bossbar Appears` and `Is Bossbar Still Visible` when you only want a certain boss bar. The filter and mode must be identical on both components.
+
+| Filter | Mode | Result |
+| --- | --- | --- |
+| empty | `contains` | Any visible boss bar |
+| `Wither` | `contains` | Any boss-bar text containing `Wither` |
+| `Wither` | `exact` | Only a boss bar whose complete name is `Wither` |
+| `Wither|Dragon` | `regex` | A boss bar containing `Wither` or `Dragon` |
+| `^(Wither|Ender Dragon)$` | `regex` | Only either complete boss-bar name |
+
+Regex is case-insensitive and searches anywhere in the visible text. Use `^` at the beginning and `$` at the end for a complete-text match. Invalid regex uses the component's `failed` output.
+
+To test safely, use a creative test world with cheats and create a harmless custom boss bar:
+
+```text
+/bossbar add litemacro:test {"text":"Litemacro Test"}
+/bossbar set litemacro:test players @s
+```
+
+The macro should start itself and display the detected text. Hide the bar to test automatic stopping, show it to test re-arming, and remove it afterward:
+
+```text
+/bossbar set litemacro:test visible false
+/bossbar set litemacro:test visible true
+/bossbar remove litemacro:test
+```
+
+The watcher checks every 500 milliseconds. `Bossbar Contains` sends `true` back to the wait while a matching bar remains visible. It sends `false` to `Stop Macro` when the matching bar disappears. Runtime text can use `${bossbar.text}`, `${bossbar.percent}`, and `${bossbar.progress}`.
+
+Use `test-macros/bossbar-trigger-test.json` instead when you only need the original one-time `Litemacro Test` trigger.
+
+## Tutorial: Start On A Status Effect
+
+Import `test-macros/status-effect-trigger-test.json`, select it, and leave it stopped. Give yourself Speed I:
+
+```text
+/effect give @s minecraft:speed 30 0
+```
+
+`Event: Status Effect` should start the selected macro once and show the effect ID, level, and remaining seconds. Remove the effect before testing again. Use `Has Status Effect` for a normal `true` or `false` check inside a running macro.
+
+## Tutorial: Container Dropdown
+
+Use the generic component when users should be able to change the target container without replacing the component.
+
+```text
+Open Nearest Container
+  Radius: 8
+  Move: On
+  Type: Barrel
+```
+
+Use the direct components when the macro should always target one kind:
+
+```text
+Open Nearest Chest
+Open Nearest Barrel
+Open Nearest Shulker
+```
 
 ## Advanced Editable Templates
 

@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "id": "macro_builder",
-  "version": "1.0.69",
+  "version": "1.0.81",
   "name": "Litemacro",
-  "description": "Litemacro is a drag-and-drop macro builder and runner for Fabric clients.",
+  "description": "Litemacro is a drag-and-drop style macro builder and runner for Fabric 26.2 clients.",
   "authors": [
     "letgio"
   ],
@@ -15,6 +15,9 @@
       "com.alfre.macrobuilder.MacroBuilderClient"
     ]
   },
+  "mixins": [
+    "litemacro.mixins.json"
+  ],
   "depends": {
     "fabricloader": ">=0.19.3",
     "minecraft": "~26.2",

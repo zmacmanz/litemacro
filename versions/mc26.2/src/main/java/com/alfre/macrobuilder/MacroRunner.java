@@ -1,5 +1,6 @@
 package com.alfre.macrobuilder;
 
+import com.alfre.macrobuilder.mixin.BossHealthOverlayAccessor;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -37,6 +38,8 @@ import java.util.regex.PatternSyntaxException;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.BossHealthOverlay;
+import net.minecraft.client.gui.components.LerpingBossEvent;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.ConnectScreen;
 import net.minecraft.client.gui.screens.Screen;
@@ -61,6 +64,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.EnchantmentMenu;
@@ -97,6 +101,8 @@ final class MacroRunner {
       Pattern.CASE_INSENSITIVE
    );
    private static final Pattern PRICE_PATTERN = Pattern.compile("\\$\\s*([0-9][0-9,]*(?:\\.[0-9]+)?)\\s*([kmbt]?)", Pattern.CASE_INSENSITIVE);
+   private static final Pattern FIRST_INTEGER_PATTERN = Pattern.compile("-?\\d+");
+   private static final Pattern FIRST_DOUBLE_PATTERN = Pattern.compile("-?\\d+(?:\\.\\d+)?");
    private static final HttpClient DISCORD_HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(8L)).build();
    static final int MACRO_COUNT = 100;
    private static final String DEFAULT_EXAMPLE_EXPORT = "/macro_builder/default_macro2_export.json";
@@ -116,6 +122,11 @@ final class MacroRunner {
    private int copiedMacroNumber;
    private int currentMacroNumber = 1;
    private final Map<String, String> runtimeValues = new HashMap<>();
+   private final boolean[] observedMacroRunning = new boolean[MACRO_COUNT];
+   private final Map<KeyMapping, Integer> rootHeldKeyMappings = new HashMap<>();
+   private final Map<InputConstants.Key, Integer> rootHeldRawKeys = new HashMap<>();
+   private final Set<KeyMapping> ownedKeyMappings = new HashSet<>();
+   private final Set<InputConstants.Key> ownedRawKeys = new HashSet<>();
    private boolean running;
    private String currentNodeId;
    private String activeNodeId;
@@ -131,8 +142,10 @@ final class MacroRunner {
    private Vec3 lastPlayerPos;
    private String lastWorldId = "";
    private final Set<UUID> knownPlayerIds = new HashSet<>();
+   private final Set<UUID> currentPlayerIds = new HashSet<>();
    private final Map<UUID, String> knownPlayerNames = new HashMap<>();
    private long chatSequence;
+   private long actionbarSequence;
    private long damageSequence;
    private long teleportSequence;
    private long playerSpawnSequence;
@@ -140,12 +153,14 @@ final class MacroRunner {
    private long kickedSequence;
    private long scheduleMinute = -1L;
    private long nodeChatBaseline;
+   private long nodeActionbarBaseline;
    private long nodeDamageBaseline;
    private long nodeTeleportBaseline;
    private long nodeSpawnBaseline;
    private long nodeDespawnBaseline;
    private long nodeKickedBaseline;
    private String lastChatMessage = "";
+   private String lastActionbarMessage = "";
    private String lastPlayerSpawnName = "";
    private String lastPlayerDespawnName = "";
    private String lastKickReason = "";
@@ -162,8 +177,10 @@ final class MacroRunner {
    private String lastOpenContainerTagFilter = "";
    private String lastOpenContainerTagNextNodeId = "";
    private final Map<String, Integer> repeatCounters = new HashMap<>();
+   private final Map<String, Boolean> autonomousConditionStates = new HashMap<>();
    private boolean waitingForWorld;
    private long autoStartChatBaseline;
+   private long autoStartActionbarBaseline;
    private long autoStartKickedBaseline;
    private ServerData lastServerData;
    private ServerData pendingRejoinServer;
@@ -175,6 +192,7 @@ final class MacroRunner {
    private boolean autoReconnectAttempted;
    private boolean wasWorldAvailable;
    private InputConstants.Key activePressedKey;
+   private Boolean previousPauseOnLostFocus;
 
    MacroRunner() {
       this(false, null);
@@ -235,18 +253,36 @@ final class MacroRunner {
       this.setChatNotifications(!this.settings.chatNotifications());
    }
 
+   boolean runningOverlay() {
+      return this.settings.runningOverlay();
+   }
+
+   void setRunningOverlay(boolean enabled) {
+      this.settings.setRunningOverlay(enabled);
+      this.saveSettings();
+      this.lastStatus = enabled ? "Running overlay on" : "Running overlay off";
+   }
+
+   void toggleRunningOverlay() {
+      this.setRunningOverlay(!this.settings.runningOverlay());
+   }
+
    int macroKey(int macroNumber) {
       return this.settings.macroKey(macroNumber);
    }
 
    void setMacroKey(int macroNumber, int keyCode) {
       this.settings.setMacroKey(macroNumber, keyCode);
+      int index = Math.max(1, Math.min(100, macroNumber)) - 1;
+      this.macroKeyWasDown[index] = keyCode >= 0;
       this.saveSettings();
       this.lastStatus = "Set Macro " + macroNumber + " key to " + keyName(keyCode);
    }
 
    void clearMacroKey(int macroNumber) {
       this.settings.setMacroKey(macroNumber, -1);
+      int index = Math.max(1, Math.min(100, macroNumber)) - 1;
+      this.macroKeyWasDown[index] = false;
       this.saveSettings();
       this.lastStatus = "Cleared Macro " + macroNumber + " key";
    }
@@ -259,6 +295,7 @@ final class MacroRunner {
       int clamped = Math.max(1, Math.min(100, macroNumber));
       this.currentMacroNumber = clamped;
       this.repeatCounters.clear();
+      this.autonomousConditionStates.clear();
 
       try {
          this.ensureConfigFiles();
@@ -503,6 +540,7 @@ final class MacroRunner {
          this.autoReconnectAttempted = false;
          this.captureEventBaselines();
          this.autoStartChatBaseline = this.chatSequence;
+         this.autoStartActionbarBaseline = this.actionbarSequence;
          this.autoStartKickedBaseline = this.kickedSequence;
          this.running = true;
          this.lastStatus = "Running Macro " + this.currentMacroNumber + ": " + model.name();
@@ -519,6 +557,7 @@ final class MacroRunner {
 
          this.childRunners.clear();
          this.pendingChildRunners.clear();
+         this.restorePauseOnLostFocus(client);
          return;
       }
 
@@ -539,6 +578,7 @@ final class MacroRunner {
       this.runtimeValues.clear();
       this.clearPendingRejoin();
       this.autoStartChatBaseline = this.chatSequence;
+      this.autoStartActionbarBaseline = this.actionbarSequence;
       this.autoStartKickedBaseline = this.kickedSequence;
       this.lastStatus = reason;
       this.send(client, reason);
@@ -748,12 +788,14 @@ final class MacroRunner {
       branch.waitingForWorld = false;
       branch.lastServerData = this.lastServerData;
       branch.chatSequence = this.chatSequence;
+      branch.actionbarSequence = this.actionbarSequence;
       branch.damageSequence = this.damageSequence;
       branch.teleportSequence = this.teleportSequence;
       branch.playerSpawnSequence = this.playerSpawnSequence;
       branch.playerDespawnSequence = this.playerDespawnSequence;
       branch.kickedSequence = this.kickedSequence;
       branch.lastChatMessage = this.lastChatMessage;
+      branch.lastActionbarMessage = this.lastActionbarMessage;
       branch.lastPlayerSpawnName = this.lastPlayerSpawnName;
       branch.lastPlayerDespawnName = this.lastPlayerDespawnName;
       branch.lastKickReason = this.lastKickReason;
@@ -765,6 +807,7 @@ final class MacroRunner {
       branch.knownPlayerNames.putAll(this.knownPlayerNames);
       branch.captureEventBaselines();
       branch.autoStartChatBaseline = this.chatSequence;
+      branch.autoStartActionbarBaseline = this.actionbarSequence;
       branch.autoStartKickedBaseline = this.kickedSequence;
       branch.running = true;
       branch.lastStatus = "Running Macro " + this.currentMacroNumber + " | branch";
@@ -902,7 +945,9 @@ final class MacroRunner {
                return;
             }
 
-            Boolean triggered = this.idleConditionMatches(client, mode, this.model.autoStartFilter(), this.autoStartChatBaseline, this.autoStartKickedBaseline);
+            Boolean triggered = this.idleConditionMatches(
+               client, mode, this.model.autoStartFilter(), this.autoStartChatBaseline, this.autoStartActionbarBaseline, this.autoStartKickedBaseline
+            );
             if (Boolean.TRUE.equals(triggered)) {
                this.resume(client, this.model);
             }
@@ -910,14 +955,136 @@ final class MacroRunner {
       }
    }
 
-   private Boolean idleConditionMatches(Minecraft client, String conditionText, String filterText, long chatBaseline, long kickedBaseline) {
+   private boolean pollComponentAutoTriggers(Minecraft client) {
+      if (this.model == null || client == null || client.player == null || client.level == null) {
+         return false;
+      }
+
+      boolean canStart = !this.hasRunningMacro(this.currentMacroNumber);
+      List<MacroModel.Node> triggeredNodes = new ArrayList<>();
+      for (MacroModel.Node node : this.model.nodes()) {
+         if (!node.enabled || (!MacroModel.EVENT_STATUS_EFFECT.equals(node.type) && !MacroModel.EVENT_BOSSBAR.equals(node.type))) {
+            continue;
+         }
+
+         Boolean matches = MacroModel.EVENT_STATUS_EFFECT.equals(node.type)
+            ? this.statusEffectMatches(client, node)
+            : this.bossbarContains(client, node);
+         String key = this.currentMacroNumber + ":" + node.id + ":" + node.type + ":" + node.value + ":" + node.value2;
+         boolean previous = this.autonomousConditionStates.getOrDefault(key, false);
+         boolean current = Boolean.TRUE.equals(matches);
+         this.autonomousConditionStates.put(key, current);
+         if (canStart && current && !previous) {
+            triggeredNodes.add(node);
+         }
+      }
+
+      if (triggeredNodes.isEmpty()) {
+         return false;
+      }
+
+      this.startMacroStateRuns(client, this.currentMacroNumber, this.model, triggeredNodes);
+      this.lastStatus = "Triggered Macro " + this.currentMacroNumber + " from an effect or bossbar.";
+      return true;
+   }
+
+   private void detectMacroStateChanges(Minecraft client) {
+      for (int index = 0; index < this.observedMacroRunning.length; index++) {
+         int macroNumber = index + 1;
+         boolean active = this.hasRunningMacro(macroNumber);
+         if (active == this.observedMacroRunning[index]) {
+            continue;
+         }
+
+         this.observedMacroRunning[index] = active;
+         this.startMacrosWatchingState(client, macroNumber, active);
+      }
+   }
+
+   private void startMacrosWatchingState(Minecraft client, int targetMacroNumber, boolean active) {
+      for (int ownerMacroNumber = 1; ownerMacroNumber <= MACRO_COUNT; ownerMacroNumber++) {
+         if (ownerMacroNumber == targetMacroNumber || this.hasRunningMacro(ownerMacroNumber)) {
+            continue;
+         }
+
+         Path path = this.macroPath(ownerMacroNumber);
+         if (!Files.exists(path)) {
+            continue;
+         }
+
+         try {
+            MacroModel candidate = MacroModel.load(path);
+            List<MacroModel.Node> triggerNodes = new ArrayList<>();
+            for (MacroModel.Node node : candidate.nodes()) {
+               if (!MacroModel.MACRO_ACTIVE_STATE.equals(node.type) || !node.enabled) {
+                  continue;
+               }
+
+               int watchedMacroNumber = parseInt(node.value, -1);
+               Boolean expectedActive = macroActiveState(node.value2);
+               if (watchedMacroNumber == targetMacroNumber && expectedActive != null && expectedActive == active) {
+                  triggerNodes.add(node);
+               }
+            }
+
+            if (!triggerNodes.isEmpty()) {
+               this.startMacroStateRuns(client, ownerMacroNumber, candidate, triggerNodes);
+            }
+         } catch (RuntimeException | IOException exception) {
+            MacroBuilderClient.LOGGER.warn("Failed to inspect Macro {} state triggers", ownerMacroNumber, exception);
+         }
+      }
+   }
+
+   private void startMacroStateRuns(
+      Minecraft client, int ownerMacroNumber, MacroModel ownerModel, List<MacroModel.Node> triggerNodes
+   ) {
+      for (MacroModel.Node triggerNode : triggerNodes) {
+         MacroRunner child = new MacroRunner(true, this.rootRunner());
+         child.settings = this.settings;
+         child.currentMacroNumber = ownerMacroNumber;
+         child.resumeFromNode(client, ownerModel, triggerNode);
+         this.rootRunner().queueChildRunner(child);
+      }
+
+      this.lastStatus = "Triggered Macro " + ownerMacroNumber + " from Macro " + ownerModel.name() + " state watcher.";
+   }
+
+   private Boolean macroActiveStateMatches(MacroModel.Node node) {
+      int macroNumber = parseInt(this.resolveRuntimeText(node.value), -1);
+      Boolean expectedActive = macroActiveState(this.resolveRuntimeText(node.value2));
+      if (macroNumber < 1 || macroNumber > 100 || macroNumber == this.currentMacroNumber || expectedActive == null) {
+         return null;
+      }
+
+      return this.rootRunner().hasRunningMacro(macroNumber) == expectedActive;
+   }
+
+   private static Boolean macroActiveState(String value) {
+      String state = value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+      return switch (state) {
+         case "", "active", "running", "run", "on", "true" -> true;
+         case "inactive", "deactive", "disabled", "stopped", "stop", "off", "false" -> false;
+         default -> null;
+      };
+   }
+
+   private Boolean idleConditionMatches(Minecraft client, String conditionText, String filterText, long chatBaseline, long actionbarBaseline, long kickedBaseline) {
       String condition = conditionText == null ? "" : conditionText.trim().toLowerCase(Locale.ROOT);
       return switch (condition) {
          case "", "off", "none", "false" -> false;
          case "chat", "message", "text" -> this.chatSequence > chatBaseline && chatFilterMatches(this.lastChatMessage, filterText);
+         case "actionbar", "action_bar", "title_actionbar" -> this.actionbarSequence > actionbarBaseline && chatFilterMatches(this.lastActionbarMessage, filterText);
          case "player", "nearby", "player_nearby" -> this.anyNearbyPlayerMatches(client, filterText);
          case "inventory", "inventory_full", "full" -> this.isInventoryFull(client);
          case "kick", "kicked", "disconnect", "disconnected" -> this.kickedSequence > kickedBaseline && eventTextMatches(this.lastKickReason, filterText, "any");
+         case "item", "has_item", "inventory_item" -> this.inventoryItemConditionMatches(client, filterText);
+         case "xp", "level", "xp_level" -> this.xpLevelConditionMatches(client, filterText);
+         case "health", "health_below", "low_health" -> this.healthBelowConditionMatches(client, filterText);
+         case "food", "hunger", "food_below", "low_food", "low_hunger" -> this.foodBelowConditionMatches(client, filterText);
+         case "water", "in_water" -> client != null && client.player != null && client.player.isInWater();
+         case "effect", "status_effect", "potion" -> this.statusEffectMatches(client, filterText, "1");
+         case "bossbar", "boss_bar" -> this.bossbarContains(client, filterText, "contains");
          default -> null;
       };
    }
@@ -925,6 +1092,14 @@ final class MacroRunner {
    private static boolean isKickedCondition(String conditionText) {
       String condition = conditionText == null ? "" : conditionText.trim().toLowerCase(Locale.ROOT);
       return "kick".equals(condition) || "kicked".equals(condition) || "disconnect".equals(condition) || "disconnected".equals(condition);
+   }
+
+   private static boolean canIdleConditionRunWithoutWorld(String conditionText) {
+      String condition = conditionText == null ? "" : conditionText.trim().toLowerCase(Locale.ROOT);
+      return switch (condition) {
+         case "chat", "message", "text", "actionbar", "action_bar", "title_actionbar", "kick", "kicked", "disconnect", "disconnected" -> true;
+         default -> false;
+      };
    }
 
    private boolean autoReconnectConfigured() {
@@ -959,13 +1134,92 @@ final class MacroRunner {
       return false;
    }
 
+   private Boolean inventoryItemConditionMatches(Minecraft client, String filterText) {
+      if (client == null || client.player == null) {
+         return false;
+      }
+
+      String filter = filterText == null ? "" : filterText.trim();
+      if (filter.isBlank()) {
+         return null;
+      }
+
+      String[] tokens = filter.replace(',', ' ').split("\\s+");
+      String itemId = MacroModel.normalizeItemId(tokens[0]);
+      if (!isKnownItemId(itemId)) {
+         return null;
+      }
+
+      int minCount = 1;
+      for (int index = 1; index < tokens.length; index++) {
+         String token = tokens[index].trim().toLowerCase(Locale.ROOT);
+         if (token.startsWith("x")) {
+            token = token.substring(1);
+         } else if (token.startsWith("count=")) {
+            token = token.substring("count=".length());
+         }
+
+         Integer parsed = parseIntOrNull(token);
+         if (parsed != null) {
+            minCount = Math.max(1, parsed);
+            break;
+         }
+      }
+
+      int count = 0;
+      for (int index = 0; index < client.player.getInventory().getContainerSize(); index++) {
+         ItemStack stack = client.player.getInventory().getItem(index);
+         if (stackMatches(stack, itemId)) {
+            count += stack.getCount();
+            if (count >= minCount) {
+               return true;
+            }
+         }
+      }
+
+      return false;
+   }
+
+   private Boolean xpLevelConditionMatches(Minecraft client, String filterText) {
+      if (client == null || client.player == null) {
+         return false;
+      }
+
+      Integer level = firstInteger(filterText);
+      return level == null ? null : client.player.experienceLevel >= level;
+   }
+
+   private Boolean healthBelowConditionMatches(Minecraft client, String filterText) {
+      if (client == null || client.player == null) {
+         return false;
+      }
+
+      Double health = firstDouble(filterText);
+      return health == null ? null : client.player.getHealth() <= health;
+   }
+
+   private Boolean foodBelowConditionMatches(Minecraft client, String filterText) {
+      if (client == null || client.player == null) {
+         return false;
+      }
+
+      Integer food = firstInteger(filterText);
+      return food == null ? null : client.player.getFoodData().getFoodLevel() <= food;
+   }
+
    private String idleConditionLabel(String conditionText) {
       String condition = conditionText == null ? "" : conditionText.trim().toLowerCase(Locale.ROOT);
       return switch (condition) {
          case "chat", "message", "text" -> "chat";
+         case "actionbar", "action_bar", "title_actionbar" -> "actionbar";
          case "player", "nearby", "player_nearby" -> "player nearby";
          case "inventory", "inventory_full", "full" -> "inventory full";
          case "kick", "kicked", "disconnect", "disconnected" -> "kick/disconnect";
+         case "item", "has_item", "inventory_item" -> "item";
+         case "xp", "level", "xp_level" -> "XP level";
+         case "health", "health_below", "low_health" -> "health";
+         case "food", "hunger", "food_below", "low_food", "low_hunger" -> "hunger";
+         case "water", "in_water" -> "water";
          default -> "trigger";
       };
    }
@@ -1076,6 +1330,7 @@ final class MacroRunner {
    void tick(Minecraft client) {
       if (!this.childRunner) {
          this.pollMacroHotkeys(client);
+         this.detectMacroStateChanges(client);
       }
 
       boolean worldAvailable = client != null && client.player != null && client.level != null;
@@ -1089,6 +1344,10 @@ final class MacroRunner {
       }
 
       this.refreshRuntimeValues(client);
+      if (!this.childRunner) {
+         this.maintainBackgroundMacroState(client);
+         this.pollComponentAutoTriggers(client);
+      }
 
       if (!this.running) {
          if (!this.childRunner && this.model != null) {
@@ -1158,7 +1417,6 @@ final class MacroRunner {
                       this.skipDisabledNode(client, node);
                    } else {
                       try {
-                      this.closePassiveGameplayScreenIfNeeded(client, node.type);
                       String exception = node.type;
                       switch (exception) {
                         case "official:start":
@@ -1249,6 +1507,23 @@ final class MacroRunner {
                         case "builder:logic.scoreboardContains":
                            this.completeCondition(client, node, this.scoreboardContains(client, node), "Failed: Scoreboard Contains mode must be contains, exact, or regex.");
                            break;
+                        case "builder:logic.actionbarContains":
+                           this.completeCondition(client, node, this.actionbarContains(node), "Failed: Actionbar Contains mode must be contains, exact, or regex.");
+                           break;
+                        case "builder:logic.hasStatusEffect":
+                           this.completeCondition(client, node, this.statusEffectMatches(client, node), "Failed: Has Status Effect needs an effect id and a minimum level of 1 or higher.");
+                           break;
+                        case "builder:logic.bossbarContains":
+                           this.completeCondition(client, node, this.bossbarContains(client, node), "Failed: Bossbar Contains mode must be contains, exact, or regex.");
+                           break;
+                        case "builder:logic.macroActiveState":
+                           this.completeCondition(
+                              client,
+                              node,
+                              this.macroActiveStateMatches(node),
+                              "Failed: Macro Active State needs another macro slot from 1 to 100 and active or inactive."
+                           );
+                           break;
                         case "official:misc.wait":
                            this.runWait(client, node);
                            break;
@@ -1333,6 +1608,15 @@ final class MacroRunner {
                         case "builder:world.openNearestContainer":
                            this.runOpenNearestContainer(client, node);
                            break;
+                        case "builder:world.openNearestChest":
+                           this.runOpenNearestContainer(client, node, "chest", "Open Nearest Chest");
+                           break;
+                        case "builder:world.openNearestBarrel":
+                           this.runOpenNearestContainer(client, node, "barrel", "Open Nearest Barrel");
+                           break;
+                        case "builder:world.openNearestShulker":
+                           this.runOpenNearestContainer(client, node, "shulker", "Open Nearest Shulker");
+                           break;
                         case "builder:world.openNearestEnchantingTable":
                            this.runOpenNearestEnchantingTable(client, node);
                            break;
@@ -1381,6 +1665,9 @@ final class MacroRunner {
                            break;
                         case "builder:misc.repeatSection":
                            this.runRepeatSection(client, node);
+                           break;
+                        case "builder:misc.repeatUntil":
+                           this.runRepeatUntil(client, node);
                            break;
                         case "builder:misc.idleUntil":
                            this.runIdleUntil(client, node);
@@ -1435,6 +1722,15 @@ final class MacroRunner {
                            break;
                         case "official:event.chat":
                            this.runEventChat(client, node);
+                           break;
+                        case "builder:event.actionbar":
+                           this.runEventActionbar(client, node);
+                           break;
+                        case "builder:event.statusEffect":
+                           this.runEventStatusEffect(client, node);
+                           break;
+                        case "builder:event.bossbar":
+                           this.runEventBossbar(client, node);
                            break;
                         case "builder:event.kicked":
                            this.runEventKicked(client, node);
@@ -1532,11 +1828,28 @@ final class MacroRunner {
             case "builder:event.kicked":
                this.runEventKicked(client, node);
                break;
+            case "builder:event.actionbar":
+               this.runEventActionbar(client, node);
+               break;
+            case "builder:logic.actionbarContains":
+               this.completeCondition(client, node, this.actionbarContains(node), "Failed: Actionbar Contains mode must be contains, exact, or regex.");
+               break;
+            case "builder:logic.macroActiveState":
+               this.completeCondition(
+                  client,
+                  node,
+                  this.macroActiveStateMatches(node),
+                  "Failed: Macro Active State needs another macro slot from 1 to 100 and active or inactive."
+               );
+               break;
             case "builder:misc.repeatMacro":
                this.runRepeatMacro(client, node);
                break;
             case "builder:misc.repeatSection":
                this.runRepeatSection(client, node);
+               break;
+            case "builder:misc.repeatUntil":
+               this.runRepeatUntil(client, node);
                break;
             case "builder:misc.idleUntil":
                this.runIdleUntil(client, node);
@@ -1593,6 +1906,9 @@ final class MacroRunner {
             "builder:flow.endConnection",
             "builder:flow.note",
             "builder:event.kicked",
+            "builder:event.actionbar",
+            "builder:logic.actionbarContains",
+            "builder:logic.macroActiveState",
             "official:misc.rejoinServer",
             "official:misc.joinServer",
             "builder:localMessage",
@@ -1603,7 +1919,8 @@ final class MacroRunner {
             "builder:flow.skipIfTrue",
             "official:misc.random",
             "builder:misc.randomOutput3" -> true;
-         case "builder:misc.idleUntil" -> isKickedCondition(node.value);
+         case "builder:misc.idleUntil" -> canIdleConditionRunWithoutWorld(node.value);
+         case "builder:misc.repeatUntil" -> canIdleConditionRunWithoutWorld(node.value);
          default -> false;
       };
    }
@@ -1612,7 +1929,7 @@ final class MacroRunner {
       if (macroHotkeysAvailable(client)) {
          for (int index = 0; index < this.macroKeyWasDown.length; index++) {
             int keyCode = this.settings.macroKey(index + 1);
-            boolean down = keyCode != -1 && keyCode >= 0 && InputConstants.isKeyDown(client.getWindow(), keyCode);
+            boolean down = keyCode > 0 && InputConstants.isKeyDown(client.getWindow(), keyCode);
             if (down && !this.macroKeyWasDown[index]) {
                this.toggleMacro(client, index + 1);
             }
@@ -1650,12 +1967,6 @@ final class MacroRunner {
    }
 
    private void closePassiveGameplayScreenIfNeeded(Minecraft client, String type) {
-      if (needsClearGameplayScreen(type) && client != null) {
-         Screen screen = client.gui.screen();
-         if (screen instanceof ChatScreen || screen != null && screen.isPauseScreen()) {
-            client.setScreenAndShow(null);
-         }
-      }
    }
 
    private static boolean needsClearGameplayScreen(String type) {
@@ -1682,6 +1993,9 @@ final class MacroRunner {
             "official:world.jumpAndPlaceBlock",
             "builder:world.farmArea",
             "builder:world.openNearestContainer",
+            "builder:world.openNearestChest",
+            "builder:world.openNearestBarrel",
+            "builder:world.openNearestShulker",
             "builder:world.openNearestEnchantingTable",
             "builder:world.openNearestGrindstone",
             "builder:world.autoBoneMeal",
@@ -1702,6 +2016,20 @@ final class MacroRunner {
 
          for (MacroRunner child : this.pendingChildRunners) {
             child.recordChatMessage(message);
+         }
+      }
+   }
+
+   void recordActionbarMessage(String message) {
+      if (message != null && !message.isBlank()) {
+         this.lastActionbarMessage = message;
+         this.actionbarSequence++;
+         for (MacroRunner child : this.childRunners) {
+            child.recordActionbarMessage(message);
+         }
+
+         for (MacroRunner child : this.pendingChildRunners) {
+            child.recordActionbarMessage(message);
          }
       }
    }
@@ -1765,7 +2093,7 @@ final class MacroRunner {
             return;
          }
 
-         client.options.keyShift.setDown(crouching);
+         this.setMacroKeyDown(client, client.options.keyShift, crouching);
       }
 
       this.complete(client, node, "completed");
@@ -1779,7 +2107,7 @@ final class MacroRunner {
             return;
          }
 
-         client.options.keySprint.setDown(sprinting);
+         this.setMacroKeyDown(client, client.options.keySprint, sprinting);
          client.player.setSprinting(sprinting);
       }
 
@@ -1828,11 +2156,11 @@ final class MacroRunner {
       } else if (options.hold()) {
          if (this.activeTicks == 1) {
             this.activePressedKey = key;
-            KeyMapping.set(key, true);
+            this.setRawKeyDown(client, key, true);
          }
 
          if (this.activeTicks >= durationTicks(options.durationMs())) {
-            KeyMapping.set(key, false);
+            this.setRawKeyDown(client, key, false);
             this.activePressedKey = null;
             this.complete(client, node, "completed");
          }
@@ -1842,7 +2170,7 @@ final class MacroRunner {
          }
 
          if (this.activeTicks >= durationTicks(options.durationMs())) {
-            KeyMapping.set(key, false);
+            this.setRawKeyDown(client, key, false);
             this.complete(client, node, "completed");
          }
       }
@@ -1858,7 +2186,7 @@ final class MacroRunner {
             this.releaseMovementKeys(client);
             this.complete(client, node, "completed");
          } else {
-            client.options.keyUp.setDown(true);
+            this.setMacroKeyDown(client, client.options.keyUp, true);
             if (this.activeTicks > 300) {
                this.releaseMovementKeys(client);
                this.fail(client, node, "Failed: Move timed out before reaching target.");
@@ -1872,7 +2200,7 @@ final class MacroRunner {
                this.releaseMovementKeys(client);
                this.complete(client, node, "completed");
             } else {
-               client.options.keyUp.setDown(true);
+               this.setMacroKeyDown(client, client.options.keyUp, true);
                if (this.activeTicks > 300) {
                   this.releaseMovementKeys(client);
                   this.fail(client, node, "Failed: Move timed out before reaching entity.");
@@ -1886,20 +2214,20 @@ final class MacroRunner {
                   case "back":
                   case "backward":
                   case "backwards":
-                     client.options.keyDown.setDown(true);
+                     this.setMacroKeyDown(client, client.options.keyDown, true);
                      break;
                   case "left":
-                     client.options.keyLeft.setDown(true);
+                     this.setMacroKeyDown(client, client.options.keyLeft, true);
                      break;
                   case "right":
-                     client.options.keyRight.setDown(true);
+                     this.setMacroKeyDown(client, client.options.keyRight, true);
                      break;
                   case "jump":
                   case "up":
-                     client.options.keyJump.setDown(true);
+                     this.setMacroKeyDown(client, client.options.keyJump, true);
                      break;
                   default:
-                     client.options.keyUp.setDown(true);
+                     this.setMacroKeyDown(client, client.options.keyUp, true);
                }
             }
 
@@ -1941,9 +2269,9 @@ final class MacroRunner {
       Integer button = parseMouseButton(this.resolveRuntimeText(node.value2));
       if (pressed != null && button != null && button >= 0 && button <= 1) {
          if (button == 1) {
-            client.options.keyUse.setDown(pressed);
+            this.setMacroKeyDown(client, client.options.keyUse, pressed);
          } else {
-            client.options.keyAttack.setDown(pressed);
+            this.setMacroKeyDown(client, client.options.keyAttack, pressed);
          }
 
          this.complete(client, node, "completed");
@@ -1980,11 +2308,11 @@ final class MacroRunner {
          }
 
          client.gameMode.useItem(client.player, InteractionHand.MAIN_HAND);
-         client.options.keyUse.setDown(true);
+         this.setMacroKeyDown(client, client.options.keyUse, true);
       }
 
       if (this.activeTicks >= 25) {
-         client.options.keyUse.setDown(false);
+         this.setMacroKeyDown(client, client.options.keyUse, false);
          if (client.gameMode != null) {
             client.gameMode.releaseUsingItem(client.player);
          }
@@ -2501,11 +2829,11 @@ final class MacroRunner {
 
          client.player.swing(InteractionHand.MAIN_HAND);
          if (client.level.getBlockState(hit.getBlockPos()).isAir()) {
-            client.options.keyAttack.setDown(false);
+            this.setMacroKeyDown(client, client.options.keyAttack, false);
             this.complete(client, node, "completed");
          } else {
             if (this.activeTicks > 300) {
-               client.options.keyAttack.setDown(false);
+               this.setMacroKeyDown(client, client.options.keyAttack, false);
                this.fail(client, node, "Failed: Mine Block timed out before the block broke.");
             }
          }
@@ -2537,12 +2865,12 @@ final class MacroRunner {
             this.fail(client, node, "Failed: Jump And Place Block could not find the selected block.");
          } else {
             this.activeJumpPlaceSupportPos = this.blockUnderPlayer(client);
-            client.options.keyJump.setDown(true);
+            this.setMacroKeyDown(client, client.options.keyJump, true);
             client.player.jumpFromGround();
          }
       } else {
          if (this.activeTicks >= 3) {
-            client.options.keyJump.setDown(false);
+            this.setMacroKeyDown(client, client.options.keyJump, false);
             if (client.gameMode == null) {
                this.fail(client, node, "Failed: Jump And Place Block could not place.");
                return;
@@ -2699,8 +3027,23 @@ final class MacroRunner {
    private void runOpenNearestContainer(Minecraft client, MacroModel.Node node) {
       MacroRunner.ContainerSearchOptions options = this.containerSearchOptions(this.resolveRuntimeText(node.value), this.resolveRuntimeText(node.value2));
       if (options == null) {
-         this.fail(client, node, "Failed: Open Nearest Container needs radius 1-16 and type any/chest/barrel/ender_chest/shulker.");
-      } else if (activeContainerHandler(client) != null) {
+         this.fail(client, node, "Failed: Open Nearest Container needs radius 1-16 and type any/chest/barrel/ender_chest/shulker/furnace/brewing_stand.");
+      } else {
+         this.runOpenNearestContainer(client, node, options, "Open Nearest Container");
+      }
+   }
+
+   private void runOpenNearestContainer(Minecraft client, MacroModel.Node node, String type, String label) {
+      MacroRunner.ContainerSearchOptions options = this.containerSearchOptions(this.resolveRuntimeText(node.value), this.resolveRuntimeText(node.value2));
+      if (options == null) {
+         this.fail(client, node, "Failed: " + label + " needs radius 1-16.");
+      } else {
+         this.runOpenNearestContainer(client, node, new MacroRunner.ContainerSearchOptions(options.radius(), options.move(), type), label);
+      }
+   }
+
+   private void runOpenNearestContainer(Minecraft client, MacroModel.Node node, MacroRunner.ContainerSearchOptions options, String label) {
+      if (activeContainerHandler(client) != null) {
          this.releaseMovementKeys(client);
          this.complete(client, node, "completed");
       } else {
@@ -2719,14 +3062,14 @@ final class MacroRunner {
             } else if (!options.move()) {
                this.fail(client, node, "Failed: nearest container is out of reach.");
             } else {
-               client.options.keyUp.setDown(true);
+               this.setMacroKeyDown(client, client.options.keyUp, true);
                if (this.activeTicks > 300) {
                   this.releaseMovementKeys(client);
                   this.fail(client, node, "Failed: nearest container stayed out of reach.");
                }
             }
          } else {
-            this.fail(client, node, "Failed: no nearby " + options.type() + " container was found.");
+            this.fail(client, node, "Failed: no nearby " + containerTypeLabel(options.type()) + " was found.");
          }
       }
    }
@@ -2956,7 +3299,7 @@ final class MacroRunner {
          if (moveToTarget == null) {
             this.fail(client, node, "Failed: Entity move value must be true or false.");
          } else if (moveToTarget && client.player.distanceToSqr(target) > 9.0) {
-            client.options.keyUp.setDown(true);
+            this.setMacroKeyDown(client, client.options.keyUp, true);
             if (this.activeTicks > 300) {
                this.releaseMovementKeys(client);
                this.fail(client, node, "Failed: target entity was out of reach.");
@@ -3052,9 +3395,11 @@ final class MacroRunner {
    }
 
    private void runIdleUntil(Minecraft client, MacroModel.Node node) {
-      Boolean triggered = this.idleConditionMatches(client, this.resolveRuntimeText(node.value), this.resolveRuntimeText(node.value2), this.nodeChatBaseline, this.nodeKickedBaseline);
+      Boolean triggered = this.idleConditionMatches(
+         client, this.resolveRuntimeText(node.value), this.resolveRuntimeText(node.value2), this.nodeChatBaseline, this.nodeActionbarBaseline, this.nodeKickedBaseline
+      );
       if (triggered == null) {
-         this.fail(client, node, "Failed: Idle Until condition must be chat, player, full, or kicked.");
+         this.fail(client, node, "Failed: Idle Until condition must be chat, actionbar, player, full, kicked, item, xp, health, food, or water.");
       } else if (triggered) {
          this.complete(client, node, "triggered");
       } else {
@@ -3155,6 +3500,25 @@ final class MacroRunner {
             this.complete(client, node, "repeat");
             this.lastStatus = "Repeating section | loop " + (completedRuns + 1) + " of " + targetRuns;
          }
+      }
+   }
+
+   private void runRepeatUntil(Minecraft client, MacroModel.Node node) {
+      Boolean done = this.idleConditionMatches(
+         client,
+         this.resolveRuntimeText(node.value),
+         this.resolveRuntimeText(node.value2),
+         this.autoStartChatBaseline,
+         this.autoStartActionbarBaseline,
+         this.autoStartKickedBaseline
+      );
+      if (done == null) {
+         this.fail(client, node, "Failed: Repeat Until condition must be chat, actionbar, player, full, kicked, item, xp, health, food, or water.");
+      } else if (done) {
+         this.complete(client, node, "completed");
+      } else {
+         this.complete(client, node, "repeat");
+         this.lastStatus = "Repeating until " + this.idleConditionLabel(this.resolveRuntimeText(node.value)) + ".";
       }
    }
 
@@ -3365,6 +3729,10 @@ final class MacroRunner {
          return this.runtimeValues.getOrDefault(directKey, "");
       }
 
+      if (text.indexOf('$') < 0 && text.indexOf("{{") < 0) {
+         return text;
+      }
+
       String resolved = text;
       for (Map.Entry<String, String> entry : this.runtimeValues.entrySet()) {
          resolved = resolved.replace("${" + entry.getKey() + "}", entry.getValue());
@@ -3564,6 +3932,25 @@ final class MacroRunner {
       }
    }
 
+   private void runEventActionbar(Minecraft client, MacroModel.Node node) {
+      if (this.actionbarSequence > this.nodeActionbarBaseline
+         && eventTextMatches(this.lastActionbarMessage, this.resolveRuntimeText(node.value), this.resolveRuntimeText(node.value2))) {
+         this.complete(client, node, "triggered");
+      }
+   }
+
+   private void runEventStatusEffect(Minecraft client, MacroModel.Node node) {
+      if (Boolean.TRUE.equals(this.statusEffectMatches(client, node))) {
+         this.complete(client, node, "triggered");
+      }
+   }
+
+   private void runEventBossbar(Minecraft client, MacroModel.Node node) {
+      if (Boolean.TRUE.equals(this.bossbarContains(client, node))) {
+         this.complete(client, node, "triggered");
+      }
+   }
+
    private void runEventKicked(Minecraft client, MacroModel.Node node) {
       if (this.kickedSequence > this.nodeKickedBaseline && eventTextMatches(this.lastKickReason, this.resolveRuntimeText(node.value), this.resolveRuntimeText(node.value2))) {
          this.complete(client, node, "triggered");
@@ -3590,6 +3977,82 @@ final class MacroRunner {
             };
          }
       }
+   }
+
+   private Boolean actionbarContains(MacroModel.Node node) {
+      String latest = this.lastActionbarMessage == null ? "" : this.lastActionbarMessage;
+      if (latest.isBlank()) {
+         return false;
+      }
+
+      String filter = this.resolveRuntimeText(node.value).trim();
+      if (filter.isBlank()) {
+         return true;
+      }
+
+      String mode = this.resolveRuntimeText(node.value2);
+      mode = mode.isBlank() ? "contains" : mode.trim().toLowerCase(Locale.ROOT);
+      return matchesTextMode(latest, filter, mode);
+   }
+
+   private Boolean statusEffectMatches(Minecraft client, MacroModel.Node node) {
+      return this.statusEffectMatches(client, this.resolveRuntimeText(node.value), this.resolveRuntimeText(node.value2));
+   }
+
+   private Boolean statusEffectMatches(Minecraft client, String effectText, String minimumLevelText) {
+      if (client == null || client.player == null) {
+         return false;
+      }
+
+      String filter = effectText == null ? "" : effectText.trim().toLowerCase(Locale.ROOT);
+      int minimumLevel = minimumLevelText == null || minimumLevelText.isBlank() ? 1 : parseInt(minimumLevelText, -1);
+      if (filter.isBlank() || minimumLevel < 1) {
+         return null;
+      }
+
+      for (MobEffectInstance effect : client.player.getActiveEffects()) {
+         String id = BuiltInRegistries.MOB_EFFECT.getKey(effect.getEffect().value()).toString().toLowerCase(Locale.ROOT);
+         String descriptionId = effect.getDescriptionId().toLowerCase(Locale.ROOT);
+         boolean idMatches = id.equals(filter) || (!filter.contains(":") && id.endsWith(":" + filter)) || descriptionId.endsWith("." + filter);
+         if (idMatches && effect.getAmplifier() + 1 >= minimumLevel) {
+            this.putRuntimeValue("effect.id", id);
+            this.putRuntimeValue("effect.level", Integer.toString(effect.getAmplifier() + 1));
+            this.putRuntimeValue("effect.duration_ticks", Integer.toString(effect.getDuration()));
+            this.putRuntimeValue("effect.duration_seconds", Integer.toString(Math.max(0, effect.getDuration() / 20)));
+            return true;
+         }
+      }
+
+      return false;
+   }
+
+   private Boolean bossbarContains(Minecraft client, MacroModel.Node node) {
+      return this.bossbarContains(client, this.resolveRuntimeText(node.value), this.resolveRuntimeText(node.value2));
+   }
+
+   private Boolean bossbarContains(Minecraft client, String filterText, String modeText) {
+      if (client == null || client.gui == null) {
+         return false;
+      }
+
+      String filter = filterText == null ? "" : filterText.trim();
+      String mode = modeText == null || modeText.isBlank() ? "contains" : modeText.trim().toLowerCase(Locale.ROOT);
+      if (!"contains".equals(mode) && !"any".equals(mode) && !"exact".equals(mode) && !"equals".equals(mode) && !"regex".equals(mode)) {
+         return null;
+      }
+
+      BossHealthOverlay overlay = client.gui.hud.getBossOverlay();
+      for (LerpingBossEvent event : ((BossHealthOverlayAccessor)overlay).litemacro$getEvents().values()) {
+         String text = event.getName().getString();
+         if (Boolean.TRUE.equals(matchesTextMode(text, filter, mode))) {
+            this.putRuntimeValue("bossbar.text", text);
+            this.putRuntimeValue("bossbar.progress", Float.toString(event.getProgress()));
+            this.putRuntimeValue("bossbar.percent", Integer.toString(Math.round(event.getProgress() * 100.0F)));
+            return true;
+         }
+      }
+
+      return false;
    }
 
    private Boolean chatRegexMatches(String text, String regexText) {
@@ -3655,6 +4118,7 @@ final class MacroRunner {
 
    private void captureEventBaselines() {
       this.nodeChatBaseline = this.chatSequence;
+      this.nodeActionbarBaseline = this.actionbarSequence;
       this.nodeDamageBaseline = this.damageSequence;
       this.nodeTeleportBaseline = this.teleportSequence;
       this.nodeSpawnBaseline = this.playerSpawnSequence;
@@ -3677,12 +4141,12 @@ final class MacroRunner {
 
       this.lastPlayerPos = pos;
       this.lastWorldId = worldId;
-      Set<UUID> currentPlayers = new HashSet<>();
+      this.currentPlayerIds.clear();
 
       for (AbstractClientPlayer player : client.level.players()) {
          UUID id = player.getUUID();
          String name = player.getName().getString();
-         currentPlayers.add(id);
+         this.currentPlayerIds.add(id);
          if (!this.knownPlayerIds.isEmpty() && !this.knownPlayerIds.contains(id)) {
             this.lastPlayerSpawnName = name;
             this.playerSpawnSequence++;
@@ -3693,7 +4157,7 @@ final class MacroRunner {
 
       if (!this.knownPlayerIds.isEmpty()) {
          for (UUID previous : this.knownPlayerIds) {
-            if (!currentPlayers.contains(previous)) {
+            if (!this.currentPlayerIds.contains(previous)) {
                this.lastPlayerDespawnName = this.knownPlayerNames.getOrDefault(previous, previous.toString());
                this.playerDespawnSequence++;
             }
@@ -3701,8 +4165,8 @@ final class MacroRunner {
       }
 
       this.knownPlayerIds.clear();
-      this.knownPlayerIds.addAll(currentPlayers);
-      this.knownPlayerNames.keySet().retainAll(currentPlayers);
+      this.knownPlayerIds.addAll(this.currentPlayerIds);
+      this.knownPlayerNames.keySet().retainAll(this.currentPlayerIds);
    }
 
    private URI parseHttpUri(String url) {
@@ -4494,25 +4958,180 @@ final class MacroRunner {
    private void releaseHeldKeys(Minecraft client) {
       this.releaseMovementKeys(client);
       if (this.activePressedKey != null) {
-         KeyMapping.set(this.activePressedKey, false);
+         this.setRawKeyDown(client, this.activePressedKey, false);
          this.activePressedKey = null;
       }
 
       if (client != null) {
-         client.options.keyAttack.setDown(false);
-         client.options.keyUse.setDown(false);
-         client.options.keySprint.setDown(false);
+         this.setMacroKeyDown(client, client.options.keyAttack, false);
+         this.setMacroKeyDown(client, client.options.keyUse, false);
+         this.setMacroKeyDown(client, client.options.keySprint, false);
       }
    }
 
    private void releaseMovementKeys(Minecraft client) {
       if (client != null) {
-         client.options.keyUp.setDown(false);
-         client.options.keyDown.setDown(false);
-         client.options.keyLeft.setDown(false);
-         client.options.keyRight.setDown(false);
-         client.options.keyJump.setDown(false);
+         this.setMacroKeyDown(client, client.options.keyUp, false);
+         this.setMacroKeyDown(client, client.options.keyDown, false);
+         this.setMacroKeyDown(client, client.options.keyLeft, false);
+         this.setMacroKeyDown(client, client.options.keyRight, false);
+         this.setMacroKeyDown(client, client.options.keyJump, false);
       }
+   }
+
+   private void maintainBackgroundMacroState(Minecraft client) {
+      if (this.running()) {
+         this.disablePauseOnLostFocus(client);
+         this.refreshHeldMacroInputs();
+      } else {
+         this.restorePauseOnLostFocus(client);
+      }
+   }
+
+   private void disablePauseOnLostFocus(Minecraft client) {
+      if (client == null || client.options == null) {
+         return;
+      }
+
+      if (this.previousPauseOnLostFocus == null) {
+         this.previousPauseOnLostFocus = client.options.pauseOnLostFocus;
+      }
+
+      client.options.pauseOnLostFocus = false;
+   }
+
+   private void restorePauseOnLostFocus(Minecraft client) {
+      if (client == null || client.options == null || this.previousPauseOnLostFocus == null) {
+         return;
+      }
+
+      client.options.pauseOnLostFocus = this.previousPauseOnLostFocus;
+      this.previousPauseOnLostFocus = null;
+   }
+
+   private void refreshHeldMacroInputs() {
+      for (Map.Entry<KeyMapping, Integer> entry : this.rootHeldKeyMappings.entrySet()) {
+         if (entry.getValue() > 0) {
+            KeyMapping keyMapping = entry.getKey();
+            keyMapping.setDown(true);
+            KeyMapping.set(keyMapping.getDefaultKey(), true);
+         }
+      }
+
+      for (Map.Entry<InputConstants.Key, Integer> entry : this.rootHeldRawKeys.entrySet()) {
+         if (entry.getValue() > 0) {
+            KeyMapping.set(entry.getKey(), true);
+         }
+      }
+   }
+
+   private void setMacroKeyDown(Minecraft client, KeyMapping keyMapping, boolean down) {
+      if (keyMapping == null) {
+         return;
+      }
+
+      if (down) {
+         if (this.ownedKeyMappings.add(keyMapping)) {
+            Map<KeyMapping, Integer> rootKeys = this.rootRunner().rootHeldKeyMappings;
+            rootKeys.put(keyMapping, rootKeys.getOrDefault(keyMapping, 0) + 1);
+         }
+
+         keyMapping.setDown(true);
+         KeyMapping.set(keyMapping.getDefaultKey(), true);
+      } else {
+         this.releaseMacroKey(client, keyMapping);
+      }
+   }
+
+   private void releaseMacroKey(Minecraft client, KeyMapping keyMapping) {
+      if (keyMapping == null || !this.ownedKeyMappings.remove(keyMapping)) {
+         return;
+      }
+
+      MacroRunner root = this.rootRunner();
+      Map<KeyMapping, Integer> rootKeys = root.rootHeldKeyMappings;
+      int remaining = Math.max(0, rootKeys.getOrDefault(keyMapping, 0) - 1);
+      if (remaining > 0) {
+         rootKeys.put(keyMapping, remaining);
+         return;
+      }
+
+      rootKeys.remove(keyMapping);
+      InputConstants.Key defaultKey = keyMapping.getDefaultKey();
+      if (!root.hasMacroOwnerForRawKey(defaultKey) && !this.isPhysicalKeyDown(client, defaultKey)) {
+         keyMapping.setDown(false);
+         KeyMapping.set(defaultKey, false);
+      }
+   }
+
+   private void setRawKeyDown(Minecraft client, InputConstants.Key key, boolean down) {
+      if (key == null || key == InputConstants.UNKNOWN) {
+         return;
+      }
+
+      if (down) {
+         if (this.ownedRawKeys.add(key)) {
+            Map<InputConstants.Key, Integer> rootKeys = this.rootRunner().rootHeldRawKeys;
+            rootKeys.put(key, rootKeys.getOrDefault(key, 0) + 1);
+         }
+
+         KeyMapping.set(key, true);
+      } else {
+         this.releaseRawKey(client, key);
+      }
+   }
+
+   private void releaseRawKey(Minecraft client, InputConstants.Key key) {
+      if (key == null || key == InputConstants.UNKNOWN || !this.ownedRawKeys.remove(key)) {
+         return;
+      }
+
+      MacroRunner root = this.rootRunner();
+      Map<InputConstants.Key, Integer> rootKeys = root.rootHeldRawKeys;
+      int remaining = Math.max(0, rootKeys.getOrDefault(key, 0) - 1);
+      if (remaining > 0) {
+         rootKeys.put(key, remaining);
+         return;
+      }
+
+      rootKeys.remove(key);
+      if (!root.hasMacroOwnerForKeyMapping(key) && !this.isPhysicalKeyDown(client, key)) {
+         KeyMapping.set(key, false);
+      }
+   }
+
+   private boolean hasMacroOwnerForRawKey(InputConstants.Key key) {
+      return key != null && this.rootRunner().rootHeldRawKeys.getOrDefault(key, 0) > 0;
+   }
+
+   private boolean hasMacroOwnerForKeyMapping(InputConstants.Key key) {
+      if (key == null) {
+         return false;
+      }
+
+      for (Map.Entry<KeyMapping, Integer> entry : this.rootRunner().rootHeldKeyMappings.entrySet()) {
+         if (entry.getValue() > 0 && key.equals(entry.getKey().getDefaultKey())) {
+            return true;
+         }
+      }
+
+      return false;
+   }
+
+   private boolean isPhysicalKeyDown(Minecraft client, KeyMapping keyMapping) {
+      return keyMapping != null && this.isPhysicalKeyDown(client, keyMapping.getDefaultKey());
+   }
+
+   private boolean isPhysicalKeyDown(Minecraft client, InputConstants.Key key) {
+      if (client == null || key == null || key == InputConstants.UNKNOWN || key.getValue() <= 0) {
+         return false;
+      }
+
+      if (key.getType() == InputConstants.Type.MOUSE) {
+         return false;
+      }
+
+      return InputConstants.isKeyDown(client.getWindow(), key.getValue());
    }
 
    private void clearFarmState() {
@@ -4615,11 +5234,35 @@ final class MacroRunner {
 
       return switch (normalized) {
          case "", "any", "all", "container" -> "any";
-         case "chest", "normal_chest", "trapped_chest" -> "chest";
-         case "barrel" -> "barrel";
+         case "chest", "chests", "normal_chest", "trapped_chest" -> "chest";
+         case "barrel", "barrels" -> "barrel";
          case "ender", "enderchest", "ender_chest" -> "ender_chest";
-         case "shulker", "shulker_box" -> "shulker";
+         case "shulker", "shulkers", "shulker_box", "shulker_boxes" -> "shulker";
+         case "furnace", "furnaces" -> "furnace";
+         case "blast", "blast_furnace", "blast_furnaces", "blastfurnace" -> "blast_furnace";
+         case "smoker", "smokers" -> "smoker";
+         case "brewing", "brewing_stand", "brewing_stands", "brewingstand" -> "brewing_stand";
+         case "hopper", "hoppers" -> "hopper";
+         case "dispenser", "dispensers" -> "dispenser";
+         case "dropper", "droppers" -> "dropper";
          default -> null;
+      };
+   }
+
+   private static String containerTypeLabel(String type) {
+      return switch (type == null ? "any" : type) {
+         case "chest" -> "chest";
+         case "barrel" -> "barrel";
+         case "ender_chest" -> "ender chest";
+         case "shulker" -> "shulker box";
+         case "furnace" -> "furnace";
+         case "blast_furnace" -> "blast furnace";
+         case "smoker" -> "smoker";
+         case "brewing_stand" -> "brewing stand";
+         case "hopper" -> "hopper";
+         case "dispenser" -> "dispenser";
+         case "dropper" -> "dropper";
+         default -> "container";
       };
    }
 
@@ -4887,7 +5530,7 @@ final class MacroRunner {
 
    private void moveTowardBlock(Minecraft client, BlockPos pos) {
       this.lookAt(client, Vec3.atCenterOf(pos));
-      client.options.keyUp.setDown(true);
+      this.setMacroKeyDown(client, client.options.keyUp, true);
    }
 
    private boolean areaHasLoadedPosition(Minecraft client, BlockPos min, BlockPos max) {
@@ -5045,13 +5688,27 @@ final class MacroRunner {
       boolean barrel = id.equals("minecraft:barrel");
       boolean enderChest = id.equals("minecraft:ender_chest");
       boolean shulker = id.endsWith("_shulker_box");
+      boolean furnace = id.equals("minecraft:furnace");
+      boolean blastFurnace = id.equals("minecraft:blast_furnace");
+      boolean smoker = id.equals("minecraft:smoker");
+      boolean brewingStand = id.equals("minecraft:brewing_stand");
+      boolean hopper = id.equals("minecraft:hopper");
+      boolean dispenser = id.equals("minecraft:dispenser");
+      boolean dropper = id.equals("minecraft:dropper");
 
       return switch (normalizedType) {
          case "chest" -> chest;
          case "barrel" -> barrel;
          case "ender_chest" -> enderChest;
          case "shulker" -> shulker;
-         default -> chest || barrel || enderChest || shulker;
+         case "furnace" -> furnace;
+         case "blast_furnace" -> blastFurnace;
+         case "smoker" -> smoker;
+         case "brewing_stand" -> brewingStand;
+         case "hopper" -> hopper;
+         case "dispenser" -> dispenser;
+         case "dropper" -> dropper;
+         default -> chest || barrel || enderChest || shulker || furnace || blastFurnace || smoker || brewingStand || hopper || dispenser || dropper;
       };
    }
 
@@ -6519,11 +7176,9 @@ final class MacroRunner {
 
    private void setMouseButtonDown(Minecraft client, int button, boolean down) {
       if (button == 1) {
-         client.options.keyUse.setDown(down);
-         KeyMapping.set(client.options.keyUse.getDefaultKey(), down);
+         this.setMacroKeyDown(client, client.options.keyUse, down);
       } else {
-         client.options.keyAttack.setDown(down);
-         KeyMapping.set(client.options.keyAttack.getDefaultKey(), down);
+         this.setMacroKeyDown(client, client.options.keyAttack, down);
       }
    }
 
@@ -7006,6 +7661,16 @@ final class MacroRunner {
       } catch (NumberFormatException var2) {
          return null;
       }
+   }
+
+   private static Integer firstInteger(String value) {
+      Matcher matcher = FIRST_INTEGER_PATTERN.matcher(value == null ? "" : value);
+      return matcher.find() ? parseIntOrNull(matcher.group()) : null;
+   }
+
+   private static Double firstDouble(String value) {
+      Matcher matcher = FIRST_DOUBLE_PATTERN.matcher(value == null ? "" : value);
+      return matcher.find() ? parseDoubleOrNull(matcher.group()) : null;
    }
 
    private static Boolean doubleAtOrBelow(double actual, String value) {

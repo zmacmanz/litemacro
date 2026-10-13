@@ -65,6 +65,15 @@ final class MacroListScreen extends Screen {
             }).bounds(left + listWidth - 42, rowY, 42, 20).build());
          }
 
+         this.addRenderableWidget(
+            Button.builder(Component.literal(this.runner.runningOverlay() ? "Overlay: On" : "Overlay: Off"), button -> {
+                  this.runner.toggleRunningOverlay();
+                  button.setMessage(Component.literal(this.runner.runningOverlay() ? "Overlay: On" : "Overlay: Off"));
+               })
+               .bounds(left + listWidth - 104, 48, 104, 20)
+               .build()
+         );
+
          int footerY = Math.min(this.height - 112, y + 240 + 12);
          ((Button)this.addRenderableWidget(
                Button.builder(Component.literal("Prev"), button -> this.minecraft.setScreen(new MacroListScreen(this.runner, this.page - 1)))

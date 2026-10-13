@@ -44,6 +44,10 @@ Many fields can use live values such as `${player.name}`, `${player.pos}`, `${ta
 | `Player At Location` | Checks if player is near coordinates. |
 | `Player Nearby` | Checks for nearby players by name or regex. |
 | `Scoreboard Contains` | Checks scoreboard text with contains, exact, or regex mode. |
+| `Actionbar Contains` | Checks the latest actionbar text with contains, exact, or regex mode. |
+| `Has Status Effect` | Checks for an active effect such as Speed and an optional minimum level. |
+| `Bossbar Contains` | Checks every boss bar currently visible on screen. |
+| `Macro Active State` | Checks whether another macro slot is active or inactive. It can automatically start the current macro when the selected state is reached. |
 
 ## Flow
 
@@ -52,7 +56,8 @@ Many fields can use live values such as `${player.name}`, `${player.pos}`, `${ta
 | `Wait` | Pauses for a number of milliseconds. |
 | `Repeat Macro` | Repeats the whole macro. |
 | `Repeat` | Repeats a connected section. |
-| `Idle Until` | Waits until chat, player nearby, inventory full, or kicked. |
+| `Repeat Until` | Repeats a connected section until a condition becomes true. |
+| `Idle Until` | Waits until chat, actionbar, player nearby, item, XP, health, food, water, inventory full, or kicked. |
 | `Skip If True` | Jumps past another named component when the condition is true. |
 | `Stop At XP Level` | Waits until the player reaches a level, then releases held actions or stops the macro. |
 | `End Connection` | Ends one branch without stopping other branches. |
@@ -110,7 +115,11 @@ Inventory slots usually use:
 | `Place Block` | Places a selected block on a target. |
 | `Jump And Place Block` | Jumps and places below the player. |
 | `Farm Area` | Harvests crops between two XYZ points and can move. |
-| `Open Nearest Container` | Finds and opens chest, barrel, ender chest, or shulker. |
+| `Open Nearest Container` | Finds and opens a selected container type. The builder has a `Move` button and `Type` dropdown so users do not need to type `move=true type=chest`. |
+| `Open Nearest Chest` | Finds and opens the nearest chest. |
+| `Open Nearest Barrel` | Finds and opens the nearest barrel. |
+| `Open Nearest Shulker` | Finds and opens the nearest shulker box. |
+| `Open Nearest Enchanting Table` | Finds and opens the nearest enchanting table, optionally walking toward it first. |
 | `Open Nearest Grindstone` | Finds and opens the nearest grindstone, optionally walking toward it first. |
 | `Auto Bone Meal` | Uses bone meal and can refill from nearby containers. |
 | `Block At Location Is` | Checks block ID at coordinates. |
@@ -156,10 +165,13 @@ Inventory slots usually use:
 | --- | --- |
 | `If Chat Same` | Checks latest chat against text. |
 | `Event: Chat` | Triggers when matching chat appears. |
+| `Event: Actionbar` | Triggers when matching actionbar text appears. |
+| `Event: Status Effect` | Triggers once when an effect appears. It can start the selected stopped macro from this component. |
+| `Event: Bossbar` | Triggers once when matching boss-bar text appears. It can start the selected stopped macro from this component. |
 | `If Kicked` | Triggers after a kick or disconnect. |
 | `Event: Death` | Triggers when you die. |
 | `Event: Damage` | Triggers when you take damage. |
 | `Event: Teleport` | Triggers after teleport or world change. |
-| `Event: Schedule` | Triggers on a timer or clock time. |
+| `Event: Schedule` | Waits for a relative delay such as `10s` or `2m`, a local 24-hour time such as `14:30`, or the exact once-per-minute value `* * * * *`. Other cron expressions are not supported. |
 | `Event: Player Spawned` | Triggers when a matching player appears. |
 | `Event: Player Despawned` | Triggers when a matching player leaves. |

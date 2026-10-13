@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -76,6 +77,9 @@ final class MacroModel {
    static final String WORLD_JUMP_AND_PLACE_BLOCK = "official:world.jumpAndPlaceBlock";
    static final String WORLD_FARM_AREA = "builder:world.farmArea";
    static final String WORLD_OPEN_NEAREST_CONTAINER = "builder:world.openNearestContainer";
+   static final String WORLD_OPEN_NEAREST_CHEST = "builder:world.openNearestChest";
+   static final String WORLD_OPEN_NEAREST_BARREL = "builder:world.openNearestBarrel";
+   static final String WORLD_OPEN_NEAREST_SHULKER = "builder:world.openNearestShulker";
    static final String WORLD_OPEN_NEAREST_ENCHANTING_TABLE = "builder:world.openNearestEnchantingTable";
    static final String WORLD_OPEN_NEAREST_GRINDSTONE = "builder:world.openNearestGrindstone";
    static final String WORLD_AUTO_BONE_MEAL = "builder:world.autoBoneMeal";
@@ -85,12 +89,17 @@ final class MacroModel {
    static final String ENTITY_INTERACT = "official:entity.interact";
    static final String ENTITY_NEARBY = "builder:entity.nearby";
    static final String SCOREBOARD_CONTAINS = "builder:logic.scoreboardContains";
+   static final String ACTIONBAR_CONTAINS = "builder:logic.actionbarContains";
+   static final String HAS_STATUS_EFFECT = "builder:logic.hasStatusEffect";
+   static final String BOSSBAR_CONTAINS = "builder:logic.bossbarContains";
+   static final String MACRO_ACTIVE_STATE = "builder:logic.macroActiveState";
    static final String LOCAL_MESSAGE = "builder:localMessage";
    static final String STOP_MACRO = "builder:stop";
    static final String END_CONNECTION = "builder:flow.endConnection";
    static final String BUILDER_NOTE = "builder:flow.note";
    static final String REPEAT_MACRO = "builder:misc.repeatMacro";
    static final String REPEAT_SECTION = "builder:misc.repeatSection";
+   static final String REPEAT_UNTIL = "builder:misc.repeatUntil";
    static final String MISC_IDLE_UNTIL = "builder:misc.idleUntil";
    static final String MISC_DISCONNECT = "official:misc.disconnect";
    static final String MISC_REJOIN_SERVER = "official:misc.rejoinServer";
@@ -105,6 +114,9 @@ final class MacroModel {
    static final String LOGIN_REPEAT = "official:login.repeat";
    static final String EVENT_IF_CHAT_SAME = "builder:event.ifChatSame";
    static final String EVENT_CHAT = "official:event.chat";
+   static final String EVENT_ACTIONBAR = "builder:event.actionbar";
+   static final String EVENT_STATUS_EFFECT = "builder:event.statusEffect";
+   static final String EVENT_BOSSBAR = "builder:event.bossbar";
    static final String EVENT_KICKED = "builder:event.kicked";
    static final String EVENT_DEATH = "official:event.death";
    static final String EVENT_DAMAGE_RECEIVED = "official:event.damageReceived";
@@ -162,6 +174,18 @@ final class MacroModel {
       ),
       new MacroModel.Descriptor(
          "builder:logic.scoreboardContains", "Scoreboard Contains", "Logic", -1726398, TRUE_FALSE_OR_FAILED, true, "Text or regex", "Mode: contains/exact/regex", ""
+      ),
+      new MacroModel.Descriptor(
+         "builder:logic.actionbarContains", "Actionbar Contains", "Logic", -1726398, TRUE_FALSE_OR_FAILED, true, "Text or regex", "Mode: contains/exact/regex", ""
+      ),
+      new MacroModel.Descriptor(
+         "builder:logic.hasStatusEffect", "Has Status Effect", "Logic", -1726398, TRUE_FALSE_OR_FAILED, true, "Effect id or name", "Minimum level", "minecraft:speed"
+      ),
+      new MacroModel.Descriptor(
+         "builder:logic.bossbarContains", "Bossbar Contains", "Logic", -1726398, TRUE_FALSE_OR_FAILED, true, "Visible bossbar text", "Mode: contains/exact/regex", ""
+      ),
+      new MacroModel.Descriptor(
+         "builder:logic.macroActiveState", "Macro Active State", "Logic", -1726398, TRUE_FALSE_OR_FAILED, true, "Macro slot 1-100", "State: active/inactive", "1"
       ),
       new MacroModel.Descriptor("official:misc.wait", "Wait", "Flow", -11094334, COMPLETED_OR_FAILED, true, "Duration ms", "", "10000"),
       new MacroModel.Descriptor("official:misc.chat", "Chat / Command", "Action", -6765703, COMPLETED_OR_FAILED, true, "Message; use ${player.name}", "", "/say Macro running"),
@@ -298,7 +322,16 @@ final class MacroModel {
          "builder:world.farmArea", "Farm Area", "World", -11094334, COMPLETED_OR_FAILED, true, "Radius, X Y Z, or ~ ~ ~", "To X Y Z / options", "0 64 0"
       ),
       new MacroModel.Descriptor(
-         "builder:world.openNearestContainer", "Open Nearest Container", "World", -11094334, COMPLETED_OR_FAILED, true, "Radius 1-16", "Move/type", "8"
+         "builder:world.openNearestContainer", "Open Nearest Container", "World", -11094334, COMPLETED_OR_FAILED, true, "Radius 1-16", "Move / container type", "8"
+      ),
+      new MacroModel.Descriptor(
+         "builder:world.openNearestChest", "Open Nearest Chest", "World", -11094334, COMPLETED_OR_FAILED, true, "Radius 1-16", "Move", "8"
+      ),
+      new MacroModel.Descriptor(
+         "builder:world.openNearestBarrel", "Open Nearest Barrel", "World", -11094334, COMPLETED_OR_FAILED, true, "Radius 1-16", "Move", "8"
+      ),
+      new MacroModel.Descriptor(
+         "builder:world.openNearestShulker", "Open Nearest Shulker", "World", -11094334, COMPLETED_OR_FAILED, true, "Radius 1-16", "Move", "8"
       ),
       new MacroModel.Descriptor(
          "builder:world.openNearestEnchantingTable",
@@ -340,6 +373,9 @@ final class MacroModel {
       new MacroModel.Descriptor("builder:misc.repeatMacro", "Repeat Macro", "Flow", -7366491, List.of(), true, "Repeat count", "", "3"),
       new MacroModel.Descriptor("builder:misc.repeatSection", "Repeat", "Flow", -7366491, REPEAT_COMPLETED_OR_FAILED, true, "Repeat count", "", "3"),
       new MacroModel.Descriptor(
+         "builder:misc.repeatUntil", "Repeat Until", "Flow", -7366491, REPEAT_COMPLETED_OR_FAILED, true, "Condition", "Filter/value", "actionbar"
+      ),
+      new MacroModel.Descriptor(
          "builder:misc.idleUntil", "Idle Until", "Flow", -7366491, List.of("triggered", "failed"), true, "Condition: chat/player/full/kicked", "Filter", "chat"
       ),
       new MacroModel.Descriptor(
@@ -368,6 +404,15 @@ final class MacroModel {
       ),
       new MacroModel.Descriptor(
          "official:event.chat", "Event: Chat", "Event", -10375185, List.of("triggered"), true, "Filter text/regex", "Mode: any/allow/block", ""
+      ),
+      new MacroModel.Descriptor(
+         "builder:event.actionbar", "Event: Actionbar", "Event", -10375185, List.of("triggered"), true, "Filter text/regex", "Mode: any/allow/block", ""
+      ),
+      new MacroModel.Descriptor(
+         "builder:event.statusEffect", "Event: Status Effect", "Event", -10375185, List.of("triggered"), true, "Effect id or name", "Minimum level", "minecraft:speed"
+      ),
+      new MacroModel.Descriptor(
+         "builder:event.bossbar", "Event: Bossbar", "Event", -10375185, List.of("triggered"), true, "Visible bossbar text", "Mode: contains/exact/regex", "Litemacro Test"
       ),
       new MacroModel.Descriptor(
          "builder:event.kicked", "If Kicked", "Event", -10375185, List.of("triggered"), true, "Reason text/regex", "Mode: any/allow/block", ""
@@ -402,6 +447,7 @@ final class MacroModel {
       )
    );
    private final List<MacroModel.Node> nodes = new ArrayList<>();
+   private final Map<String, MacroModel.Node> nodesById = new HashMap<>();
    private int nextIndex = 1;
    private String name = "Macro 1";
    private int stepDelayMs;
@@ -446,7 +492,7 @@ final class MacroModel {
                MacroModel.Node node = new MacroModel.Node(id, type, integer(position, "x", 240), integer(position, "y", 140));
                applyMineBotVariables(node, data);
                readMineBotOutputs(node, data);
-               model.nodes.add(node);
+               model.addLoadedNode(node);
             }
          }
 
@@ -533,7 +579,7 @@ final class MacroModel {
                      }
                   }
 
-                  model.nodes.add(node);
+                  model.addLoadedNode(node);
                }
             }
 
@@ -566,6 +612,7 @@ final class MacroModel {
       MacroModel restored = fromJson(json);
       this.nodes.clear();
       this.nodes.addAll(restored.nodes);
+      this.rebuildNodeIndex();
       this.nextIndex = restored.nextIndex;
       this.name = restored.name;
       this.stepDelayMs = restored.stepDelayMs;
@@ -659,14 +706,28 @@ final class MacroModel {
       node.value4 = defaultValue4(descriptor.type());
       node.value5 = defaultValue5(descriptor.type());
       node.delayMs = -1;
-      this.nodes.add(node);
+      this.addLoadedNode(node);
       return node;
+   }
+
+   private void addLoadedNode(MacroModel.Node node) {
+      this.nodes.add(node);
+      this.nodesById.put(node.id, node);
+   }
+
+   private void rebuildNodeIndex() {
+      this.nodesById.clear();
+
+      for (MacroModel.Node node : this.nodes) {
+         this.nodesById.put(node.id, node);
+      }
    }
 
    boolean removeNode(MacroModel.Node node) {
       if (node != null && (!"official:start".equals(node.type) || this.startNodes().size() > 1)) {
          boolean removed = this.nodes.remove(node);
          if (removed) {
+            this.rebuildNodeIndex();
             for (MacroModel.Node existing : this.nodes) {
                Iterator<Entry<String, String>> iterator = existing.outputs.entrySet().iterator();
 
@@ -718,13 +779,7 @@ final class MacroModel {
    }
 
    MacroModel.Node node(String id) {
-      for (MacroModel.Node node : this.nodes) {
-         if (node.id.equals(id)) {
-            return node;
-         }
-      }
-
-      return null;
+      return id == null ? null : this.nodesById.get(id);
    }
 
    List<MacroModel.Node> nodes() {
@@ -909,6 +964,7 @@ final class MacroModel {
             "builder:localMessage",
             "builder:misc.repeatMacro",
             "builder:misc.repeatSection",
+            "builder:misc.repeatUntil",
             "builder:misc.idleUntil",
             "builder:flow.skipIfTrue",
             "builder:stop",
@@ -919,6 +975,7 @@ final class MacroModel {
             "official:misc.random",
             "builder:misc.randomOutput3",
             "official:notification.discord",
+            "builder:event.actionbar",
             "builder:event.kicked" -> true;
          default -> false;
       };
@@ -979,6 +1036,9 @@ final class MacroModel {
          case "official:world.jumpAndPlaceBlock" -> "Jumps and places below player";
          case "builder:world.farmArea" -> "Harvests crops between two XYZ points and can move";
          case "builder:world.openNearestContainer" -> "Finds and opens a selected container type";
+         case "builder:world.openNearestChest" -> "Finds and opens the nearest chest";
+         case "builder:world.openNearestBarrel" -> "Finds and opens the nearest barrel";
+         case "builder:world.openNearestShulker" -> "Finds and opens the nearest shulker box";
          case "builder:world.openNearestEnchantingTable" -> "Finds and opens the nearest enchanting table";
          case "builder:world.openNearestGrindstone" -> "Finds and opens the nearest grindstone";
          case "builder:world.autoBoneMeal" -> "Uses bone meal and can refill from nearby containers";
@@ -988,10 +1048,15 @@ final class MacroModel {
          case "official:entity.interact" -> "Right-clicks matching mob or player";
          case "builder:entity.nearby" -> "Checks for matching nearby entities";
          case "builder:logic.scoreboardContains" -> "Checks sidebar, team, and objective scoreboard text";
+         case "builder:logic.actionbarContains" -> "Checks the latest actionbar text";
+         case "builder:logic.hasStatusEffect" -> "Checks whether the player has a matching status effect and level";
+         case "builder:logic.bossbarContains" -> "Checks all boss bars currently visible on screen";
+         case "builder:logic.macroActiveState" -> "Checks another macro and can trigger this macro when its state changes";
          case "builder:localMessage" -> "Shows a local chat notification";
          case "builder:misc.repeatMacro" -> "Repeats the whole macro a set number of times, then stops";
          case "builder:misc.repeatSection" -> "Repeats a linked section a set number of times";
-         case "builder:misc.idleUntil" -> "Waits here until chat, player, full inventory, or disconnect is detected";
+         case "builder:misc.repeatUntil" -> "Repeats a linked section until a condition is true";
+         case "builder:misc.idleUntil" -> "Waits here until chat, actionbar, player, full inventory, or disconnect is detected";
          case "builder:flow.skipIfTrue" -> "When true, jumps past a named component";
          case "builder:flow.endConnection" -> "Ends this connection path without stopping other running branches";
          case "builder:flow.note" -> "Adds a saved note to explain part of the macro";
@@ -1009,6 +1074,9 @@ final class MacroModel {
          case "official:login.repeat" -> "Pass-through login repeat marker";
          case "builder:event.ifChatSame" -> "Checks latest chat against text";
          case "official:event.chat" -> "Triggers when matching chat appears";
+         case "builder:event.actionbar" -> "Triggers when matching actionbar text appears";
+         case "builder:event.statusEffect" -> "Triggers once when a matching status effect appears and can start the selected macro";
+         case "builder:event.bossbar" -> "Triggers once when a matching boss bar appears and can start the selected macro";
          case "builder:event.kicked" -> "Triggers after a kick or disconnect";
          case "official:event.death" -> "Triggers when you die";
          case "official:event.damageReceived" -> "Triggers when you take damage";
@@ -1537,6 +1605,10 @@ final class MacroModel {
             return "0 64 0 replant deposit move=true";
          } else if ("builder:world.openNearestContainer".equals(this.type)) {
             return "move=true type=chest";
+         } else if ("builder:world.openNearestChest".equals(this.type)
+            || "builder:world.openNearestBarrel".equals(this.type)
+            || "builder:world.openNearestShulker".equals(this.type)) {
+            return "move=true";
          } else if ("builder:world.openNearestEnchantingTable".equals(this.type)) {
             return "move=true";
          } else if ("builder:world.openNearestGrindstone".equals(this.type)) {
@@ -1553,9 +1625,12 @@ final class MacroModel {
             return "2";
          } else if ("official:entity.player_nearby".equals(this.type)) {
             return "any";
-         } else if ("builder:misc.idleUntil".equals(this.type)) {
+         } else if ("builder:logic.macroActiveState".equals(this.type)) {
+            return "active";
+         } else if ("builder:misc.idleUntil".equals(this.type) || "builder:misc.repeatUntil".equals(this.type)) {
             return "";
          } else if ("official:event.chat".equals(this.type)
+            || "builder:event.actionbar".equals(this.type)
             || "official:event.player_spawned".equals(this.type)
             || "official:event.player_despawned".equals(this.type)) {
             return "any";

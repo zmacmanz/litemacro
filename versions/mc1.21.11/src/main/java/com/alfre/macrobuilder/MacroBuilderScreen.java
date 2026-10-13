@@ -89,6 +89,21 @@ final class MacroBuilderScreen extends Screen {
    private static final int RIGHT_CONNECTION_BUTTON_Y = 442;
    private static final int RIGHT_ACTION_BUTTON_Y = 470;
    private static final int RIGHT_CONNECTION_LIST_Y = 496;
+   private static final int CONTAINER_TYPE_DROPDOWN_ROW_HEIGHT = 18;
+   private static final String[][] CONTAINER_TYPE_OPTIONS = new String[][]{
+      {"any", "Any"},
+      {"chest", "Chest"},
+      {"barrel", "Barrel"},
+      {"shulker", "Shulker"},
+      {"ender_chest", "Ender Chest"},
+      {"furnace", "Furnace"},
+      {"blast_furnace", "Blast Furnace"},
+      {"smoker", "Smoker"},
+      {"brewing_stand", "Brewing Stand"},
+      {"hopper", "Hopper"},
+      {"dispenser", "Dispenser"},
+      {"dropper", "Dropper"}
+   };
    private static final int MIN_LAYOUT_WIDTH = 960;
    private static final int MIN_LAYOUT_HEIGHT = 540;
    private static final int CONTEXT_MENU_WIDTH = 136;
@@ -134,6 +149,8 @@ final class MacroBuilderScreen extends Screen {
    private Button secondaryItemButton;
    private Button mineAreaMoveButton;
    private Button mineAreaAutoToolButton;
+   private Button containerMoveButton;
+   private Button containerTypeButton;
    private Button autoEnchantUseHeldButton;
    private Button autoEnchantPickItemButton;
    private Button autoEnchantPickLapisButton;
@@ -148,6 +165,7 @@ final class MacroBuilderScreen extends Screen {
    private Button copyComponentButton;
    private Button pasteComponentButton;
    private Button moreActionsButton;
+   private boolean containerTypeDropdownOpen;
    private MacroModel.Node selectedNode;
    private final List<MacroModel.Node> selectedNodes = new ArrayList<>();
    private MacroModel.Node draggedNode;
@@ -341,6 +359,16 @@ final class MacroBuilderScreen extends Screen {
             .bounds(rightX + 22 + splitButtonWidth, RIGHT_MINE_AREA_TOGGLE_Y, trailingButtonWidth, 20)
             .build()
       );
+      this.containerMoveButton = (Button)this.addRenderableWidget(
+         Button.builder(Component.literal("Move: On"), button -> this.toggleContainerMove())
+            .bounds(rightX + 14, RIGHT_SECONDARY_FIELD_Y, splitButtonWidth, 20)
+            .build()
+      );
+      this.containerTypeButton = (Button)this.addRenderableWidget(
+         Button.builder(Component.literal("Type: Chest"), button -> this.toggleContainerTypeDropdown())
+            .bounds(rightX + 22 + splitButtonWidth, RIGHT_SECONDARY_FIELD_Y, trailingButtonWidth, 20)
+            .build()
+      );
       this.autoEnchantUseHeldButton = (Button)this.addRenderableWidget(
          Button.builder(Component.literal("Use Held"), button -> this.setAutoEnchantItemToHeld()).bounds(rightX + 14, RIGHT_AUTO_ENCHANT_ITEM_BUTTON_Y, splitButtonWidth, 20).build()
       );
@@ -463,6 +491,7 @@ final class MacroBuilderScreen extends Screen {
          this.drawPropertyLabels(context);
          super.render(context, mouseX, mouseY, delta);
          this.drawSelectedItemPreview(context);
+         this.drawContainerTypeDropdown(context, mouseX, mouseY);
          this.drawItemPicker(context, mouseX, mouseY);
           if (this.canDrawTopTitle()) {
              context.drawCenteredString(this.font, this.title, this.width / 2, 14, -1);
@@ -516,6 +545,10 @@ final class MacroBuilderScreen extends Screen {
             }
 
             this.topActionsMenuOpen = false;
+         }
+
+         if (this.containerTypeDropdownOpen && click.button() == 0 && this.handleContainerTypeDropdownClick((int)mouseX, (int)mouseY)) {
+            return true;
          }
 
            if (click.button() == 1) {
@@ -1026,7 +1059,11 @@ final class MacroBuilderScreen extends Screen {
             this.selectedNode.value = this.primaryField.getValue();
          }
 
-         if (!descriptor.secondaryLabel().isBlank() && !this.isClickGuiItemNode(this.selectedNode) && !autoGrindstoneNode && !mineAreaNode) {
+         if (!descriptor.secondaryLabel().isBlank()
+            && !this.isClickGuiItemNode(this.selectedNode)
+            && !autoGrindstoneNode
+            && !mineAreaNode
+            && !this.isOpenNearestContainerSettingsNode(this.selectedNode)) {
             this.selectedNode.value2 = this.secondaryField.getValue();
          }
 
@@ -1063,6 +1100,8 @@ final class MacroBuilderScreen extends Screen {
          && this.mineAreaToolLowField != null
          && this.mineAreaMoveButton != null
          && this.mineAreaAutoToolButton != null
+         && this.containerMoveButton != null
+         && this.containerTypeButton != null
          && this.autoEnchantItemField != null
          && this.autoEnchantLapisField != null
          && this.autoGrindstoneInputField != null
@@ -1083,10 +1122,17 @@ final class MacroBuilderScreen extends Screen {
          }
 
          boolean mineAreaNode = hasSelection && this.isMineAreaNode(this.selectedNode);
+         boolean containerSettingsNode = hasSelection && this.isOpenNearestContainerSettingsNode(this.selectedNode);
+         boolean genericContainerNode = hasSelection && this.isOpenNearestContainerNode(this.selectedNode);
+         if (!containerSettingsNode) {
+            this.containerTypeDropdownOpen = false;
+         }
+
          boolean hasPrimary = hasSelection && !noteNode && !autoGrindstoneNode && !descriptor.primaryLabel().isBlank();
          boolean hasSecondary = hasSelection && !noteNode && !autoGrindstoneNode && !descriptor.secondaryLabel().isBlank();
          boolean clickGuiItem = hasSelection && this.isClickGuiItemNode(this.selectedNode);
          hasSecondary = hasSecondary && !clickGuiItem;
+         hasSecondary = hasSecondary && !containerSettingsNode;
          boolean branch = hasSelection && descriptor.outputs().contains("true") && descriptor.outputs().contains("false");
          boolean randomOutput3 = hasSelection
             && descriptor.outputs().contains("one")
@@ -1165,6 +1211,12 @@ final class MacroBuilderScreen extends Screen {
          this.mineAreaAutoToolButton.visible = mineAreaNode;
          this.mineAreaAutoToolButton.active = mineAreaNode;
          this.mineAreaAutoToolButton.setMessage(Component.literal(this.mineAreaAutoToolEnabled(this.selectedNode) ? "Auto Tool: On" : "Auto Tool: Off"));
+         this.containerMoveButton.visible = containerSettingsNode;
+         this.containerMoveButton.active = containerSettingsNode;
+         this.containerMoveButton.setMessage(Component.literal(containerSettingsNode && this.containerMoveEnabled(this.selectedNode) ? "Move: On" : "Move: Off"));
+         this.containerTypeButton.visible = genericContainerNode;
+         this.containerTypeButton.active = genericContainerNode;
+         this.containerTypeButton.setMessage(Component.literal("Type: " + this.containerTypeLabel(this.containerType(this.selectedNode))));
          this.autoEnchantUseHeldButton.visible = autoEnchantNode;
          this.autoEnchantUseHeldButton.active = autoEnchantNode;
          this.autoEnchantPickItemButton.visible = autoEnchantNode;
@@ -1465,6 +1517,30 @@ final class MacroBuilderScreen extends Screen {
       }
    }
 
+   private void toggleContainerMove() {
+      if (this.isOpenNearestContainerSettingsNode(this.selectedNode)) {
+         boolean next = !this.containerMoveEnabled(this.selectedNode);
+         this.selectedNode.value2 = this.containerOptionsText(next, this.containerType(this.selectedNode));
+         this.recordHistorySnapshot();
+         this.refreshProperties();
+      }
+   }
+
+   private void toggleContainerTypeDropdown() {
+      if (this.isOpenNearestContainerNode(this.selectedNode)) {
+         this.containerTypeDropdownOpen = !this.containerTypeDropdownOpen;
+      }
+   }
+
+   private void setContainerType(String type) {
+      if (this.isOpenNearestContainerNode(this.selectedNode)) {
+         this.selectedNode.value2 = this.containerOptionsText(this.containerMoveEnabled(this.selectedNode), this.cleanContainerType(type));
+         this.containerTypeDropdownOpen = false;
+         this.recordHistorySnapshot();
+         this.refreshProperties();
+      }
+   }
+
    private void toggleSelectedEnabled() {
       List<MacroModel.Node> nodes = this.movableSelection();
       if (nodes.isEmpty()) {
@@ -1655,6 +1731,148 @@ final class MacroBuilderScreen extends Screen {
       }
 
       return autoTool;
+   }
+
+   private boolean isOpenNearestContainerNode(MacroModel.Node node) {
+      return node != null && "builder:world.openNearestContainer".equals(node.type);
+   }
+
+   private boolean isOpenNearestFixedContainerNode(MacroModel.Node node) {
+      return node != null
+         && ("builder:world.openNearestChest".equals(node.type) || "builder:world.openNearestBarrel".equals(node.type) || "builder:world.openNearestShulker".equals(node.type));
+   }
+
+   private boolean isOpenNearestContainerSettingsNode(MacroModel.Node node) {
+      return this.isOpenNearestContainerNode(node) || this.isOpenNearestFixedContainerNode(node);
+   }
+
+   private boolean containerMoveEnabled(MacroModel.Node node) {
+      return this.containerMoveEnabled(node == null ? "" : node.value2);
+   }
+
+   private boolean containerMoveEnabled(String options) {
+      if (options != null && !options.isBlank()) {
+         for (String token : options.split("[,\\s]+")) {
+            String normalized = token.trim().toLowerCase(Locale.ROOT);
+            if (normalized.startsWith("move=")) {
+               return this.optionTruthy(normalized.substring("move=".length()), true);
+            }
+         }
+
+         for (String token : options.split("[,\\s]+")) {
+            String normalized = token.trim().toLowerCase(Locale.ROOT);
+            if (normalized.equals("true") || normalized.equals("false") || normalized.equals("on") || normalized.equals("off") || normalized.equals("yes") || normalized.equals("no")) {
+               return this.optionTruthy(normalized, true);
+            }
+         }
+      }
+
+      return true;
+   }
+
+   private String containerType(MacroModel.Node node) {
+      if (node == null) {
+         return "chest";
+      } else if ("builder:world.openNearestChest".equals(node.type)) {
+         return "chest";
+      } else if ("builder:world.openNearestBarrel".equals(node.type)) {
+         return "barrel";
+      } else if ("builder:world.openNearestShulker".equals(node.type)) {
+         return "shulker";
+      }
+
+      String options = node.value2 == null ? "" : node.value2.trim();
+      for (String token : options.split("[,\\s]+")) {
+         String normalized = token.trim().toLowerCase(Locale.ROOT);
+         if (normalized.startsWith("type=")) {
+            normalized = normalized.substring("type=".length());
+         }
+
+         String type = this.cleanContainerType(normalized);
+         if (type != null) {
+            return type;
+         }
+      }
+
+      return "chest";
+   }
+
+   private String cleanContainerType(String value) {
+      String normalized = value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
+      return switch (normalized) {
+         case "", "any", "all", "container" -> "any";
+         case "chest", "chests", "normal_chest", "trapped_chest" -> "chest";
+         case "barrel", "barrels" -> "barrel";
+         case "shulker", "shulkers", "shulker_box", "shulker_boxes" -> "shulker";
+         case "ender", "enderchest", "ender_chest" -> "ender_chest";
+         case "furnace", "furnaces" -> "furnace";
+         case "blast", "blast_furnace", "blast_furnaces", "blastfurnace" -> "blast_furnace";
+         case "smoker", "smokers" -> "smoker";
+         case "brewing", "brewing_stand", "brewing_stands", "brewingstand" -> "brewing_stand";
+         case "hopper", "hoppers" -> "hopper";
+         case "dispenser", "dispensers" -> "dispenser";
+         case "dropper", "droppers" -> "dropper";
+         default -> null;
+      };
+   }
+
+   private String containerTypeLabel(String type) {
+      String normalized = this.cleanContainerType(type);
+      if (normalized == null) {
+         normalized = "chest";
+      }
+
+      for (String[] option : CONTAINER_TYPE_OPTIONS) {
+         if (option[0].equals(normalized)) {
+            return option[1];
+         }
+      }
+
+      return "Chest";
+   }
+
+   private String containerOptionsText(boolean move, String type) {
+      String normalizedType = this.cleanContainerType(type);
+      return "move=" + move + " type=" + (normalizedType == null ? "chest" : normalizedType);
+   }
+
+   private int containerTypeDropdownX() {
+      return this.propertyLeft() + 22 + this.containerSplitButtonWidth();
+   }
+
+   private int containerTypeDropdownY() {
+      return RIGHT_SECONDARY_FIELD_Y + 22;
+   }
+
+   private int containerTypeDropdownWidth() {
+      return Math.max(64, this.propertyInnerWidth() - this.containerSplitButtonWidth() - 8);
+   }
+
+   private int containerSplitButtonWidth() {
+      return Math.max(72, (this.propertyInnerWidth() - 8) / 2);
+   }
+
+   private boolean handleContainerTypeDropdownClick(int mouseX, int mouseY) {
+      if (!this.containerTypeDropdownOpen || !this.isOpenNearestContainerNode(this.selectedNode)) {
+         return false;
+      }
+
+      int x = this.containerTypeDropdownX();
+      int y = this.containerTypeDropdownY();
+      int width = this.containerTypeDropdownWidth();
+      int height = CONTAINER_TYPE_OPTIONS.length * CONTAINER_TYPE_DROPDOWN_ROW_HEIGHT;
+      if (mouseX < x || mouseX >= x + width || mouseY < y || mouseY >= y + height) {
+         this.containerTypeDropdownOpen = false;
+         return false;
+      }
+
+      int index = (mouseY - y) / CONTAINER_TYPE_DROPDOWN_ROW_HEIGHT;
+      if (index >= 0 && index < CONTAINER_TYPE_OPTIONS.length) {
+         this.setContainerType(CONTAINER_TYPE_OPTIONS[index][0]);
+         return true;
+      }
+
+      return false;
    }
 
    private void syncMineAreaFieldsToNode() {
@@ -3519,6 +3737,35 @@ final class MacroBuilderScreen extends Screen {
       }
    }
 
+   private void drawContainerTypeDropdown(GuiGraphics context, int mouseX, int mouseY) {
+      if (!this.containerTypeDropdownOpen || !this.isOpenNearestContainerNode(this.selectedNode)) {
+         return;
+      }
+
+      int x = this.containerTypeDropdownX();
+      int y = this.containerTypeDropdownY();
+      int width = this.containerTypeDropdownWidth();
+      int height = CONTAINER_TYPE_OPTIONS.length * CONTAINER_TYPE_DROPDOWN_ROW_HEIGHT;
+      String selectedType = this.containerType(this.selectedNode);
+      context.fill(x - 1, y - 1, x + width + 1, y + height + 1, 0xFF5BAAD4);
+      context.fill(x, y, x + width, y + height, 0xFF101820);
+
+      for (int index = 0; index < CONTAINER_TYPE_OPTIONS.length; index++) {
+         String type = CONTAINER_TYPE_OPTIONS[index][0];
+         String label = CONTAINER_TYPE_OPTIONS[index][1];
+         int rowY = y + index * CONTAINER_TYPE_DROPDOWN_ROW_HEIGHT;
+         boolean selected = type.equals(selectedType);
+         boolean hovered = mouseX >= x && mouseX < x + width && mouseY >= rowY && mouseY < rowY + CONTAINER_TYPE_DROPDOWN_ROW_HEIGHT;
+         if (selected) {
+            context.fill(x, rowY, x + width, rowY + CONTAINER_TYPE_DROPDOWN_ROW_HEIGHT, 0xFF1F3B4A);
+         } else if (hovered) {
+            context.fill(x, rowY, x + width, rowY + CONTAINER_TYPE_DROPDOWN_ROW_HEIGHT, 0xFF172530);
+         }
+
+         context.drawString(this.font, this.fit((selected ? "> " : "  ") + label, width - 8), x + 4, rowY + 5, selected ? 0xFF63F4D5 : 0xFFE4EEF8);
+      }
+   }
+
    private void drawSelectedItemPreview(GuiGraphics context) {
       if (this.selectedNode != null) {
          MacroModel.Descriptor descriptor = this.selectedNode.descriptor();
@@ -4169,6 +4416,8 @@ final class MacroBuilderScreen extends Screen {
          return node.value != null && !node.value.isBlank() ? node.value : "any block";
       } else if ("builder:world.mineArea".equals(node.type)) {
          return this.mineAreaToText(node) + (this.mineAreaAutoToolEnabled(node) ? " / auto tool" : "");
+      } else if (this.isOpenNearestContainerSettingsNode(node)) {
+         return this.containerTypeLabel(this.containerType(node)) + " / " + node.value + " blocks" + (this.containerMoveEnabled(node) ? " / move" : " / no move");
       } else if ("builder:world.openNearestEnchantingTable".equals(node.type) || "builder:world.openNearestGrindstone".equals(node.type)) {
          return node.value + " blocks" + (this.isTruthyText(node.value2) ? " / move" : "");
       } else if ("builder:entity.nearby".equals(node.type)) {
@@ -4278,6 +4527,11 @@ final class MacroBuilderScreen extends Screen {
          return secondary ? "tap 100 or hold 1000" : "space, shift, ctrl, alt, E";
       } else if (secondary && "builder:world.openNearestContainer".equals(descriptor.type())) {
          return "move=true type=chest";
+      } else if (secondary
+         && ("builder:world.openNearestChest".equals(descriptor.type())
+            || "builder:world.openNearestBarrel".equals(descriptor.type())
+            || "builder:world.openNearestShulker".equals(descriptor.type()))) {
+         return "move=true";
       } else if (secondary && "builder:world.openNearestEnchantingTable".equals(descriptor.type())) {
          return "move=true";
       } else if (secondary && "builder:world.openNearestGrindstone".equals(descriptor.type())) {

@@ -1,0 +1,473 @@
+{
+  "format": "litemacro-v1",
+  "name": "Parallel Mine With Safety Guard",
+  "stepDelayMs": 0,
+  "alwaysOn": false,
+  "autoStartMode": "off",
+  "autoStartFilter": "",
+  "randomDelayEnabled": false,
+  "randomDelayMinMs": 250,
+  "randomDelayMaxMs": 1250,
+  "nextIndex": 30,
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "official:start",
+      "x": 80,
+      "y": 175,
+      "displayName": "",
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "started": "check-alive\nmine-safe-alive"
+      }
+    },
+    {
+      "id": "check-alive",
+      "type": "official:player.isAlive",
+      "x": 360,
+      "y": 80,
+      "displayName": "CHECK 1 Alive",
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "check-water",
+        "false": "unsafe-dead",
+        "failed": "unsafe-check-fail"
+      }
+    },
+    {
+      "id": "check-water",
+      "type": "builder:player.inWater",
+      "x": 640,
+      "y": 80,
+      "displayName": "CHECK 2 In Water",
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "unsafe-water",
+        "false": "check-health",
+        "failed": "unsafe-check-fail"
+      }
+    },
+    {
+      "id": "check-health",
+      "type": "builder:player.healthBelow",
+      "x": 920,
+      "y": 80,
+      "displayName": "EDIT Low Health",
+      "value": "6",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "unsafe-health",
+        "false": "check-food",
+        "failed": "unsafe-check-fail"
+      }
+    },
+    {
+      "id": "check-food",
+      "type": "builder:player.foodBelow",
+      "x": 1200,
+      "y": 80,
+      "displayName": "EDIT Low Hunger",
+      "value": "6",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "unsafe-food",
+        "false": "check-delay",
+        "failed": "unsafe-check-fail"
+      }
+    },
+    {
+      "id": "check-delay",
+      "type": "official:misc.wait",
+      "x": 1480,
+      "y": 80,
+      "displayName": "EDIT Checker Wait",
+      "value": "1000",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "check-alive",
+        "failed": "unsafe-check-fail"
+      }
+    },
+    {
+      "id": "mine-safe-alive",
+      "type": "official:player.isAlive",
+      "x": 360,
+      "y": 300,
+      "displayName": "MINE Guard Alive",
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-safe-water",
+        "false": "mine-stop-dead",
+        "failed": "mine-failed"
+      }
+    },
+    {
+      "id": "mine-safe-water",
+      "type": "builder:player.inWater",
+      "x": 640,
+      "y": 300,
+      "displayName": "MINE Guard Water",
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-stop-water",
+        "false": "mine-safe-health",
+        "failed": "mine-failed"
+      }
+    },
+    {
+      "id": "mine-safe-health",
+      "type": "builder:player.healthBelow",
+      "x": 920,
+      "y": 300,
+      "displayName": "MINE Guard Health",
+      "value": "6",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-stop-health",
+        "false": "mine-safe-food",
+        "failed": "mine-failed"
+      }
+    },
+    {
+      "id": "mine-safe-food",
+      "type": "builder:player.foodBelow",
+      "x": 1200,
+      "y": 300,
+      "displayName": "MINE Guard Hunger",
+      "value": "6",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "true": "mine-stop-food",
+        "false": "mine-area",
+        "failed": "mine-failed"
+      }
+    },
+    {
+      "id": "mine-area",
+      "type": "builder:world.mineArea",
+      "x": 1480,
+      "y": 360,
+      "displayName": "MINE EDIT Box",
+      "value": "~-2 ~-1 ~-2",
+      "value2": "~2 ~0 ~2 tool=10 move=false auto_tool=true",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "mine-loop-wait",
+        "tool_low": "mine-tool-low",
+        "failed": "mine-failed"
+      }
+    },
+    {
+      "id": "mine-loop-wait",
+      "type": "official:misc.wait",
+      "x": 1820,
+      "y": 360,
+      "displayName": "MINE Loop Delay",
+      "value": "250",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "mine-safe-alive",
+        "failed": "mine-failed"
+      }
+    },
+    {
+      "id": "unsafe-dead",
+      "type": "builder:localMessage",
+      "x": 640,
+      "y": -150,
+      "displayName": "Unsafe Dead",
+      "value": "Safety checker stopped the macro because the player is not alive.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "stop-all"
+      }
+    },
+    {
+      "id": "unsafe-water",
+      "type": "builder:localMessage",
+      "x": 920,
+      "y": -150,
+      "displayName": "Unsafe Water",
+      "value": "Safety checker stopped the macro because the player is in water.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "stop-all"
+      }
+    },
+    {
+      "id": "unsafe-health",
+      "type": "builder:localMessage",
+      "x": 1200,
+      "y": -150,
+      "displayName": "Unsafe Health",
+      "value": "Safety checker stopped the macro because health is low.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "stop-all"
+      }
+    },
+    {
+      "id": "unsafe-food",
+      "type": "builder:localMessage",
+      "x": 1480,
+      "y": -150,
+      "displayName": "Unsafe Hunger",
+      "value": "Safety checker stopped the macro because hunger is low.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "stop-all"
+      }
+    },
+    {
+      "id": "unsafe-check-fail",
+      "type": "builder:localMessage",
+      "x": 1760,
+      "y": -150,
+      "displayName": "Checker Failed",
+      "value": "Safety checker failed. Stopping the macro so mining does not keep running blind.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "stop-all"
+      }
+    },
+    {
+      "id": "stop-all",
+      "type": "builder:stop",
+      "x": 1760,
+      "y": 80,
+      "displayName": "STOP Whole Macro",
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    },
+    {
+      "id": "mine-stop-dead",
+      "type": "builder:localMessage",
+      "x": 1480,
+      "y": 540,
+      "displayName": "Mine Guard Dead",
+      "value": "Mining stopped because the player is not alive.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "mine-end"
+      }
+    },
+    {
+      "id": "mine-stop-water",
+      "type": "builder:localMessage",
+      "x": 1480,
+      "y": 660,
+      "displayName": "Mine Guard Water",
+      "value": "Mining stopped because the player is in water.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "mine-end"
+      }
+    },
+    {
+      "id": "mine-stop-health",
+      "type": "builder:localMessage",
+      "x": 1480,
+      "y": 780,
+      "displayName": "Mine Guard Health",
+      "value": "Mining stopped because health is low.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "mine-end"
+      }
+    },
+    {
+      "id": "mine-stop-food",
+      "type": "builder:localMessage",
+      "x": 1480,
+      "y": 900,
+      "displayName": "Mine Guard Hunger",
+      "value": "Mining stopped because hunger is low.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "mine-end"
+      }
+    },
+    {
+      "id": "mine-tool-low",
+      "type": "builder:localMessage",
+      "x": 1820,
+      "y": 540,
+      "displayName": "Tool Low",
+      "value": "Mining branch stopped because the tool is low. Checker branch can still keep checking.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "mine-end"
+      }
+    },
+    {
+      "id": "mine-failed",
+      "type": "builder:localMessage",
+      "x": 1820,
+      "y": 690,
+      "displayName": "Mine Failed",
+      "value": "Mining branch failed. Edit the Mine Area box or test in a safe loaded area.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "completed": "mine-end"
+      }
+    },
+    {
+      "id": "mine-end",
+      "type": "builder:flow.endConnection",
+      "x": 2160,
+      "y": 540,
+      "displayName": "",
+      "value": "end branch",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    },
+    {
+      "id": "node-note",
+      "type": "builder:flow.note",
+      "x": 80,
+      "y": 560,
+      "displayName": "",
+      "value": "Parallel mining and safety guard example:\n\nStart has two links:\n1. Checker branch\n2. Mining branch\n\nThe checker branch loops Alive -> In Water -> Low Health -> Low Hunger -> Checker Wait -> Alive.\nWhen EDIT Checker Wait is counting, only the checker branch waits. The mining branch can keep working.\n\nThe mining branch now has its own safety gates before Mine Area:\nMINE Guard Alive -> MINE Guard Water -> MINE Guard Health -> MINE Guard Hunger -> MINE EDIT Box.\n\nThat means water or low health stops the mining branch before the next Mine Area run, even if the checker branch is waiting.\n\nEdit these:\nMINE EDIT Box: relative mine area and auto_tool options.\nEDIT Low Health and MINE Guard Health: health number, default 6.\nEDIT Low Hunger and MINE Guard Hunger: food number, default 6.\nEDIT Checker Wait: safety check delay, 1000 = 1 second.\n\nIdle Until cannot directly check low health or water in this build. Use these guard components for that.\n\nUse in a safe test world first.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "stickyNoteText": "Parallel mining and safety guard example:\n\nStart has two links:\n1. Checker branch\n2. Mining branch\n\nThe checker branch loops Alive -> In Water -> Low Health -> Low Hunger -> Checker Wait -> Alive.\nWhen EDIT Checker Wait is counting, only the checker branch waits. The mining branch can keep working.\n\nThe mining branch now has its own safety gates before Mine Area:\nMINE Guard Alive -> MINE Guard Water -> MINE Guard Health -> MINE Guard Hunger -> MINE EDIT Box.\n\nThat means water or low health stops the mining branch before the next Mine Area run, even if the checker branch is waiting.\n\nEdit these:\nMINE EDIT Box: relative mine area and auto_tool options.\nEDIT Low Health and MINE Guard Health: health number, default 6.\nEDIT Low Hunger and MINE Guard Hunger: food number, default 6.\nEDIT Checker Wait: safety check delay, 1000 = 1 second.\n\nIdle Until cannot directly check low health or water in this build. Use these guard components for that.\n\nUse in a safe test world first.",
+      "stickyNoteWidth": 760,
+      "stickyNoteHeight": 420,
+      "outputs": {}
+    }
+  ]
+}

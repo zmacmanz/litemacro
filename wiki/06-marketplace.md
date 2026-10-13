@@ -32,9 +32,10 @@ From the macro builder:
 1. Open `Market`.
 2. Use the search box to find a macro by name, author, or tags.
 3. Click a macro card to select it.
-4. Click `Load`.
-5. Choose where to save or import it.
-6. Open the macro in the builder and inspect it before running.
+4. Click `Load` to copy it into the current macro slot.
+5. Open the macro in the builder and inspect it before running.
+
+You can also click `Like +1` on a macro detail screen. Likes help show which uploads other users found useful.
 
 Good things to check before running:
 
@@ -43,6 +44,8 @@ Good things to check before running:
 - Whether it sends chat messages or commands.
 - Whether it clicks inside GUIs.
 - Whether it reconnects or runs from the main menu.
+
+If a downloaded macro has note components, read them first. Good marketplace uploads should explain which components need editing.
 
 ## Submit A Macro
 

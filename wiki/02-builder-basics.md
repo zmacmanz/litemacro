@@ -54,6 +54,7 @@ Common settings:
 - `Component delay` overrides the global delay for one component.
 - `Enabled` lets you turn a component on or off for testing.
 - `Pick Item` helps fill item IDs without typing them.
+- Some components have buttons or dropdowns instead of raw text. For example, `Mine Area` has `Move` and `Auto Tool` buttons, and `Open Nearest Container` has a `Move` button plus a `Type` dropdown.
 - `Connections` shows and clears links from the selected component.
 
 Useful builder shortcuts:
@@ -79,6 +80,12 @@ Use `Random` next to the global delay to set a random min and max delay.
 
 This makes each run vary the delay between components. Keep the range reasonable so your macro still works.
 
+## Running Overlay
+
+The top-right `Litemacro Running` panel shows active macros and their current components.
+
+Open the main macro menu and click `Overlay: On` to change it to `Overlay: Off`. This hides the panel without stopping any macros or changing chat notifications. The choice is saved for the next time Minecraft starts.
+
 ## Repeat
 
 Use `Repeat Macro` to run the whole macro more than once.
@@ -86,6 +93,8 @@ Use `Repeat Macro` to run the whole macro more than once.
 Use `Repeat` to repeat only a section connected to that component.
 
 Both support a repeat count. Use `forever` or the repeat indefinitely option when you want an endless loop.
+
+Use `Repeat Until` when you want a linked section to keep repeating until a condition becomes true, such as chat text, actionbar text, XP level, health, food, water, item count, full inventory, player nearby, or kicked/disconnected.
 
 ## End Connection
 
@@ -113,4 +122,8 @@ Main menu friendly components include:
 - `Random Output 3`
 - `Discord Notification`
 - `If Kicked`
+- `Event: Chat`
+- `Event: Actionbar`
 - `Skip If True`
+
+Macros keep running while Minecraft is not focused. Litemacro temporarily disables Minecraft's pause-on-lost-focus behavior while a macro is running, then restores the old setting when the macro stops. Macros can also keep ticking while chat or the ESC menu is open, but components that need the world, player, inventory, or GUI still need that state to exist.

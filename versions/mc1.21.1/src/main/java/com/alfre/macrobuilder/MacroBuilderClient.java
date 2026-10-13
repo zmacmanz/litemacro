@@ -4,6 +4,7 @@ import com.mojang.blaze3d.platform.InputConstants.Type;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import java.util.List;
+import java.util.Locale;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
@@ -37,6 +38,8 @@ public final class MacroBuilderClient implements ClientModInitializer {
    static final MacroRunner RUNNER = new MacroRunner();
    private static final String KEY_CATEGORY = "key.categories.macro_builder";
    private static KeyMapping openKey;
+   private static String openKeyBinding = "";
+   private static boolean openKeySuppressUntilRelease;
    private static boolean openKeyWasDown;
 
    public void onInitializeClient() {
@@ -55,7 +58,7 @@ public final class MacroBuilderClient implements ClientModInitializer {
    }
 
    private static void renderMacroOverlay(GuiGraphics context, Minecraft client) {
-      if (client == null || client.player == null || client.level == null || !RUNNER.running()) {
+      if (client == null || client.player == null || client.level == null || !RUNNER.running() || !RUNNER.runningOverlay()) {
          return;
       }
 
@@ -112,7 +115,25 @@ public final class MacroBuilderClient implements ClientModInitializer {
 
    private static void registerKeybind() {
       openKey = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.macro_builder.open", Type.KEYSYM, 66, KEY_CATEGORY));
+      openKeyBinding = openKey.saveString();
       ClientTickEvents.END_CLIENT_TICK.register((EndTick)client -> {
+         if (syncOpenKeyBinding()) {
+            return;
+         }
+
+         if (openKeySuppressUntilRelease) {
+            while (openKey.consumeClick()) {
+            }
+
+            boolean held = openKey.isDown();
+            if (!held) {
+               openKeySuppressUntilRelease = false;
+            }
+
+            openKeyWasDown = held;
+            return;
+         }
+
          boolean opened = false;
          while (openKey.consumeClick()) {
             openMacroList(client);
@@ -147,10 +168,45 @@ public final class MacroBuilderClient implements ClientModInitializer {
 
    private static void handleMenuKeyPress(Minecraft client, int key, int scanCode) {
       if (openKey != null && openKey.matches(key, scanCode)) {
+         if (isKeybindSetupScreen(client == null ? null : client.screen) || syncOpenKeyBinding() || openKeySuppressUntilRelease) {
+            openKeyWasDown = true;
+            return;
+         }
+
          openMacroList(client, true);
       } else {
-         RUNNER.handleMacroHotkeyPress(client, key);
+         if (!isKeybindSetupScreen(client == null ? null : client.screen)) {
+            RUNNER.handleMacroHotkeyPress(client, key);
+         }
       }
+   }
+
+   private static boolean syncOpenKeyBinding() {
+      if (openKey == null) {
+         return false;
+      }
+
+      String current = openKey.saveString();
+      if (current.equals(openKeyBinding)) {
+         return false;
+      }
+
+      openKeyBinding = current;
+      openKeySuppressUntilRelease = true;
+      openKeyWasDown = true;
+      while (openKey.consumeClick()) {
+      }
+
+      return true;
+   }
+
+   private static boolean isKeybindSetupScreen(Screen screen) {
+      if (screen == null) {
+         return false;
+      }
+
+      String name = screen.getClass().getName().toLowerCase(Locale.ROOT);
+      return name.contains("controls") || name.contains("keybind");
    }
 
    private static boolean canOpenMacroList(Minecraft client) {
@@ -393,6 +449,12 @@ public final class MacroBuilderClient implements ClientModInitializer {
    private static void registerMessageEvents() {
       ClientReceiveMessageEvents.CHAT
          .register((Chat)(message, signedMessage, sender, params, receptionTimestamp) -> RUNNER.recordChatMessage(message.getString()));
-      ClientReceiveMessageEvents.GAME.register((Game)(message, overlay) -> RUNNER.recordChatMessage(message.getString()));
+      ClientReceiveMessageEvents.GAME.register((Game)(message, overlay) -> {
+         if (overlay) {
+            RUNNER.recordActionbarMessage(message.getString());
+         } else {
+            RUNNER.recordChatMessage(message.getString());
+         }
+      });
    }
 }

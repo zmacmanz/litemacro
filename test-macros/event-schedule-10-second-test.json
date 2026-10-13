@@ -1,0 +1,81 @@
+{
+  "format": "litemacro-v1",
+  "name": "Test - Schedule After 10 Seconds",
+  "stepDelayMs": 0,
+  "alwaysOn": false,
+  "autoStartMode": "off",
+  "autoStartFilter": "",
+  "randomDelayEnabled": false,
+  "randomDelayMinMs": 250,
+  "randomDelayMaxMs": 1250,
+  "nextIndex": 5,
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "official:start",
+      "x": 100,
+      "y": 130,
+      "displayName": "",
+      "value": "",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "started": "node-2"
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "official:event.schedule",
+      "x": 390,
+      "y": 130,
+      "displayName": "Wait 10 Seconds",
+      "value": "10s",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {
+        "triggered": "node-3"
+      }
+    },
+    {
+      "id": "node-3",
+      "type": "builder:localMessage",
+      "x": 700,
+      "y": 130,
+      "displayName": "Schedule Worked",
+      "value": "Schedule test worked after 10 seconds.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "outputs": {}
+    },
+    {
+      "id": "node-4",
+      "type": "builder:flow.note",
+      "x": 100,
+      "y": 330,
+      "displayName": "",
+      "value": "Event: Schedule test\n\nRun this macro and wait 10 seconds.\nYou should see: Schedule test worked after 10 seconds.\n\nAccepted schedule values:\n10s = ten seconds after the macro reaches this component\n2m = two minutes after it reaches this component\n14:30 = trigger at 2:30 PM using your computer's local time\n* * * * * = trigger at the next minute\n\nOther cron patterns are not currently supported.",
+      "value2": "",
+      "value3": "",
+      "value4": "",
+      "value5": "",
+      "delayMs": -1,
+      "enabled": true,
+      "stickyNoteText": "Event: Schedule test\n\nRun this macro and wait 10 seconds.\nYou should see: Schedule test worked after 10 seconds.\n\nAccepted schedule values:\n10s = ten seconds after the macro reaches this component\n2m = two minutes after it reaches this component\n14:30 = trigger at 2:30 PM using your computer's local time\n* * * * * = trigger at the next minute\n\nOther cron patterns are not currently supported.",
+      "stickyNoteWidth": 650,
+      "stickyNoteHeight": 280,
+      "outputs": {}
+    }
+  ]
+}
