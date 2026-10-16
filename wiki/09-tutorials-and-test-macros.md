@@ -116,7 +116,10 @@ minecraft:zombie
 minecraft:skeleton
 minecraft:spider
 minecraft:blaze
+#minecraft:raiders
 ```
+
+Use an exact entity ID for one mob type. Use an entity-type tag beginning with `#` to target a group. For example, `#minecraft:raiders` can target pillagers, vindicators, evokers, witches, ravagers, and other entity types included in that tag for your Minecraft version. Import `test-macros/raider-tag-attack-loop.json` for a ready-to-run example.
 
 ## Tutorial: Grind XP Then Enchant
 

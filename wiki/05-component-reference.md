@@ -17,10 +17,10 @@ Many fields can use live values such as `${player.name}`, `${player.pos}`, `${ta
 | Component | Use |
 | --- | --- |
 | `Respawn` | Clicks respawn when dead. |
-| `Move` | Moves in a direction, to a place, or toward a target. |
-| `Look` | Turns the player toward yaw/pitch or a target. |
+| `Move` | Moves in a direction, to a place, or toward an entity ID, visible name, or entity-type tag. |
+| `Look` | Turns the player toward yaw/pitch, a place, or an entity ID, visible name, or entity-type tag. |
 | `Mouse Button` | Presses or releases left/right click. Good for hold mining. |
-| `Shoot Bow` | Aims and fires a bow. |
+| `Shoot Bow` | Aims at coordinates or an entity ID, visible name, or entity-type tag, then fires a bow. |
 | `Is Account` | Checks the current username against names. |
 | `Player In Action` | Checks state such as sneaking, using, dead, or alive. |
 | `Player Is Alive` | True when the player is alive. |
@@ -130,9 +130,9 @@ Inventory slots usually use:
 
 | Component | Use |
 | --- | --- |
-| `Attack Entity` | Attacks a matching mob or player. |
-| `Interact Entity` | Right-clicks a matching mob or player. |
-| `Entity Nearby` | Checks for matching nearby entities. |
+| `Attack Entity` | Attacks a matching mob or player by entity ID, visible name, or entity-type tag such as `#minecraft:raiders`. |
+| `Interact Entity` | Right-clicks a matching mob or player by entity ID, visible name, or entity-type tag. |
+| `Entity Nearby` | Checks for matching nearby entities by entity ID, visible name, or entity-type tag. |
 
 ## Misc
 

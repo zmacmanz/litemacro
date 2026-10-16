@@ -62,6 +62,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -5034,6 +5035,11 @@ final class MacroRunner {
    }
 
    private boolean entityMatches(Entity entity, String filter) {
+      if (filter.startsWith("#")) {
+         TagKey<EntityType<?>> tag = entityTypeTagKey(filter);
+         return tag != null && entity.getType().is(tag);
+      }
+
       String name = entity.getName().getString().toLowerCase(Locale.ROOT);
       String type = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString().toLowerCase(Locale.ROOT);
       return name.contains(filter) || type.contains(filter) || nameMatchesList(name, filter) || nameMatchesRegex(name, filter);
@@ -6941,6 +6947,11 @@ final class MacroRunner {
    private static TagKey<Item> itemTagKey(String tagText) {
       ResourceLocation id = identifierFromText(tagText);
       return id == null ? null : TagKey.create(Registries.ITEM, id);
+   }
+
+   private static TagKey<EntityType<?>> entityTypeTagKey(String tagText) {
+      ResourceLocation id = identifierFromText(tagText);
+      return id == null ? null : TagKey.create(Registries.ENTITY_TYPE, id);
    }
 
    private static ResourceLocation identifierFromText(String value) {

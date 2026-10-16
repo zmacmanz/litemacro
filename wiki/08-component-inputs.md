@@ -207,10 +207,10 @@ ${mine.protected_block.pos}  matched block X Y Z
 | Component | Field 1 | Field 2 | Example |
 | --- | --- | --- | --- |
 | `Respawn` | Empty | Empty | Clicks respawn when dead. |
-| `Move` | Direction or target | Distance | `forward` and `5`, or `100 64 100` |
-| `Look` | Yaw pitch or target | Target type | `0 0`, or `100 64 100` |
+| `Move` | Direction, coordinates, entity ID/name, or `#entity_type_tag` | Distance | `forward` and `5`, `100 64 100`, or `#minecraft:raiders` |
+| `Look` | Yaw pitch, coordinates, entity ID/name, or `#entity_type_tag` | Target type | `0 0`, `100 64 100`, or `#minecraft:raiders` |
 | `Mouse Button` | `press` or `release` | `left` or `right` | `press` and `left` |
-| `Shoot Bow` | Target/filter | Equip bow true/false | `minecraft:zombie` and `true` |
+| `Shoot Bow` | Coordinates, entity ID/name, or `#entity_type_tag` | Equip bow true/false | `#minecraft:raiders` and `true` |
 | `Is Account` | Player names | Empty | `letgio, altname` |
 | `Player In Action` | State | Empty | `sneaking`, `using`, `dead`, `alive` |
 | `Player Is Alive` | Empty | Empty | Sends `true` or `false`. |
@@ -463,9 +463,11 @@ Open Nearest Shulker
 
 | Component | Field 1 | Field 2 | Example |
 | --- | --- | --- | --- |
-| `Attack Entity` | Target/filter | Move true/false | `minecraft:zombie` and `true` |
-| `Interact Entity` | Target/filter | Move true/false | `minecraft:villager` and `true` |
-| `Entity Nearby` | Target/filter | Max distance | `minecraft:sheep` and `8` |
+| `Attack Entity` | Entity ID, visible name, or `#entity_type_tag` | Move true/false | `#minecraft:raiders` and `true` |
+| `Interact Entity` | Entity ID, visible name, or `#entity_type_tag` | Move true/false | `minecraft:villager` and `true` |
+| `Entity Nearby` | Entity ID, visible name, or `#entity_type_tag` | Max distance | `#minecraft:raiders` and `8` |
+
+Entity tags must start with `#` and use the full tag ID. For example, `#minecraft:raiders` matches every entity type included in Minecraft's raider tag. Custom server or data-pack entity-type tags work when the client receives that tag data.
 
 ### Misc
 

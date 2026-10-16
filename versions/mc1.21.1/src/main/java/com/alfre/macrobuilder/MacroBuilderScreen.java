@@ -4554,9 +4554,12 @@ final class MacroBuilderScreen extends Screen {
       } else if (secondary && "builder:world.openNearestGrindstone".equals(descriptor.type())) {
          return "move=true";
       } else {
-         return secondary || !"official:entity.attack".equals(descriptor.type()) && !"official:entity.interact".equals(descriptor.type())
-            ? ""
-            : "Example: minecraft:zombie";
+         return !secondary
+               && ("official:entity.attack".equals(descriptor.type())
+                  || "official:entity.interact".equals(descriptor.type())
+                  || "builder:entity.nearby".equals(descriptor.type()))
+            ? "minecraft:zombie or #minecraft:raiders"
+            : "";
       }
    }
 
