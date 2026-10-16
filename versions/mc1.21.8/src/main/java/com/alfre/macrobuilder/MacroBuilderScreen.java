@@ -172,6 +172,10 @@ final class MacroBuilderScreen extends Screen {
    private MacroModel.Node draggedNode;
    private MacroModel.Node pendingConnectionSource;
    private String pendingConnectionOutput;
+   private boolean draggingNewConnection;
+   private boolean newConnectionDragMoved;
+   private double newConnectionStartX;
+   private double newConnectionStartY;
    private String paletteDragType;
    private double dragOffsetX;
    private double dragOffsetY;
@@ -488,6 +492,7 @@ final class MacroBuilderScreen extends Screen {
             : this.draggedConnection;
          context.enableScissor(this.canvasLeft(), this.canvasTop(), Math.max(this.canvasLeft() + 1, this.canvasRight()), this.height);
          this.drawConnections(context);
+         this.drawPendingConnection(context, mouseX, mouseY);
          this.drawNodes(context);
          this.drawSelectionBox(context);
          context.disableScissor();
@@ -506,7 +511,7 @@ final class MacroBuilderScreen extends Screen {
           }
 
          if (this.pendingConnectionSource != null) {
-            context.drawCenteredString(this.font, Component.literal("Select a target component"), this.width / 2, 44, -3672);
+             context.drawCenteredString(this.font, Component.literal("Drag to a component or click a target"), this.width / 2, 44, -3672);
           }
 
           this.drawContextMenu(context, mouseX, mouseY);
@@ -579,6 +584,18 @@ final class MacroBuilderScreen extends Screen {
                return false;
             } else {
                this.syncSelectedFromFields();
+            MacroBuilderScreen.OutputHit outputHit = this.outputDotAt((int)mouseX, (int)mouseY);
+            if (outputHit != null) {
+               this.selectNode(outputHit.source(), false);
+               this.startConnection(outputHit.output());
+               this.draggingNewConnection = true;
+               this.newConnectionDragMoved = false;
+               this.newConnectionStartX = mouseX;
+               this.newConnectionStartY = mouseY;
+               this.refreshProperties();
+               return true;
+            }
+
                String outputToClear = this.connectionClearOutputAt((int)mouseX, (int)mouseY);
                if (outputToClear != null) {
                   for (String targetId : this.selectedNode.nextTargets(outputToClear)) {
@@ -666,23 +683,7 @@ final class MacroBuilderScreen extends Screen {
                                  return false;
                               }
                            } else {
-                              if (clickedNode != null && clickedNode != this.pendingConnectionSource && !this.isNoteNode(clickedNode)) {
-                                 this.pendingConnectionSource.addTarget(this.pendingConnectionOutput, clickedNode.id);
-                                 this.selectNode(this.pendingConnectionSource, false);
-                                 this.status = "Connected " + this.pendingConnectionOutput + " to " + clickedNode.displayLabel();
-                                 this.statusColor = -4200769;
-                                 this.recordHistorySnapshot();
-                              } else if (this.isNoteNode(clickedNode)) {
-                                 this.status = "Notes do not run as components";
-                                 this.statusColor = -11382;
-                              } else {
-                                 this.status = "Connection canceled";
-                                 this.statusColor = -11382;
-                              }
-
-                              this.pendingConnectionSource = null;
-                              this.pendingConnectionOutput = null;
-                              this.refreshProperties();
+                              this.completePendingConnection(clickedNode);
                               return true;
                            }
                         }
@@ -707,7 +708,15 @@ final class MacroBuilderScreen extends Screen {
       this.useLayoutSize(actualWidth, actualHeight);
 
       try {
-         if (this.selectingNoteText && this.editingNote != null && button == 0) {
+         if (this.draggingNewConnection && button == 0) {
+            double deltaX = mouseX - this.newConnectionStartX;
+            double deltaY = mouseY - this.newConnectionStartY;
+            if (deltaX * deltaX + deltaY * deltaY > CONTEXT_CLICK_DRAG_THRESHOLD * CONTEXT_CLICK_DRAG_THRESHOLD) {
+               this.newConnectionDragMoved = true;
+            }
+
+            return true;
+         } else if (this.selectingNoteText && this.editingNote != null && button == 0) {
             this.setNoteCaret(this.noteCaretAt(this.editingNote, (int)mouseX, (int)mouseY), true);
             return true;
          } else if (this.resizingNote != null && button == 0) {
@@ -778,6 +787,16 @@ final class MacroBuilderScreen extends Screen {
 
       try {
          boolean handled = super.mouseReleased(mouseX, mouseY, button);
+         if (button == 0 && this.draggingNewConnection) {
+            this.draggingNewConnection = false;
+            if (this.newConnectionDragMoved) {
+               this.newConnectionDragMoved = false;
+               this.completePendingConnection(this.nodeAt((int)mouseX, (int)mouseY));
+            }
+
+            return true;
+         }
+
          if (button == 0 && this.selectingNoteText) {
             this.selectingNoteText = false;
             return true;
@@ -2293,6 +2312,32 @@ final class MacroBuilderScreen extends Screen {
       }
    }
 
+   private void completePendingConnection(MacroModel.Node target) {
+      if (this.pendingConnectionSource == null || this.pendingConnectionOutput == null) {
+         return;
+      }
+
+      if (target != null && target != this.pendingConnectionSource && !this.isNoteNode(target)) {
+         this.pendingConnectionSource.addTarget(this.pendingConnectionOutput, target.id);
+         this.selectNode(this.pendingConnectionSource, false);
+         this.status = "Connected " + this.pendingConnectionOutput + " to " + target.displayLabel();
+         this.statusColor = -4200769;
+         this.recordHistorySnapshot();
+      } else if (this.isNoteNode(target)) {
+         this.status = "Notes do not run as components";
+         this.statusColor = -11382;
+      } else {
+         this.status = "Connection canceled";
+         this.statusColor = -11382;
+      }
+
+      this.pendingConnectionSource = null;
+      this.pendingConnectionOutput = null;
+      this.draggingNewConnection = false;
+      this.newConnectionDragMoved = false;
+      this.refreshProperties();
+   }
+
    private String defaultOutputKey() {
       return this.selectedNode == null ? "completed" : this.primaryOutputKey(this.selectedNode.descriptor());
    }
@@ -3739,6 +3784,8 @@ final class MacroBuilderScreen extends Screen {
          this.draggedNode = null;
          this.pendingConnectionSource = null;
          this.pendingConnectionOutput = null;
+         this.draggingNewConnection = false;
+         this.newConnectionDragMoved = false;
          this.lastHistorySnapshot = this.model.toJson();
          this.status = message;
          this.statusColor = color;
@@ -4082,6 +4129,20 @@ final class MacroBuilderScreen extends Screen {
       }
    }
 
+   private void drawPendingConnection(GuiGraphics context, int mouseX, int mouseY) {
+      if (this.pendingConnectionSource == null || this.pendingConnectionOutput == null) {
+         return;
+      }
+
+      int startX = this.screenX(this.pendingConnectionSource.x + this.nodeWorldWidth(this.pendingConnectionSource));
+      int startY = this.outputY(this.pendingConnectionSource, this.pendingConnectionOutput);
+      int midX = (startX + mouseX) / 2;
+      int color = this.connectionColor(this.pendingConnectionOutput);
+      this.drawSegment(context, startX, startY, midX, startY, color);
+      this.drawSegment(context, midX, startY, midX, mouseY, color);
+      this.drawSegment(context, midX, mouseY, mouseX, mouseY, color);
+   }
+
    private void drawConnectionGrip(GuiGraphics context, int x, int y, int color) {
       int size = Math.max(3, this.scaled(4));
       context.fill(x - size, y - size, x + size + 1, y + size + 1, -1);
@@ -4326,6 +4387,28 @@ final class MacroBuilderScreen extends Screen {
             return null;
          }
       }
+   }
+
+   private MacroBuilderScreen.OutputHit outputDotAt(int mouseX, int mouseY) {
+      List<MacroModel.Node> nodes = this.model.nodes();
+      int tolerance = Math.max(5, this.scaled(7));
+
+      for (int nodeIndex = nodes.size() - 1; nodeIndex >= 0; nodeIndex--) {
+         MacroModel.Node node = nodes.get(nodeIndex);
+         if (this.isNoteNode(node)) {
+            continue;
+         }
+
+         int dotX = this.screenX(node.x) + this.nodeScreenWidth(node) - Math.max(5, this.scaled(9));
+         for (String output : node.descriptor().outputs()) {
+            int dotY = this.outputY(node, output) + Math.max(1, this.scaled(2));
+            if (Math.abs(mouseX - dotX) <= tolerance && Math.abs(mouseY - dotY) <= tolerance) {
+               return new MacroBuilderScreen.OutputHit(node, output);
+            }
+         }
+      }
+
+      return null;
    }
 
    private String nodeValueText(MacroModel.Node node) {
@@ -5221,5 +5304,8 @@ final class MacroBuilderScreen extends Screen {
    }
 
    private record ConnectionHit(MacroModel.Node source, String output, MacroModel.Node target) {
+   }
+
+   private record OutputHit(MacroModel.Node source, String output) {
    }
 }

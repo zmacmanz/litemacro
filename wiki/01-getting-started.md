@@ -41,7 +41,7 @@ On the macro list screen:
 3. Click `Edit`.
 4. Keep the `Macro Entry Point`; every macro needs one.
 5. Drag components from the left panel onto the canvas.
-6. Click an output on one component, then click the next component to connect it.
+6. Drag from an output dot to the next component and release. You can also click the output, then click the target component.
 7. Click a component to edit its settings on the right.
 8. Click `Save`.
 9. Click `Run` or go back to the macro list and press `Run`.

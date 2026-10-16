@@ -23,6 +23,8 @@ The left panel groups components into categories:
 
 A link connects one output to another component.
 
+To make a link, drag from the small output dot on the right side of a component and release over the next component. A preview line follows the mouse while you drag. You can also click an output dot or a connection button, then click the target component.
+
 Common outputs:
 
 - `started` - the start output from `Macro Entry Point`.
