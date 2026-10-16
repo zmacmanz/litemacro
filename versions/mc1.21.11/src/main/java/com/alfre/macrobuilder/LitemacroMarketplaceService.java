@@ -43,6 +43,7 @@ final class LitemacroMarketplaceService {
    private static final String DOWNLOAD_PRESET_RPC = "download_litemacro_marketplace_preset";
    private static final String INCREMENT_DOWNLOAD_RPC = "increment_preset_downloads";
    private static final String LIKE_PRESET_RPC = "like_litemacro_marketplace_preset";
+   private static final String DELETE_PRESET_RPC = "delete_litemacro_marketplace_preset";
    private static final long MAX_PRESET_FILE_SIZE_BYTES = 5L * 1024L * 1024L;
    private static final int FETCH_LIMIT = 200;
    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
@@ -106,6 +107,25 @@ final class LitemacroMarketplaceService {
             JsonObject result = postRpcJson(LIKE_PRESET_RPC, payload, PUBLISHABLE_KEY, "Failed to like marketplace macro");
             JsonObject row = result.has("preset") && result.get("preset").isJsonObject() ? result.getAsJsonObject("preset") : result;
             return parsePreset(row);
+         } catch (Exception error) {
+            throw new CompletionException(error);
+         }
+      });
+   }
+
+   static CompletableFuture<String> deleteOwnPreset(String presetId) {
+      return CompletableFuture.supplyAsync(() -> {
+         try {
+            requireConfigured();
+            if (presetId == null || presetId.isBlank()) {
+               throw new IOException("Marketplace macro is missing an id.");
+            }
+
+            JsonObject payload = new JsonObject();
+            payload.addProperty("target_preset_id", presetId);
+            payload.addProperty("requester_install_id", uploaderInstallId());
+            JsonObject result = postRpcJson(DELETE_PRESET_RPC, payload, PUBLISHABLE_KEY, "Failed to delete marketplace macro");
+            return firstNonBlank(nullableString(result, "message"), "Deleted your marketplace upload.");
          } catch (Exception error) {
             throw new CompletionException(error);
          }

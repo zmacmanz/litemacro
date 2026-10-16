@@ -37,6 +37,16 @@ From the macro builder:
 
 You can also click `Like +1` on a macro detail screen. Likes help show which uploads other users found useful.
 
+## Delete One Of Your Uploads
+
+1. Open the marketplace and select the macro you uploaded.
+2. Click `Delete Mine`.
+3. Click `Confirm Delete`.
+
+Only that selected macro is deleted. The marketplace checks the private uploader ID saved by your Litemacro installation, so another player cannot delete your upload. Deleting an upload also frees one of your five upload slots.
+
+If Minecraft was reinstalled or the `litemacro-marketplace-uploader.properties` file was removed, the new installation will have a different uploader ID and cannot delete uploads made with the old ID. The marketplace administrator can still remove those rows in Supabase.
+
 Good things to check before running:
 
 - What starts the macro.

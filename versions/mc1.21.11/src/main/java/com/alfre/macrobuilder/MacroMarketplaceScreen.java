@@ -59,6 +59,7 @@ final class MacroMarketplaceScreen extends Screen {
    private boolean busy;
    private boolean publishPopupOpen;
    private boolean settingsPopupOpen;
+   private boolean deleteConfirmArmed;
 
    MacroMarketplaceScreen(MacroRunner runner, int returnPage) {
       super(Component.literal("Litemacro Marketplace"));
@@ -172,19 +173,32 @@ final class MacroMarketplaceScreen extends Screen {
          }
 
          if (this.selectedPreset != null) {
+            if (this.hit(this.popupDeleteRect(), mouseX, mouseY)) {
+               if (this.deleteConfirmArmed) {
+                  this.deleteSelectedPreset();
+               } else {
+                  this.deleteConfirmArmed = true;
+                  this.status = "Click Confirm Delete to remove your upload permanently.";
+               }
+               return true;
+            }
             if (this.hit(this.popupLikeRect(), mouseX, mouseY)) {
+               this.deleteConfirmArmed = false;
                this.likeSelectedPreset();
                return true;
             }
             if (this.hit(this.popupDownloadRect(), mouseX, mouseY)) {
+               this.deleteConfirmArmed = false;
                this.downloadSelectedPreset();
                return true;
             }
             if (this.hit(this.popupCloseRect(), mouseX, mouseY)) {
                this.selectedPreset = null;
+               this.deleteConfirmArmed = false;
                return true;
             }
             this.selectedPreset = null;
+            this.deleteConfirmArmed = false;
             return true;
          }
 
@@ -216,6 +230,7 @@ final class MacroMarketplaceScreen extends Screen {
          LitemacroMarketplacePreset card = this.cardAt(mouseX, mouseY);
          if (card != null) {
             this.selectedPreset = card;
+            this.deleteConfirmArmed = false;
             return true;
          }
 
@@ -238,6 +253,7 @@ final class MacroMarketplaceScreen extends Screen {
          }
          if (this.selectedPreset != null) {
             this.selectedPreset = null;
+            this.deleteConfirmArmed = false;
             return true;
          }
       }
@@ -459,6 +475,30 @@ final class MacroMarketplaceScreen extends Screen {
       }));
    }
 
+   private void deleteSelectedPreset() {
+      if (this.busy || this.selectedPreset == null) {
+         return;
+      }
+
+      LitemacroMarketplacePreset preset = this.selectedPreset;
+      this.busy = true;
+      this.deleteConfirmArmed = false;
+      this.status = "Deleting " + preset.name() + "...";
+      LitemacroMarketplaceService.deleteOwnPreset(preset.id()).whenComplete((message, error) -> this.runOnClient(() -> {
+         this.busy = false;
+         if (error != null) {
+            this.status = this.shortError(error);
+            return;
+         }
+
+         this.allPresets.removeIf(item -> item.id().equals(preset.id()));
+         this.selectedPreset = null;
+         this.applyFilter();
+         this.page = Math.min(this.page, this.totalPages() - 1);
+         this.status = firstNonBlank(message, "Deleted your marketplace upload.");
+      }));
+   }
+
    private void replacePreset(LitemacroMarketplacePreset updated) {
       for (int index = 0; index < this.allPresets.size(); index++) {
          if (this.allPresets.get(index).id().equals(updated.id())) {
@@ -564,6 +604,7 @@ final class MacroMarketplaceScreen extends Screen {
       );
       this.drawButton(context, this.popupDownloadRect(), this.busy ? "Working..." : "Download to Current Macro", mouseX, mouseY, !this.busy);
       this.drawButton(context, this.popupLikeRect(), this.busy ? "..." : "Like +1", mouseX, mouseY, !this.busy);
+      this.drawButton(context, this.popupDeleteRect(), this.deleteConfirmArmed ? "Confirm Delete" : "Delete Mine", mouseX, mouseY, !this.busy);
       this.drawButton(context, this.popupCloseRect(), "Close", mouseX, mouseY, true);
    }
 
@@ -926,6 +967,14 @@ final class MacroMarketplaceScreen extends Screen {
       int x = (this.width - w) / 2;
       int y = (this.height - h) / 2;
       return new Rect(x + 214, y + h - 40, 76, 22);
+   }
+
+   private Rect popupDeleteRect() {
+      int w = this.presetPopupWidth();
+      int h = this.presetPopupHeight();
+      int x = (this.width - w) / 2;
+      int y = (this.height - h) / 2;
+      return new Rect(x + 298, y + h - 40, 100, 22);
    }
 
    private Rect popupCloseRect() {
