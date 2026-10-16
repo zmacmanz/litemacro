@@ -176,6 +176,7 @@ Limits and behavior:
 - Bigger mines must be split into multiple `Mine Area` components.
 - `Auto Tool` checks your hotbar and switches between pickaxe, shovel, axe, or another faster tool based on the block being mined.
 - When `Stop before block` matches the next target, Litemacro leaves that block untouched and stops the whole macro before sending a mining action.
+- If the player enters water or lava, Mine Area immediately releases mining and movement, then follows the red `failed` connection. Connect that output to `/home`, `/heal`, a message, Stop Macro, or another recovery action.
 - If one block is protected, unreachable, or will not break, Litemacro skips that block and keeps checking the rest of the area.
 - If the whole area is unloaded and `move=true`, Litemacro walks toward the area for a limited time. If it still cannot load the area, the component fails instead of walking forever.
 
@@ -184,7 +185,7 @@ Outputs:
 ```text
 completed -> next step after the area is mined
 tool_low  -> repair, swap tool, local message, or stop path
-failed    -> local message or recovery path
+failed    -> water/lava safety path, local message, or another recovery path
 ```
 
 Protected-block runtime data:

@@ -3349,6 +3349,15 @@ final class MacroRunner {
       MacroRunner.MineAreaOptions options = this.mineAreaOptions(client, node);
       if (options == null) {
          this.fail(client, node, this.mineAreaOptionsError(client, node));
+      } else if (client.player.isInWater() || client.player.isInLava()) {
+         this.releaseHeldKeys(client);
+         if (client.gameMode != null) {
+            client.gameMode.stopDestroyBlock();
+         }
+
+         this.activeMineAreaTicks = 0;
+         this.activeMineAreaTravelTicks = 0;
+         this.fail(client, node, client.player.isInLava() ? "Failed: Mine Area stopped because the player entered lava." : "Failed: Mine Area stopped because the player entered water.");
       } else if (!options.autoTool() && toolIsLow(client, options.toolLowThreshold())) {
          this.releaseHeldKeys(client);
          this.complete(client, node, "tool_low");
