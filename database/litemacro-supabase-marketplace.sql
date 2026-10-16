@@ -375,6 +375,22 @@ begin
 end;
 $$;
 
+create or replace function public.list_my_litemacro_marketplace_presets(
+    requester_install_id text
+)
+returns setof public.marketplace_presets
+language sql
+security definer
+set search_path = public, pg_temp
+stable
+as $$
+    select presets.*
+    from public.marketplace_presets presets
+    where presets.uploader_install_id = nullif(trim(coalesce(requester_install_id, '')), '')
+      and presets.storage_bucket = 'database'
+    order by presets.updated_at desc;
+$$;
+
 alter table public.marketplace_presets enable row level security;
 alter table public.litemacro_marketplace_likes enable row level security;
 
@@ -402,6 +418,7 @@ grant execute on function public.download_litemacro_marketplace_preset(uuid) to 
 grant execute on function public.increment_preset_downloads(uuid) to anon, authenticated;
 grant execute on function public.like_litemacro_marketplace_preset(uuid, text) to anon, authenticated;
 grant execute on function public.delete_litemacro_marketplace_preset(uuid, text) to anon, authenticated;
+grant execute on function public.list_my_litemacro_marketplace_presets(text) to anon, authenticated;
 
 -- Optional public storage compatibility for older marketplace rows that still
 -- point at files in the public "graphs" bucket.
@@ -450,4 +467,11 @@ select
         join pg_namespace n on n.oid = p.pronamespace
         where n.nspname = 'public'
           and p.proname = 'like_litemacro_marketplace_preset'
-    ) as like_rpc_installed;
+    ) as like_rpc_installed,
+    exists (
+        select 1
+        from pg_proc p
+        join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname = 'public'
+          and p.proname = 'list_my_litemacro_marketplace_presets'
+    ) as my_uploads_rpc_installed;

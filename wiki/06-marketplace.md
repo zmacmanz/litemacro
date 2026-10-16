@@ -35,13 +35,25 @@ From the macro builder:
 4. Click `Load` to copy it into the current macro slot.
 5. Open the macro in the builder and inspect it before running.
 
+Click `Refresh` to reload the current marketplace view. The number of cards on each page automatically adjusts to the window height so cards stay above the footer.
+
+## See Your Uploads
+
+1. Open the marketplace.
+2. Click `My Uploads`.
+3. The gallery now shows only macros uploaded from this Litemacro installation.
+4. Click `Community` to return to every published macro.
+
+The private uploader ID is stored locally in `litemacro-marketplace-uploader.properties`. Reinstalling Minecraft or deleting that file creates a different ID, so uploads made with the old ID will not appear in `My Uploads`.
+
 You can also click `Like +1` on a macro detail screen. Likes help show which uploads other users found useful.
 
 ## Delete One Of Your Uploads
 
-1. Open the marketplace and select the macro you uploaded.
-2. Click `Delete Mine`.
-3. Click `Confirm Delete`.
+1. Open the marketplace and click `My Uploads`.
+2. Select the macro you uploaded.
+3. Click `Delete Mine`.
+4. Click `Confirm Delete`.
 
 Only that selected macro is deleted. The marketplace checks the private uploader ID saved by your Litemacro installation, so another player cannot delete your upload. Deleting an upload also frees one of your five upload slots.
 

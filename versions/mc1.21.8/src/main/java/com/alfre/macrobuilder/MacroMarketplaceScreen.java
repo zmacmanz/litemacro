@@ -33,7 +33,6 @@ final class MacroMarketplaceScreen extends Screen {
    private static final int CARD_WIDTH = 156;
    private static final int CARD_HEIGHT = 128;
    private static final int CARD_GAP = 10;
-   private static final int PAGE_SIZE = 12;
    private static final int TOP_BAR_HEIGHT = 62;
    private static final int TOP_BAR_CONTROL_Y = 34;
    private static final int MIN_LAYOUT_WIDTH = 960;
@@ -58,6 +57,7 @@ final class MacroMarketplaceScreen extends Screen {
    private boolean publishPopupOpen;
    private boolean settingsPopupOpen;
    private boolean deleteConfirmArmed;
+   private boolean showingMyUploads;
 
    MacroMarketplaceScreen(MacroRunner runner, int returnPage) {
       super(Component.literal("Litemacro Marketplace"));
@@ -170,7 +170,7 @@ final class MacroMarketplaceScreen extends Screen {
          }
 
          if (this.selectedPreset != null) {
-            if (this.hit(this.popupDeleteRect(), mouseX, mouseY)) {
+            if (this.showingMyUploads && this.hit(this.popupDeleteRect(), mouseX, mouseY)) {
                if (this.deleteConfirmArmed) {
                   this.deleteSelectedPreset();
                } else {
@@ -209,6 +209,10 @@ final class MacroMarketplaceScreen extends Screen {
          }
          if (this.hit(this.publishRect(), mouseX, mouseY)) {
             this.openPublishFlow();
+            return true;
+         }
+         if (this.hit(this.myUploadsRect(), mouseX, mouseY)) {
+            this.toggleMyUploads();
             return true;
          }
          if (this.hit(this.sortRect(), mouseX, mouseY)) {
@@ -279,8 +283,11 @@ final class MacroMarketplaceScreen extends Screen {
 
       this.loading = true;
       this.refreshQueued = false;
-      this.status = "Loading Litemacro marketplace...";
-      LitemacroMarketplaceService.fetchPublishedPresets(this.sortMode).whenComplete((presets, error) -> this.finishMarketplaceRefresh(presets, error));
+      this.status = this.showingMyUploads ? "Loading your uploads..." : "Loading Litemacro marketplace...";
+      (this.showingMyUploads
+            ? LitemacroMarketplaceService.fetchOwnPresets()
+            : LitemacroMarketplaceService.fetchPublishedPresets(this.sortMode))
+         .whenComplete((presets, error) -> this.finishMarketplaceRefresh(presets, error));
    }
 
    private void finishMarketplaceRefresh(List<LitemacroMarketplacePreset> presets, Throwable error) {
@@ -300,7 +307,9 @@ final class MacroMarketplaceScreen extends Screen {
 
             this.page = 0;
             this.applyFilter();
-            this.status = this.allPresets.isEmpty() ? "No Litemacro uploads found yet." : "Loaded " + this.allPresets.size() + " Litemacro marketplace macros.";
+            this.status = this.showingMyUploads
+               ? (this.allPresets.isEmpty() ? "You have not uploaded any macros from this installation." : "Loaded " + this.allPresets.size() + " of your uploads.")
+               : (this.allPresets.isEmpty() ? "No Litemacro uploads found yet." : "Loaded " + this.allPresets.size() + " Litemacro marketplace macros.");
          }
 
          if (this.refreshQueued) {
@@ -362,6 +371,18 @@ final class MacroMarketplaceScreen extends Screen {
          case LIKES -> LitemacroMarketplaceService.ListingMode.UPDATED;
          case UPDATED -> LitemacroMarketplaceService.ListingMode.TRENDING;
       };
+      this.refreshMarketplace();
+   }
+
+   private void toggleMyUploads() {
+      if (this.busy || this.loading) {
+         return;
+      }
+
+      this.showingMyUploads = !this.showingMyUploads;
+      this.selectedPreset = null;
+      this.deleteConfirmArmed = false;
+      this.page = 0;
       this.refreshMarketplace();
    }
 
@@ -512,8 +533,9 @@ final class MacroMarketplaceScreen extends Screen {
       context.fill(0, TOP_BAR_HEIGHT - 1, this.width, TOP_BAR_HEIGHT, BORDER);
       this.drawButton(context, this.backRect(), "Back", mouseX, mouseY, true);
       this.drawButton(context, this.publishRect(), "Submit", mouseX, mouseY, !this.busy);
+      this.drawButton(context, this.myUploadsRect(), this.showingMyUploads ? "Community" : "My Uploads", mouseX, mouseY, !this.loading);
       this.drawButton(context, this.sortRect(), this.sortShortLabel(), mouseX, mouseY, true);
-      this.drawButton(context, this.refreshRect(), this.loading ? "..." : "\u21bb", mouseX, mouseY, !this.loading);
+      this.drawButton(context, this.refreshRect(), this.loading ? "Loading" : "Refresh", mouseX, mouseY, !this.loading);
       context.drawCenteredString(this.font, "Litemacro Marketplace", this.width / 2, 8, TEXT);
       if (this.width >= 760) {
          context.drawCenteredString(this.font, "Litemacro online macro gallery", this.width / 2, 22, MUTED);
@@ -526,19 +548,20 @@ final class MacroMarketplaceScreen extends Screen {
       int width = this.width - 36;
       int bottom = this.height - 34;
       this.drawPanel(context, left, top, left + width, bottom, PANEL);
-      context.drawString(this.font, "Community macros", left + 14, top + 12, TEXT);
+      context.drawString(this.font, this.showingMyUploads ? "My uploads" : "Community macros", left + 14, top + 12, TEXT);
       context.drawString(this.font, this.filteredPresets.size() + " shown / " + this.allPresets.size() + " loaded", left + 14, top + 26, MUTED);
       int galleryTop = top + 48;
-      int columns = Math.max(1, Math.min(6, (width - 28 + CARD_GAP) / (CARD_WIDTH + CARD_GAP)));
-      int start = this.page * PAGE_SIZE;
-      int end = Math.min(this.filteredPresets.size(), start + PAGE_SIZE);
+      int columns = this.galleryColumns();
+      int pageSize = this.pageSize();
+      int start = this.page * pageSize;
+      int end = Math.min(this.filteredPresets.size(), start + pageSize);
       if (this.loading) {
          context.drawCenteredString(this.font, "Loading marketplace...", this.width / 2, galleryTop + 48, ACCENT);
          return;
       }
       if (this.filteredPresets.isEmpty()) {
-         context.drawCenteredString(this.font, "No Litemacro macros match this view.", this.width / 2, galleryTop + 48, MUTED);
-         context.drawCenteredString(this.font, "Submit one from the button above.", this.width / 2, galleryTop + 64, DIM);
+         context.drawCenteredString(this.font, this.showingMyUploads ? "No uploads from this installation." : "No Litemacro macros match this view.", this.width / 2, galleryTop + 48, MUTED);
+         context.drawCenteredString(this.font, this.showingMyUploads ? "Submit a macro to add it here." : "Submit one from the button above.", this.width / 2, galleryTop + 64, DIM);
          return;
       }
 
@@ -601,7 +624,9 @@ final class MacroMarketplaceScreen extends Screen {
       );
       this.drawButton(context, this.popupDownloadRect(), this.busy ? "Working..." : "Download to Current Macro", mouseX, mouseY, !this.busy);
       this.drawButton(context, this.popupLikeRect(), this.busy ? "..." : "Like +1", mouseX, mouseY, !this.busy);
-      this.drawButton(context, this.popupDeleteRect(), this.deleteConfirmArmed ? "Confirm Delete" : "Delete Mine", mouseX, mouseY, !this.busy);
+      if (this.showingMyUploads) {
+         this.drawButton(context, this.popupDeleteRect(), this.deleteConfirmArmed ? "Confirm Delete" : "Delete Mine", mouseX, mouseY, !this.busy);
+      }
       this.drawButton(context, this.popupCloseRect(), "Close", mouseX, mouseY, true);
    }
 
@@ -768,10 +793,10 @@ final class MacroMarketplaceScreen extends Screen {
    private LitemacroMarketplacePreset cardAt(double mouseX, double mouseY) {
       int left = 18;
       int top = 112;
-      int width = this.width - 36;
-      int columns = Math.max(1, Math.min(6, (width - 28 + CARD_GAP) / (CARD_WIDTH + CARD_GAP)));
-      int start = this.page * PAGE_SIZE;
-      int end = Math.min(this.filteredPresets.size(), start + PAGE_SIZE);
+      int columns = this.galleryColumns();
+      int pageSize = this.pageSize();
+      int start = this.page * pageSize;
+      int end = Math.min(this.filteredPresets.size(), start + pageSize);
       for (int index = start; index < end; index++) {
          int local = index - start;
          int x = left + 14 + local % columns * (CARD_WIDTH + CARD_GAP);
@@ -785,7 +810,23 @@ final class MacroMarketplaceScreen extends Screen {
    }
 
    private int totalPages() {
-      return Math.max(1, (int)Math.ceil(this.filteredPresets.size() / (double)PAGE_SIZE));
+      return Math.max(1, (int)Math.ceil(this.filteredPresets.size() / (double)this.pageSize()));
+   }
+
+   private int galleryColumns() {
+      int width = this.width - 36;
+      return Math.max(1, Math.min(6, (width - 28 + CARD_GAP) / (CARD_WIDTH + CARD_GAP)));
+   }
+
+   private int galleryRows() {
+      int galleryTop = TOP_BAR_HEIGHT + 62;
+      int galleryBottom = this.height - 46;
+      int availableHeight = Math.max(CARD_HEIGHT, galleryBottom - galleryTop);
+      return Math.max(1, (availableHeight + CARD_GAP) / (CARD_HEIGHT + CARD_GAP));
+   }
+
+   private int pageSize() {
+      return this.galleryColumns() * this.galleryRows();
    }
 
    private List<String> parseTags(String value) {
@@ -923,15 +964,15 @@ final class MacroMarketplaceScreen extends Screen {
    }
 
    private Rect myUploadsRect() {
-      return new Rect(330, TOP_BAR_CONTROL_Y, 62, 18);
+      return new Rect(360, TOP_BAR_CONTROL_Y, 76, 18);
    }
 
    private Rect sortRect() {
-      return new Rect(360, TOP_BAR_CONTROL_Y, 54, 18);
+      return new Rect(442, TOP_BAR_CONTROL_Y, 58, 18);
    }
 
    private Rect refreshRect() {
-      return new Rect(420, TOP_BAR_CONTROL_Y, 50, 18);
+      return new Rect(506, TOP_BAR_CONTROL_Y, 68, 18);
    }
 
    private Rect settingsRect() {

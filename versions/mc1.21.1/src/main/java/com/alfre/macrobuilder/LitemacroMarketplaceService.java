@@ -44,6 +44,7 @@ final class LitemacroMarketplaceService {
    private static final String INCREMENT_DOWNLOAD_RPC = "increment_preset_downloads";
    private static final String LIKE_PRESET_RPC = "like_litemacro_marketplace_preset";
    private static final String DELETE_PRESET_RPC = "delete_litemacro_marketplace_preset";
+   private static final String MY_PRESETS_RPC = "list_my_litemacro_marketplace_presets";
    private static final long MAX_PRESET_FILE_SIZE_BYTES = 5L * 1024L * 1024L;
    private static final int FETCH_LIMIT = 200;
    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
@@ -72,6 +73,23 @@ final class LitemacroMarketplaceService {
             return filterLitemacro(fetchPresets(buildPublishedListingsUrl(mode), PUBLISHABLE_KEY));
          } catch (Exception var2) {
             throw new RuntimeException("Failed to fetch marketplace presets", var2);
+         }
+      });
+   }
+
+   static CompletableFuture<List<LitemacroMarketplacePreset>> fetchOwnPresets() {
+      return CompletableFuture.supplyAsync(() -> {
+         try {
+            requireConfigured();
+            JsonObject payload = new JsonObject();
+            payload.addProperty("requester_install_id", uploaderInstallId());
+            HttpResponse<String> response = sendRpcRequest(MY_PRESETS_RPC, payload, PUBLISHABLE_KEY, Duration.ofSeconds(15));
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+               throw httpException("Failed to load your marketplace uploads", response);
+            }
+            return filterLitemacro(parsePresets(response.body()));
+         } catch (Exception error) {
+            throw new CompletionException(error);
          }
       });
    }
