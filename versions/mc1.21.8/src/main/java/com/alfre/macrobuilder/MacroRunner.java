@@ -73,6 +73,7 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.level.block.state.properties.Property;
@@ -3353,7 +3354,7 @@ final class MacroRunner {
       } else if (client.gameMode == null) {
          this.fail(client, node, "Failed: Mine Area cannot mine in the current game mode.");
       } else {
-         if (this.activeMineAreaPos == null || client.level.getBlockState(this.activeMineAreaPos).isAir()) {
+         if (this.activeMineAreaPos == null || !isMineAreaBreakTarget(client.level.getBlockState(this.activeMineAreaPos))) {
             this.activeMineAreaPos = this.nextMineAreaBlock(client, options);
             this.activeMineAreaTicks = 0;
             this.activeMineAreaTravelTicks = 0;
@@ -3396,6 +3397,12 @@ final class MacroRunner {
             this.activeMineAreaTravelTicks = 0;
             this.activeMineAreaTicks++;
             BlockState targetState = client.level.getBlockState(this.activeMineAreaPos);
+            if (!isMineAreaBreakTarget(targetState)) {
+               this.activeMineAreaPos = null;
+               this.activeMineAreaTicks = 0;
+               return;
+            }
+
             if (options.autoTool()) {
                this.selectBestHotbarTool(client, targetState);
                if (toolIsLow(client, options.toolLowThreshold())) {
@@ -3414,7 +3421,7 @@ final class MacroRunner {
             }
 
             client.player.swing(InteractionHand.MAIN_HAND);
-            if (client.level.getBlockState(this.activeMineAreaPos).isAir()) {
+            if (!isMineAreaBreakTarget(client.level.getBlockState(this.activeMineAreaPos))) {
                this.activeMineAreaPos = null;
                this.activeMineAreaTicks = 0;
             } else {
@@ -5535,7 +5542,7 @@ final class MacroRunner {
 
       for (BlockPos mutable : BlockPos.betweenClosed(options.min(), options.max())) {
          BlockPos pos = mutable.immutable();
-         if (client.level.isLoaded(pos) && !this.activeMineAreaSkippedBlocks.contains(pos) && !client.level.getBlockState(pos).isAir()) {
+         if (client.level.isLoaded(pos) && !this.activeMineAreaSkippedBlocks.contains(pos) && isMineAreaBreakTarget(client.level.getBlockState(pos))) {
             double distance = client.player.distanceToSqr(Vec3.atCenterOf(pos));
             if (distance < nearestDistance) {
                nearestDistance = distance;
@@ -5545,6 +5552,10 @@ final class MacroRunner {
       }
 
       return nearest;
+   }
+
+   private static boolean isMineAreaBreakTarget(BlockState state) {
+      return !state.isAir() && !state.is(Blocks.WATER) && !state.is(Blocks.LAVA) && !state.is(Blocks.BUBBLE_COLUMN);
    }
 
    private static int mineToolLowThreshold(String options) {

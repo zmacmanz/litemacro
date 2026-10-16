@@ -139,10 +139,8 @@ final class MacroListScreen extends Screen {
    private void drawStatusPanel(GuiGraphics context) {
       Rect panel = this.statusPanel();
       this.drawPanel(context, panel);
-      context.drawString(this.font, "STATUS", panel.x + 12, panel.y + 8, ACCENT, false);
-      context.drawString(this.font, this.fit(this.runner.status(), panel.w - 78), panel.x + 64, panel.y + 8, TEXT, false);
-      context.drawString(this.font, "FILE", panel.x + 12, panel.y + 25, DIM, false);
-      context.drawString(this.font, this.fit(this.runner.macroPath().toString(), panel.w - 56), panel.x + 48, panel.y + 25, MUTED, false);
+      context.drawString(this.font, "STATUS", panel.x + 12, panel.y + 11, ACCENT, false);
+      context.drawString(this.font, this.fit(this.runner.status(), panel.w - 78), panel.x + 64, panel.y + 11, TEXT, false);
    }
 
    private void drawBackgroundGrid(GuiGraphics context) {
@@ -227,7 +225,7 @@ final class MacroListScreen extends Screen {
    private int contentLeft() { return (this.width - this.contentWidth()) / 2; }
    private Rect listPanel() { return new Rect(this.contentLeft(), 66, this.contentWidth(), 312); }
    private Rect actionPanel() { return new Rect(this.contentLeft(), 388, this.contentWidth(), 80); }
-   private Rect statusPanel() { return new Rect(this.contentLeft(), this.height - 58, this.contentWidth(), 46); }
+   private Rect statusPanel() { return new Rect(this.contentLeft(), this.height - 42, this.contentWidth(), 30); }
    private Rect overlayRect() { return new Rect(this.contentLeft() + this.contentWidth() - 250, 14, 82, 28); }
    private Rect chatRect() { return new Rect(this.contentLeft() + this.contentWidth() - 162, 14, 74, 28); }
    private Rect closeRect() { return new Rect(this.contentLeft() + this.contentWidth() - 82, 14, 82, 28); }
