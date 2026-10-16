@@ -128,6 +128,7 @@ final class MacroModel {
    private static final List<String> COMPLETED_OR_FAILED = List.of("completed", "failed");
    private static final List<String> TRUE_FALSE_OR_FAILED = List.of("true", "false", "failed");
    private static final List<String> COMPLETED_TOOL_LOW_OR_FAILED = List.of("completed", "tool_low", "failed");
+   private static final List<String> AUTO_FISH_OUTPUTS = List.of("caught", "inventory_full", "rod_low", "failed");
    private static final List<String> RANDOM_OUTPUT_3 = List.of("one", "two", "three");
    private static final List<String> REPEAT_COMPLETED_OR_FAILED = List.of("repeat", "completed", "failed");
    private static final List<MacroModel.Descriptor> DESCRIPTORS = List.of(
@@ -147,6 +148,9 @@ final class MacroModel {
       new MacroModel.Descriptor("official:player.jump", "Jump", "Player", -6765703, COMPLETED_OR_FAILED, true, "", "", ""),
       new MacroModel.Descriptor(
          "builder:player.autoClick", "Auto Click", "Player", -6765703, COMPLETED_OR_FAILED, true, "Button: left/right", "Count/cps or hold ms", "left"
+      ),
+      new MacroModel.Descriptor(
+         "builder:player.autoFish", "Auto Fish", "Player", -6765703, AUTO_FISH_OUTPUTS, true, "Rod low durability %", "Bite timeout seconds", "10"
       ),
       new MacroModel.Descriptor(
          "builder:player.pressKey", "Press Key", "Player", -6765703, COMPLETED_OR_FAILED, true, "Key name/code", "Press/hold duration", "space"
@@ -996,6 +1000,7 @@ final class MacroModel {
          case "builder:player.setSprint" -> "Turns sprint on or off";
          case "official:player.jump" -> "Makes the player jump once";
          case "builder:player.autoClick" -> "Clicks or holds left/right click with a count and interval";
+         case "builder:player.autoFish" -> "Casts, detects a bite, reels in, and switches fishing rods before they break";
          case "builder:player.pressKey" -> "Presses or holds a keyboard key for a set duration";
          case "official:inventory.isFull" -> "True when inventory has no empty slots";
          case "official:inventory.hasItem", "builder:inventory.hasItem" -> "Checks for an item and count";
@@ -1589,6 +1594,8 @@ final class MacroModel {
             return "left";
          } else if ("builder:player.autoClick".equals(this.type)) {
             return "count=1 cps=8";
+         } else if ("builder:player.autoFish".equals(this.type)) {
+            return "60";
          } else if ("builder:player.pressKey".equals(this.type)) {
             return "tap 100";
          } else if ("official:player.shootBow".equals(this.type)) {

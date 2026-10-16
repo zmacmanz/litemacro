@@ -138,6 +138,9 @@ final class MacroRunner {
    private boolean activeGrindstoneResultClicked;
    private boolean activeGrindstoneResultReleased;
    private int activeGrindstoneResultClickTick;
+   private int activeFishPhase;
+   private int activeFishPhaseTick;
+   private int activeFishCatchCount;
    private int stepDelayTicksRemaining;
    private String lastStatus = "Stopped";
    private float lastHealth = Float.NaN;
@@ -1409,6 +1412,7 @@ final class MacroRunner {
                      this.activeTicks = 0;
                      this.clearFarmState();
                      this.clearMineAreaState();
+                     this.clearAutoFishState();
                      this.activeJumpPlaceSupportPos = null;
                      this.captureEventBaselines();
                   }
@@ -1459,6 +1463,9 @@ final class MacroRunner {
                            break;
                         case "builder:player.autoClick":
                            this.runAutoClick(client, node);
+                           break;
+                        case "builder:player.autoFish":
+                           this.runAutoFish(client, node);
                            break;
                         case "builder:player.pressKey":
                            this.runPressKey(client, node);
@@ -2148,6 +2155,132 @@ final class MacroRunner {
             this.clickMouseButton(client, button);
          }
       }
+   }
+
+   private void runAutoFish(Minecraft client, MacroModel.Node node) {
+      Integer rodLowPercent = parseIntOrNull(this.resolveRuntimeText(node.value));
+      Integer timeoutSeconds = parseIntOrNull(this.resolveRuntimeText(node.value2));
+      if (rodLowPercent == null || rodLowPercent < 0 || rodLowPercent > 100 || timeoutSeconds == null || timeoutSeconds < 5 || timeoutSeconds > 300) {
+         this.fail(client, node, "Failed: Auto Fish needs rod low durability from 0-100% and a bite timeout from 5-300 seconds.");
+         return;
+      }
+
+      if (this.activeFishPhase == 0) {
+         if (this.isInventoryFull(client)) {
+            this.complete(client, node, "inventory_full");
+            return;
+         }
+
+         int rodSlot = this.bestFishingRodSlot(client, rodLowPercent);
+         if (rodSlot < 0) {
+            if (this.hasHotbarFishingRod(client)) {
+               this.complete(client, node, "rod_low");
+            } else {
+               this.fail(client, node, "Failed: Auto Fish needs a fishing rod in the hotbar.");
+            }
+
+            return;
+         }
+
+         client.player.getInventory().setSelectedSlot(rodSlot);
+         ItemStack rod = client.player.getInventory().getItem(rodSlot);
+         this.putRuntimeValue("fish.rod_slot", Integer.toString(rodSlot + 1));
+         this.putRuntimeValue("fish.rod_durability_percent", Integer.toString(remainingDurabilityPercent(rod)));
+         if (!this.useFishingRod(client)) {
+            this.fail(client, node, "Failed: Auto Fish could not cast the fishing rod.");
+            return;
+         }
+
+         this.activeFishPhase = 1;
+         this.activeFishPhaseTick = this.activeTicks;
+         return;
+      }
+
+      int phaseTicks = this.activeTicks - this.activeFishPhaseTick;
+      if (this.activeFishPhase == 1) {
+         var bobber = client.player.fishing;
+         if (bobber == null) {
+            if (phaseTicks > 40) {
+               this.fail(client, node, "Failed: Auto Fish did not create a fishing bobber.");
+            }
+
+            return;
+         }
+
+         if (phaseTicks >= 15 && bobber.getDeltaMovement().y < -0.04) {
+            if (!this.useFishingRod(client)) {
+               this.fail(client, node, "Failed: Auto Fish could not reel in the fishing rod.");
+               return;
+            }
+
+            this.activeFishPhase = 2;
+            this.activeFishPhaseTick = this.activeTicks;
+         } else if (phaseTicks >= timeoutSeconds * 20) {
+            this.useFishingRod(client);
+            this.activeFishPhase = 3;
+            this.activeFishPhaseTick = this.activeTicks;
+         }
+
+         return;
+      }
+
+      if (phaseTicks < 8) {
+         return;
+      }
+
+      if (this.activeFishPhase == 2) {
+         this.activeFishCatchCount++;
+         this.putRuntimeValue("fish.catch_count", Integer.toString(this.activeFishCatchCount));
+         this.complete(client, node, this.isInventoryFull(client) ? "inventory_full" : "caught");
+      } else {
+         this.clearAutoFishState();
+      }
+   }
+
+   private boolean useFishingRod(Minecraft client) {
+      if (client.gameMode == null) {
+         return false;
+      }
+
+      client.gameMode.useItem(client.player, InteractionHand.MAIN_HAND);
+      client.player.swing(InteractionHand.MAIN_HAND, SwingAnimation.DEFAULT, true);
+      return true;
+   }
+
+   private int bestFishingRodSlot(Minecraft client, int lowPercent) {
+      int bestSlot = -1;
+      int bestRemaining = -1;
+      for (int slot = 0; slot < 9 && slot < client.player.getInventory().getContainerSize(); slot++) {
+         ItemStack stack = client.player.getInventory().getItem(slot);
+         if ("minecraft:fishing_rod".equals(itemId(stack))) {
+            int remainingPercent = remainingDurabilityPercent(stack);
+            if (remainingPercent > lowPercent && remainingPercent > bestRemaining) {
+               bestSlot = slot;
+               bestRemaining = remainingPercent;
+            }
+         }
+      }
+
+      return bestSlot;
+   }
+
+   private boolean hasHotbarFishingRod(Minecraft client) {
+      for (int slot = 0; slot < 9 && slot < client.player.getInventory().getContainerSize(); slot++) {
+         if ("minecraft:fishing_rod".equals(itemId(client.player.getInventory().getItem(slot)))) {
+            return true;
+         }
+      }
+
+      return false;
+   }
+
+   private static int remainingDurabilityPercent(ItemStack stack) {
+      if (stack == null || stack.isEmpty() || !stack.isDamageableItem() || stack.getMaxDamage() <= 0) {
+         return 100;
+      }
+
+      int remaining = Math.max(0, stack.getMaxDamage() - stack.getDamageValue());
+      return Mth.clamp((int)Math.floor(remaining * 100.0 / stack.getMaxDamage()), 0, 100);
    }
 
    private void runPressKey(Minecraft client, MacroModel.Node node) {
@@ -5162,6 +5295,11 @@ final class MacroRunner {
       this.activeMineAreaTicks = 0;
       this.activeMineAreaTravelTicks = 0;
       this.activeMineAreaSkippedBlocks.clear();
+   }
+
+   private void clearAutoFishState() {
+      this.activeFishPhase = 0;
+      this.activeFishPhaseTick = 0;
    }
 
    private MacroRunner.FarmOptions farmOptions(Minecraft client, MacroModel.Node node) {

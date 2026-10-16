@@ -28,6 +28,7 @@ Many fields can use live values such as `${player.name}`, `${player.pos}`, `${ta
 | `Set Sprint` | Turns sprint on or off. |
 | `Jump` | Jumps once. |
 | `Auto Click` | Left/right clicking with count, CPS, interval, or hold time. |
+| `Auto Fish` | Selects the healthiest usable hotbar rod, casts, detects a bite, reels in, and provides separate caught, inventory-full, rod-low, and failed paths. |
 | `Press Key` | Presses or holds a keyboard key, including Shift, Ctrl, and Alt. |
 
 ## Logic

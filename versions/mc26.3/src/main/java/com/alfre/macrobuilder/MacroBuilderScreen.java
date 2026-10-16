@@ -4353,6 +4353,8 @@ final class MacroBuilderScreen extends Screen {
          return node.value + (node.value2 == null || node.value2.isBlank() ? "" : " / " + node.value2);
       } else if ("builder:player.autoClick".equals(node.type)) {
          return node.value + " / " + node.value2;
+      } else if ("builder:player.autoFish".equals(node.type)) {
+         return "rod low " + node.value + "% / " + node.value2 + "s";
       } else if ("builder:player.pressKey".equals(node.type)) {
          return node.value + " / " + node.value2;
       } else if ("official:inventory.hasItem".equals(node.type) || "builder:inventory.hasItem".equals(node.type)) {
@@ -4541,6 +4543,8 @@ final class MacroBuilderScreen extends Screen {
          return secondary ? "left" : "press";
       } else if ("builder:player.autoClick".equals(descriptor.type())) {
          return secondary ? "count=5 cps=8 or hold 500" : "left or right";
+      } else if ("builder:player.autoFish".equals(descriptor.type())) {
+         return secondary ? "60" : "10";
       } else if ("builder:player.pressKey".equals(descriptor.type())) {
          return secondary ? "tap 100 or hold 1000" : "space, shift, ctrl, alt, E";
       } else if (secondary && "builder:world.openNearestContainer".equals(descriptor.type())) {

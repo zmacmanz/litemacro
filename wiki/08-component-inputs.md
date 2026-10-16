@@ -218,7 +218,18 @@ ${mine.protected_block.pos}  matched block X Y Z
 | `Set Sprint` | true/false | Empty | `true` |
 | `Jump` | Empty | Empty | Jumps once. |
 | `Auto Click` | Button | Count, CPS, interval, or hold | `left` and `count=20 cps=8` |
+| `Auto Fish` | Rod low durability percent | Bite timeout seconds | `10` and `60` |
 | `Press Key` | Key name | Press/hold duration | `shift` and `hold 2000` |
+
+`Auto Fish` handles one catch per pass. Connect `caught` back to Auto Fish to keep fishing. Connect `inventory_full` to a home command, movement, or container-deposit path. Connect `rod_low` to a repair command or replacement-rod path. It automatically chooses the hotbar fishing rod with the most durability above the selected limit.
+
+Runtime values:
+
+```text
+${fish.catch_count}
+${fish.rod_slot}
+${fish.rod_durability_percent}
+```
 
 ### Logic
 
