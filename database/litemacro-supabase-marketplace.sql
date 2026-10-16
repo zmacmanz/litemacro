@@ -50,6 +50,16 @@ alter table public.marketplace_presets alter column file_path set not null;
 alter table public.marketplace_presets alter column published set default true;
 alter table public.marketplace_presets alter column storage_bucket set default 'graphs';
 
+-- Older marketplace installs limited names to 64 characters and descriptions
+-- to 180 characters. Keep the table constraints aligned with the current RPC,
+-- which safely truncates submitted values to 96 and 1200 characters.
+alter table public.marketplace_presets drop constraint if exists marketplace_presets_name_len;
+alter table public.marketplace_presets
+    add constraint marketplace_presets_name_len check (char_length(name) <= 96);
+alter table public.marketplace_presets drop constraint if exists marketplace_presets_description_len;
+alter table public.marketplace_presets
+    add constraint marketplace_presets_description_len check (char_length(description) <= 1200);
+
 create unique index if not exists marketplace_presets_slug_key on public.marketplace_presets (slug);
 create index if not exists marketplace_presets_published_updated_idx on public.marketplace_presets (published, updated_at desc);
 create index if not exists marketplace_presets_uploader_idx on public.marketplace_presets (uploader_install_id, created_at desc);

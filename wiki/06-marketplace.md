@@ -62,6 +62,8 @@ The submit form has these fields:
 - `Description`: A short explanation of what the macro does.
 - `Tags`: Search words separated by commas.
 
+The marketplace accepts names up to 96 characters and descriptions up to 1200 characters. Longer values are shortened safely when submitted.
+
 Example:
 
 ```text
@@ -100,6 +102,7 @@ Common causes:
 - The macro slot is empty.
 - The upload limit has already been reached.
 - The marketplace database setup is missing.
+- The marketplace database is using old name or description limits. Run the latest marketplace SQL setup to update them.
 - The internet connection or Supabase request failed.
 
 If the error says a database function or column is missing, the Supabase setup needs to be fixed by the marketplace admin.
