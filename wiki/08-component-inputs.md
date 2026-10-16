@@ -469,6 +469,8 @@ Open Nearest Shulker
 
 Entity tags must start with `#` and use the full tag ID. For example, `#minecraft:raiders` matches every entity type included in Minecraft's raider tag. Custom server or data-pack entity-type tags work when the client receives that tag data.
 
+For `Attack Entity`, turn **Move** on when the target may be farther than three blocks away. With **Move** off, the target must already be within attack range or the component follows its `failed` connection.
+
 ### Misc
 
 | Component | Field 1 | Field 2 | Example |

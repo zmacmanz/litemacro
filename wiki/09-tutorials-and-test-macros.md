@@ -121,6 +121,8 @@ minecraft:blaze
 
 Use an exact entity ID for one mob type. Use an entity-type tag beginning with `#` to target a group. For example, `#minecraft:raiders` can target pillagers, vindicators, evokers, witches, ravagers, and other entity types included in that tag for your Minecraft version. Import `test-macros/raider-tag-attack-loop.json` for a ready-to-run example.
 
+The raider example has **Move** turned on so it can approach a target detected up to eight blocks away. If you turn **Move** off, stand within three blocks of the target.
+
 ## Tutorial: Grind XP Then Enchant
 
 This pattern is for a mob farm where the player stands in one place and attacks mobs until level 30.

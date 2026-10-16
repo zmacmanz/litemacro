@@ -95,6 +95,14 @@ final class MacroRunner {
    private static final int MINE_AREA_BREAK_TIMEOUT_TICKS = 400;
    private static final int BOW_DRAW_TICKS = 25;
    private static final int ENTITY_REACH_DISTANCE = 3;
+   private static final Set<String> VANILLA_RAIDER_ENTITY_IDS = Set.of(
+      "minecraft:evoker",
+      "minecraft:pillager",
+      "minecraft:ravager",
+      "minecraft:vindicator",
+      "minecraft:illusioner",
+      "minecraft:witch"
+   );
    private static final int TELEPORT_DISTANCE_SQUARED = 64;
    private static final int CHAT_MESSAGE_LIMIT = 256;
    private static final Pattern PRICE_RANGE_PATTERN = Pattern.compile(
@@ -3442,11 +3450,16 @@ final class MacroRunner {
          Boolean moveToTarget = parseBooleanOrDefault(this.resolveRuntimeText(node.value2), false);
          if (moveToTarget == null) {
             this.fail(client, node, "Failed: Entity move value must be true or false.");
-         } else if (moveToTarget && client.player.distanceToSqr(target) > 9.0) {
-            this.setMacroKeyDown(client, client.options.keyUp, true);
-            if (this.activeTicks > 300) {
+         } else if (client.player.distanceToSqr(target) > (double)(ENTITY_REACH_DISTANCE * ENTITY_REACH_DISTANCE)) {
+            if (moveToTarget) {
+               this.setMacroKeyDown(client, client.options.keyUp, true);
+               if (this.activeTicks > 300) {
+                  this.releaseMovementKeys(client);
+                  this.fail(client, node, "Failed: target entity was out of reach.");
+               }
+            } else {
                this.releaseMovementKeys(client);
-               this.fail(client, node, "Failed: target entity was out of reach.");
+               this.fail(client, node, "Failed: target is out of reach. Turn Move on or stand within 3 blocks.");
             }
          } else {
             this.releaseMovementKeys(client);
@@ -5036,13 +5049,17 @@ final class MacroRunner {
    }
 
    private boolean entityMatches(Entity entity, String filter) {
+      String type = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString().toLowerCase(Locale.ROOT);
       if (filter.startsWith("#")) {
          TagKey<EntityType<?>> tag = entityTypeTagKey(filter);
-         return tag != null && entity.getType().is(tag);
+         if (tag != null && entity.getType().is(tag)) {
+            return true;
+         }
+
+         return "#minecraft:raiders".equals(filter) && VANILLA_RAIDER_ENTITY_IDS.contains(type);
       }
 
       String name = entity.getName().getString().toLowerCase(Locale.ROOT);
-      String type = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString().toLowerCase(Locale.ROOT);
       return name.contains(filter) || type.contains(filter) || nameMatchesList(name, filter) || nameMatchesRegex(name, filter);
    }
 
