@@ -183,6 +183,8 @@ final class MacroRunner {
    private String activeFarmSeedItem = "";
    private boolean activeFarmHarvested;
    private BlockPos activeMineAreaPos;
+   private BlockPos activeMineAreaDescentTarget;
+   private int activeMineAreaDescentStartY;
    private int activeMineAreaTicks;
    private int activeMineAreaTravelTicks;
    private final Set<BlockPos> activeMineAreaSkippedBlocks = new HashSet<>();
@@ -3366,6 +3368,7 @@ final class MacroRunner {
       } else {
          if (this.activeMineAreaPos == null || !isMineAreaBreakTarget(client.level.getBlockState(this.activeMineAreaPos))) {
             this.activeMineAreaPos = this.nextMineAreaBlock(client, options);
+            this.activeMineAreaDescentTarget = null;
             this.activeMineAreaTicks = 0;
             this.activeMineAreaTravelTicks = 0;
             if (this.activeMineAreaPos == null) {
@@ -3388,6 +3391,58 @@ final class MacroRunner {
              this.stop(client, "Stopped: Mine Area found protected block " + selectedBlockId + " at " + blockPosText(this.activeMineAreaPos) + ".");
              return;
           }
+
+         if (this.activeMineAreaDescentTarget != null) {
+            if (client.player.onGround() && client.player.blockPosition().getY() < this.activeMineAreaDescentStartY) {
+               this.releaseMovementKeys(client);
+               this.activeMineAreaDescentTarget = null;
+               this.activeMineAreaTravelTicks = 0;
+               this.lastStatus = "Mine Area: safe descent complete.";
+            } else {
+               this.activeMineAreaTravelTicks++;
+               this.moveTowardBlock(client, this.activeMineAreaDescentTarget);
+               if (this.activeMineAreaTravelTicks > MINE_AREA_MOVE_TIMEOUT_TICKS) {
+                  this.releaseHeldKeys(client);
+                  this.activeMineAreaDescentTarget = null;
+                  this.activeMineAreaTravelTicks = 0;
+                  this.fail(client, node, "Failed: Mine Area could not finish the safe descent.");
+               } else {
+                  this.lastStatus = "Mine Area: stepping down before removing the old support block.";
+               }
+
+               return;
+            }
+         }
+
+         if (this.activeMineAreaPos.equals(client.player.blockPosition().below())) {
+            this.activeMineAreaTicks = 0;
+            if (!options.move()) {
+               this.skipMineAreaBlock(client, "Mine Area: left the support block because Move is off.");
+               return;
+            }
+
+            BlockPos descentStep = this.mineAreaDescentStep(client, options);
+            if (descentStep == null) {
+               this.releaseHeldKeys(client);
+               this.activeMineAreaTravelTicks = 0;
+               this.fail(client, node, "Failed: Mine Area could not find a supported step down before mining the block under the player.");
+               return;
+            }
+
+            this.activeMineAreaDescentTarget = descentStep;
+            this.activeMineAreaDescentStartY = client.player.blockPosition().getY();
+            this.activeMineAreaTravelTicks++;
+            this.moveTowardBlock(client, descentStep);
+            if (this.activeMineAreaTravelTicks > MINE_AREA_MOVE_TIMEOUT_TICKS) {
+               this.releaseHeldKeys(client);
+               this.activeMineAreaTravelTicks = 0;
+               this.fail(client, node, "Failed: Mine Area could not finish the safe descent.");
+            } else {
+               this.lastStatus = "Mine Area: stepping down before removing the old support block.";
+            }
+
+            return;
+         }
 
          if (!canReachBlock(client, this.activeMineAreaPos)) {
             this.activeMineAreaTicks = 0;
@@ -3459,6 +3514,7 @@ final class MacroRunner {
       }
 
       this.activeMineAreaPos = null;
+      this.activeMineAreaDescentTarget = null;
       this.activeMineAreaTicks = 0;
       this.activeMineAreaTravelTicks = 0;
       this.lastStatus = status;
@@ -5333,6 +5389,8 @@ final class MacroRunner {
 
    private void clearMineAreaState() {
       this.activeMineAreaPos = null;
+      this.activeMineAreaDescentTarget = null;
+      this.activeMineAreaDescentStartY = 0;
       this.activeMineAreaTicks = 0;
       this.activeMineAreaTravelTicks = 0;
       this.activeMineAreaSkippedBlocks.clear();
@@ -5664,6 +5722,52 @@ final class MacroRunner {
          && this.mineAreaHasSafeSupport(client, feetPos, maxDrop);
    }
 
+   private BlockPos mineAreaDescentStep(Minecraft client, MacroRunner.MineAreaOptions options) {
+      BlockPos start = client.player.blockPosition();
+      BlockPos best = null;
+      int bestScore = Integer.MAX_VALUE;
+
+      for (int stepX = -1; stepX <= 1; stepX++) {
+         for (int stepZ = -1; stepZ <= 1; stepZ++) {
+            if (stepX == 0 && stepZ == 0) {
+               continue;
+            }
+
+            BlockPos nextFeet = start.offset(stepX, 0, stepZ);
+            if (!client.level.isLoaded(nextFeet)
+               || !this.mineAreaWalkSpaceIsClear(client, nextFeet)
+               || !this.mineAreaWalkSpaceIsClear(client, nextFeet.above())) {
+               continue;
+            }
+
+            int supportDepth = this.mineAreaSupportDepth(client, nextFeet, options.sliceHeight());
+            if (supportDepth <= 1) {
+               continue;
+            }
+
+            int desiredDepth = options.sliceHeight() + 1;
+            int score = Math.abs(supportDepth - desiredDepth) * 100;
+            if (stepX != 0 && stepZ != 0) {
+               score += 10;
+            }
+
+            if (nextFeet.getX() < options.min().getX()
+               || nextFeet.getX() > options.max().getX()
+               || nextFeet.getZ() < options.min().getZ()
+               || nextFeet.getZ() > options.max().getZ()) {
+               score += 50;
+            }
+
+            if (score < bestScore) {
+               bestScore = score;
+               best = nextFeet;
+            }
+         }
+      }
+
+      return best;
+   }
+
    private boolean mineAreaWalkSpaceIsClear(Minecraft client, BlockPos pos) {
       BlockState state = client.level.getBlockState(pos);
       return !state.is(Blocks.WATER)
@@ -5673,14 +5777,18 @@ final class MacroRunner {
    }
 
    private boolean mineAreaHasSafeSupport(Minecraft client, BlockPos feetPos, int maxDrop) {
-      for (int depth = 1; depth <= maxDrop; depth++) {
+      return this.mineAreaSupportDepth(client, feetPos, maxDrop) > 0;
+   }
+
+   private int mineAreaSupportDepth(Minecraft client, BlockPos feetPos, int maxDrop) {
+      for (int depth = 1; depth <= maxDrop + 1; depth++) {
          BlockState support = client.level.getBlockState(feetPos.below(depth));
          if (isMineAreaBreakTarget(support)) {
-            return true;
+            return depth;
          }
       }
 
-      return false;
+      return -1;
    }
 
    private static int clampMineAreaSliceHeight(String value) {

@@ -112,7 +112,7 @@ Inventory slots usually use:
 | --- | --- |
 | `Interact With Block` | Right-clicks or attacks a target block. Useful for anvils and containers. |
 | `Mine Block` | Mines a target block. |
-| `Mine Area` | Mines between two XYZ points or relative `~` corners in user-selected slices from 1 to 8 blocks deep. It clears standing room first, leaves the player's support block until last, and can use Safe Path to walk around holes or follow `failed` when no supported route exists. Includes Auto Tool, `tool_low`, water/lava safety, and optional protected-block stopping. Each side can be up to 16 blocks. |
+| `Mine Area` | Mines between two XYZ points or relative `~` corners in user-selected slices from 1 to 8 blocks deep. It clears standing room first, leaves the player's support block until last, walks onto the lower floor, then removes the old pillar. Safe Path walks around holes or follows `failed` when no supported route or descent exists. Includes Auto Tool, `tool_low`, water/lava safety, and optional protected-block stopping. Each side can be up to 16 blocks. |
 | `Place Block` | Places a selected block on a target. |
 | `Jump And Place Block` | Jumps and places below the player. |
 | `Farm Area` | Harvests crops between two XYZ points and can move. |

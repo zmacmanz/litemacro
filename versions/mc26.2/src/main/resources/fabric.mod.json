@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "macro_builder",
-  "version": "1.0.93",
+  "version": "1.0.94",
   "name": "Litemacro",
   "description": "Litemacro is a drag-and-drop style macro builder and runner for Fabric 26.2 clients.",
   "authors": [

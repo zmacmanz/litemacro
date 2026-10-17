@@ -179,8 +179,8 @@ Limits and behavior:
 - Max size is `16x16x16` for one `Mine Area`.
 - Bigger mines must be split into multiple `Mine Area` components.
 - `Slice` cycles from 1 through 8. A slice is the number of vertical blocks Mine Area clears before descending. The default is 3 so the player has usable standing and head room instead of drilling a one-block shaft.
-- Inside the active slice, Mine Area prefers blocks at the player's feet or above, leaves the block directly under the player until other blocks are clear, and only then moves to the next lower slice.
-- `Safe Path` is on by default. Before walking, it checks the forward and side steps, walks around a hole when a supported route exists, and follows `failed` when every route is blocked or drops deeper than the selected slice.
+- Inside the active slice, Mine Area prefers blocks at the player's feet or above and leaves the block directly under the player until other blocks are clear. With Move on, it then walks off the final pillar, waits until the player lands on the lower floor, removes the old pillar, and continues with the next slice. With Move off, it leaves the support block instead of digging directly under the player.
+- `Safe Path` is on by default. Before walking, it checks the forward and side steps, walks around a hole when a supported route exists, and follows `failed` when every route is blocked. A slice transition also follows `failed` when no supported lower landing spot exists.
 - `Auto Tool` checks your hotbar and switches between pickaxe, shovel, axe, or another faster tool based on the block being mined.
 - When `Stop before block` matches the next target, Litemacro leaves that block untouched and stops the whole macro before sending a mining action.
 - If the player enters water or lava, Mine Area immediately releases mining and movement, then follows the red `failed` connection. Connect that output to `/home`, `/heal`, a message, Stop Macro, or another recovery action.
