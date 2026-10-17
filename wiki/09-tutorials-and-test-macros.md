@@ -21,6 +21,7 @@ Ready-to-import examples are in the repo `test-macros` folder:
 | `auto-fish-repair-home.json` | Auto fishes with spare-rod switching, a rod-low repair-command path, and an inventory-full home-command path. |
 | `mine-deposit-wool-nearest-chest-loop.json` | Mines, opens the nearest chest, deposits wool, and loops. |
 | `working-mine-area-16x16x16.json` | Safe Mine Area test for one max-size area. |
+| `example-16x16-deep-quarry-64-blocks.json` | Chains four safe 16x16x16 sections into one 16x16 quarry that is 64 blocks deep. Copy the last section to continue deeper. |
 | `working-mine-area-full-chunked.json` | Larger Mine Area example split into smaller chunks. |
 | `runtime-data-grindstone-output-hotbar.json` | Tests named runtime outputs. Auto Grindstone saves `clean_item.slot`, then Select Hotbar Slot uses it. |
 | `runtime-data-relative-mine-area-auto-tool.json` | Tests relative coordinates with Mine Area and Auto Tool. |
