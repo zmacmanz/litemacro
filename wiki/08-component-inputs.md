@@ -143,6 +143,8 @@ Field 2: -11864 41 12115
 Tool Low: 10
 Move: On
 Auto Tool: On
+Slice: 3
+Safe Path: On
 Stop before block: minecraft:diamond_ore
 ```
 
@@ -154,6 +156,8 @@ Field 2: ~3 ~2 ~3
 Tool Low: 10
 Move: Off
 Auto Tool: On
+Slice: 3
+Safe Path: On
 Stop before block: minecraft:diamond_ore
 ```
 
@@ -174,7 +178,9 @@ Limits and behavior:
 
 - Max size is `16x16x16` for one `Mine Area`.
 - Bigger mines must be split into multiple `Mine Area` components.
-- Mining starts on the highest unfinished Y layer. Litemacro clears that layer before selecting blocks from the layer below, preventing a deep hole from leaving the top blocks out of reach.
+- `Slice` cycles from 1 through 8. A slice is the number of vertical blocks Mine Area clears before descending. The default is 3 so the player has usable standing and head room instead of drilling a one-block shaft.
+- Inside the active slice, Mine Area prefers blocks at the player's feet or above, leaves the block directly under the player until other blocks are clear, and only then moves to the next lower slice.
+- `Safe Path` is on by default. Before walking, it checks the forward and side steps, walks around a hole when a supported route exists, and follows `failed` when every route is blocked or drops deeper than the selected slice.
 - `Auto Tool` checks your hotbar and switches between pickaxe, shovel, axe, or another faster tool based on the block being mined.
 - When `Stop before block` matches the next target, Litemacro leaves that block untouched and stops the whole macro before sending a mining action.
 - If the player enters water or lava, Mine Area immediately releases mining and movement, then follows the red `failed` connection. Connect that output to `/home`, `/heal`, a message, Stop Macro, or another recovery action.
@@ -186,7 +192,7 @@ Outputs:
 ```text
 completed -> next step after the area is mined
 tool_low  -> repair, swap tool, local message, or stop path
-failed    -> water/lava safety path, local message, or another recovery path
+failed    -> water/lava, unsafe drop, blocked path, local message, or another recovery path
 ```
 
 Protected-block runtime data:

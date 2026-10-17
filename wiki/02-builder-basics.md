@@ -56,7 +56,7 @@ Common settings:
 - `Component delay` overrides the global delay for one component.
 - `Enabled` lets you turn a component on or off for testing.
 - `Pick Item` helps fill item IDs without typing them.
-- Some components have buttons or dropdowns instead of raw text. For example, `Mine Area` has `Move` and `Auto Tool` buttons, and `Open Nearest Container` has a `Move` button plus a `Type` dropdown.
+- Some components have buttons or dropdowns instead of raw text. For example, `Mine Area` has `Move`, `Auto Tool`, `Slice`, and `Safe Path` buttons, and `Open Nearest Container` has a `Move` button plus a `Type` dropdown.
 - `Connections` shows and clears links from the selected component.
 
 Useful builder shortcuts:

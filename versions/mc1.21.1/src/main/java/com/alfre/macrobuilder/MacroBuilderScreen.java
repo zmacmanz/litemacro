@@ -150,6 +150,8 @@ final class MacroBuilderScreen extends Screen {
    private Button secondaryItemButton;
    private Button mineAreaMoveButton;
    private Button mineAreaAutoToolButton;
+   private Button mineAreaSliceButton;
+   private Button mineAreaSafePathButton;
    private Button containerMoveButton;
    private Button containerTypeButton;
    private Button autoEnchantUseHeldButton;
@@ -365,6 +367,16 @@ final class MacroBuilderScreen extends Screen {
       this.mineAreaAutoToolButton = (Button)this.addRenderableWidget(
          Button.builder(Component.literal("Auto Tool: Off"), button -> this.toggleMineAreaAutoTool())
             .bounds(rightX + 22 + splitButtonWidth, RIGHT_MINE_AREA_TOGGLE_Y, trailingButtonWidth, 20)
+            .build()
+      );
+      this.mineAreaSliceButton = (Button)this.addRenderableWidget(
+         Button.builder(Component.literal("Slice: 3"), button -> this.cycleMineAreaSliceHeight())
+            .bounds(rightX + 14, RIGHT_MINE_AREA_HINT_Y, splitButtonWidth, 20)
+            .build()
+      );
+      this.mineAreaSafePathButton = (Button)this.addRenderableWidget(
+         Button.builder(Component.literal("Safe Path: On"), button -> this.toggleMineAreaSafePath())
+            .bounds(rightX + 22 + splitButtonWidth, RIGHT_MINE_AREA_HINT_Y, trailingButtonWidth, 20)
             .build()
       );
       this.containerMoveButton = (Button)this.addRenderableWidget(
@@ -1122,6 +1134,8 @@ final class MacroBuilderScreen extends Screen {
           && this.mineAreaProtectedBlockField != null
          && this.mineAreaMoveButton != null
          && this.mineAreaAutoToolButton != null
+         && this.mineAreaSliceButton != null
+         && this.mineAreaSafePathButton != null
          && this.containerMoveButton != null
          && this.containerTypeButton != null
          && this.autoEnchantItemField != null
@@ -1240,6 +1254,12 @@ final class MacroBuilderScreen extends Screen {
          this.mineAreaAutoToolButton.visible = mineAreaNode;
          this.mineAreaAutoToolButton.active = mineAreaNode;
          this.mineAreaAutoToolButton.setMessage(Component.literal(this.mineAreaAutoToolEnabled(this.selectedNode) ? "Auto Tool: On" : "Auto Tool: Off"));
+         this.mineAreaSliceButton.visible = mineAreaNode;
+         this.mineAreaSliceButton.active = mineAreaNode;
+         this.mineAreaSliceButton.setMessage(Component.literal("Slice: " + this.mineAreaSliceHeight(this.selectedNode)));
+         this.mineAreaSafePathButton.visible = mineAreaNode;
+         this.mineAreaSafePathButton.active = mineAreaNode;
+         this.mineAreaSafePathButton.setMessage(Component.literal(this.mineAreaSafePathEnabled(this.selectedNode) ? "Safe Path: On" : "Safe Path: Off"));
          this.containerMoveButton.visible = containerSettingsNode;
          this.containerMoveButton.active = containerSettingsNode;
          this.containerMoveButton.setMessage(Component.literal(containerSettingsNode && this.containerMoveEnabled(this.selectedNode) ? "Move: On" : "Move: Off"));
@@ -1548,6 +1568,23 @@ final class MacroBuilderScreen extends Screen {
       }
    }
 
+   private void cycleMineAreaSliceHeight() {
+      if (this.isMineAreaNode(this.selectedNode)) {
+         int next = this.mineAreaSliceHeight(this.selectedNode) % 8 + 1;
+         this.selectedNode.value4 = Integer.toString(next);
+         this.recordHistorySnapshot();
+         this.refreshProperties();
+      }
+   }
+
+   private void toggleMineAreaSafePath() {
+      if (this.isMineAreaNode(this.selectedNode)) {
+         this.selectedNode.value5 = Boolean.toString(!this.mineAreaSafePathEnabled(this.selectedNode));
+         this.recordHistorySnapshot();
+         this.refreshProperties();
+      }
+   }
+
    private void toggleContainerMove() {
       if (this.isOpenNearestContainerSettingsNode(this.selectedNode)) {
          boolean next = !this.containerMoveEnabled(this.selectedNode);
@@ -1762,6 +1799,19 @@ final class MacroBuilderScreen extends Screen {
       }
 
       return autoTool;
+   }
+
+   private int mineAreaSliceHeight(MacroModel.Node node) {
+      try {
+         return Math.max(1, Math.min(8, Integer.parseInt(node == null || node.value4 == null ? "" : node.value4.trim())));
+      } catch (NumberFormatException ignored) {
+         return 3;
+      }
+   }
+
+   private boolean mineAreaSafePathEnabled(MacroModel.Node node) {
+      String value = node == null || node.value5 == null ? "" : node.value5.trim();
+      return value.isBlank() || this.optionTruthy(value, true);
    }
 
    private boolean isOpenNearestContainerNode(MacroModel.Node node) {
@@ -2731,7 +2781,6 @@ final class MacroBuilderScreen extends Screen {
          if (this.isMineAreaNode(this.selectedNode)) {
             context.drawString(this.font, "Tool low durability", rightX + 14, RIGHT_MINE_AREA_TOOL_LABEL_Y, -2565928);
              context.drawString(this.font, "Stop before block (optional)", rightX + 14, RIGHT_MINE_AREA_PROTECTED_LABEL_Y, -2565928);
-             this.drawWrappedText(context, "Stops before mining this block ID.", rightX + 14, RIGHT_MINE_AREA_HINT_Y, rightWidth, -7366491, 2);
          }
 
          if (this.isAutoEnchantNode(this.selectedNode)) {
@@ -4513,7 +4562,11 @@ final class MacroBuilderScreen extends Screen {
       } else if ("builder:world.lookingAtBlock".equals(node.type)) {
          return node.value != null && !node.value.isBlank() ? node.value : "any block";
       } else if ("builder:world.mineArea".equals(node.type)) {
-         return this.mineAreaToText(node) + (this.mineAreaAutoToolEnabled(node) ? " / auto tool" : "");
+         return this.mineAreaToText(node)
+            + (this.mineAreaAutoToolEnabled(node) ? " / auto tool" : "")
+            + " / slice "
+            + this.mineAreaSliceHeight(node)
+            + (this.mineAreaSafePathEnabled(node) ? " / safe path" : "");
       } else if (this.isOpenNearestContainerSettingsNode(node)) {
          return this.containerTypeLabel(this.containerType(node)) + " / " + node.value + " blocks" + (this.containerMoveEnabled(node) ? " / move" : " / no move");
       } else if ("builder:world.openNearestEnchantingTable".equals(node.type) || "builder:world.openNearestGrindstone".equals(node.type)) {

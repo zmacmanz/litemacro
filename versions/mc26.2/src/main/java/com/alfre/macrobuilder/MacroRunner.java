@@ -3394,8 +3394,17 @@ final class MacroRunner {
             if (!options.move()) {
                this.skipMineAreaBlock(client, "Mine Area: skipped out-of-reach block.");
             } else {
+               BlockPos movementTarget = options.safePath() ? this.mineAreaSafeStepToward(client, this.activeMineAreaPos, options.sliceHeight()) : this.activeMineAreaPos;
+               if (movementTarget == null) {
+                  this.releaseHeldKeys(client);
+                  this.activeMineAreaTicks = 0;
+                  this.activeMineAreaTravelTicks = 0;
+                  this.fail(client, node, "Failed: Mine Area Safe Path could not walk around a hole or drop deeper than " + options.sliceHeight() + " blocks.");
+                  return;
+               }
+
                this.activeMineAreaTravelTicks++;
-               this.moveTowardBlock(client, this.activeMineAreaPos);
+               this.moveTowardBlock(client, movementTarget);
                if (this.activeMineAreaTravelTicks > MINE_AREA_MOVE_TIMEOUT_TICKS) {
                   this.skipMineAreaBlock(client, "Mine Area: skipped unreachable block.");
                } else {
@@ -5501,11 +5510,13 @@ final class MacroRunner {
              boolean autoTool = mineAreaAutoTool(options);
              String stopBeforeBlockText = this.resolveRuntimeText(node.value3).trim();
              String stopBeforeBlock = stopBeforeBlockText.isBlank() ? "" : MacroModel.normalizeItemId(stopBeforeBlockText);
+             int sliceHeight = clampMineAreaSliceHeight(node.value4);
+             boolean safePath = node.value5 == null || node.value5.isBlank() || optionBoolean(node.value5, true);
              if (!stopBeforeBlock.isBlank() && !isKnownBlockId(stopBeforeBlock)) {
                 return null;
              }
 
-             return new MacroRunner.MineAreaOptions(min, max, toolLowThreshold, move, autoTool, stopBeforeBlock);
+             return new MacroRunner.MineAreaOptions(min, max, toolLowThreshold, move, autoTool, stopBeforeBlock, sliceHeight, safePath);
           }
        } else {
          return null;
@@ -5547,29 +5558,146 @@ final class MacroRunner {
    }
 
    private BlockPos nextMineAreaBlock(Minecraft client, MacroRunner.MineAreaOptions options) {
-      for (int y = options.max().getY(); y >= options.min().getY(); y--) {
-         BlockPos nearest = null;
-         double nearestDistance = Double.MAX_VALUE;
-         BlockPos layerMin = new BlockPos(options.min().getX(), y, options.min().getZ());
-         BlockPos layerMax = new BlockPos(options.max().getX(), y, options.max().getZ());
-
-         for (BlockPos mutable : BlockPos.betweenClosed(layerMin, layerMax)) {
-            BlockPos pos = mutable.immutable();
-            if (client.level.isLoaded(pos) && !this.activeMineAreaSkippedBlocks.contains(pos) && isMineAreaBreakTarget(client.level.getBlockState(pos))) {
-               double distance = client.player.distanceToSqr(Vec3.atCenterOf(pos));
-               if (distance < nearestDistance) {
-                  nearestDistance = distance;
-                  nearest = pos;
-               }
-            }
+      for (int sliceTop = options.max().getY(); sliceTop >= options.min().getY(); sliceTop -= options.sliceHeight()) {
+         int sliceBottom = Math.max(options.min().getY(), sliceTop - options.sliceHeight() + 1);
+         BlockPos nearest = this.nearestMineAreaBlockInSlice(client, options, sliceBottom, sliceTop, false);
+         if (nearest != null) {
+            return nearest;
          }
 
+         nearest = this.nearestMineAreaBlockInSlice(client, options, sliceBottom, sliceTop, true);
          if (nearest != null) {
             return nearest;
          }
       }
 
       return null;
+   }
+
+   private BlockPos nearestMineAreaBlockInSlice(Minecraft client, MacroRunner.MineAreaOptions options, int sliceBottom, int sliceTop, boolean allowPlayerSupport) {
+      BlockPos playerSupport = client.player.blockPosition().below();
+      int playerFeetY = client.player.blockPosition().getY();
+      BlockPos nearest = null;
+      double nearestScore = Double.MAX_VALUE;
+      BlockPos sliceMin = new BlockPos(options.min().getX(), sliceBottom, options.min().getZ());
+      BlockPos sliceMax = new BlockPos(options.max().getX(), sliceTop, options.max().getZ());
+
+      for (BlockPos mutable : BlockPos.betweenClosed(sliceMin, sliceMax)) {
+         BlockPos pos = mutable.immutable();
+         if (!client.level.isLoaded(pos)
+            || this.activeMineAreaSkippedBlocks.contains(pos)
+            || !isMineAreaBreakTarget(client.level.getBlockState(pos))
+            || !allowPlayerSupport && pos.equals(playerSupport)) {
+            continue;
+         }
+
+         double score = client.player.distanceToSqr(Vec3.atCenterOf(pos));
+         if (pos.getY() < playerFeetY) {
+            score += 64.0;
+         }
+
+         if (options.safePath() && !canReachBlock(client, pos) && this.mineAreaSafeStepToward(client, pos, options.sliceHeight()) == null) {
+            score += 1000000.0;
+         }
+
+         if (score < nearestScore) {
+            nearestScore = score;
+            nearest = pos;
+         }
+      }
+
+      return nearest;
+   }
+
+   private BlockPos mineAreaSafeStepToward(Minecraft client, BlockPos target, int maxDrop) {
+      BlockPos start = client.player.blockPosition();
+      List<BlockPos> queue = new ArrayList<>();
+      Map<BlockPos, BlockPos> previous = new HashMap<>();
+      queue.add(start);
+      previous.put(start, null);
+      BlockPos best = start;
+      double bestDistance = start.distSqr(target);
+
+      for (int index = 0; index < queue.size() && queue.size() < 512; index++) {
+         BlockPos current = queue.get(index);
+         for (int stepX = -1; stepX <= 1; stepX++) {
+            for (int stepZ = -1; stepZ <= 1; stepZ++) {
+               if (stepX == 0 && stepZ == 0) {
+                  continue;
+               }
+
+               BlockPos nextFeet = current.offset(stepX, 0, stepZ);
+               if (previous.containsKey(nextFeet)
+                  || Math.abs(nextFeet.getX() - start.getX()) > 16
+                  || Math.abs(nextFeet.getZ() - start.getZ()) > 16
+                  || !this.mineAreaStepIsSafe(client, nextFeet, maxDrop)) {
+                  continue;
+               }
+
+               previous.put(nextFeet, current);
+               queue.add(nextFeet);
+               double distance = nextFeet.distSqr(target);
+               if (distance < bestDistance) {
+                  bestDistance = distance;
+                  best = nextFeet;
+               }
+            }
+         }
+      }
+
+      if (best.equals(start)) {
+         return null;
+      }
+
+      BlockPos step = best;
+      while (previous.get(step) != null && !previous.get(step).equals(start)) {
+         step = previous.get(step);
+      }
+
+      return step;
+   }
+
+   private boolean mineAreaStepIsSafe(Minecraft client, BlockPos feetPos, int maxDrop) {
+      return client.level.isLoaded(feetPos)
+         && this.mineAreaWalkSpaceIsClear(client, feetPos)
+         && this.mineAreaWalkSpaceIsClear(client, feetPos.above())
+         && this.mineAreaHasSafeSupport(client, feetPos, maxDrop);
+   }
+
+   private boolean mineAreaWalkSpaceIsClear(Minecraft client, BlockPos pos) {
+      BlockState state = client.level.getBlockState(pos);
+      return !state.is(Blocks.WATER)
+         && !state.is(Blocks.LAVA)
+         && !state.is(Blocks.BUBBLE_COLUMN)
+         && state.getCollisionShape(client.level, pos).isEmpty();
+   }
+
+   private boolean mineAreaHasSafeSupport(Minecraft client, BlockPos feetPos, int maxDrop) {
+      for (int depth = 1; depth <= maxDrop; depth++) {
+         BlockState support = client.level.getBlockState(feetPos.below(depth));
+         if (isMineAreaBreakTarget(support)) {
+            return true;
+         }
+      }
+
+      return false;
+   }
+
+   private static int clampMineAreaSliceHeight(String value) {
+      return Math.max(1, Math.min(8, parseInt(value == null ? "" : value.trim(), 3)));
+   }
+
+   private static boolean optionBoolean(String value, boolean fallback) {
+      String normalized = value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+      if (normalized.isBlank()) {
+         return fallback;
+      }
+
+      return switch (normalized) {
+         case "true", "on", "yes", "1" -> true;
+         case "false", "off", "no", "0" -> false;
+         default -> fallback;
+      };
    }
 
    private static boolean isMineAreaBreakTarget(BlockState state) {
@@ -7976,7 +8104,16 @@ final class MacroRunner {
    private record FarmOptions(int radius, BlockPos min, BlockPos max, boolean replant, boolean depositWhenFull, boolean move) {
    }
 
-   private record MineAreaOptions(BlockPos min, BlockPos max, int toolLowThreshold, boolean move, boolean autoTool, String stopBeforeBlock) {
+   private record MineAreaOptions(
+      BlockPos min,
+      BlockPos max,
+      int toolLowThreshold,
+      boolean move,
+      boolean autoTool,
+      String stopBeforeBlock,
+      int sliceHeight,
+      boolean safePath
+   ) {
    }
 
    private record PressKeyOptions(boolean hold, int durationMs) {
