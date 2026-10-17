@@ -5554,21 +5554,29 @@ final class MacroRunner {
    }
 
    private BlockPos nextMineAreaBlock(Minecraft client, MacroRunner.MineAreaOptions options) {
-      BlockPos nearest = null;
-      double nearestDistance = Double.MAX_VALUE;
+      for (int y = options.max().getY(); y >= options.min().getY(); y--) {
+         BlockPos nearest = null;
+         double nearestDistance = Double.MAX_VALUE;
+         BlockPos layerMin = new BlockPos(options.min().getX(), y, options.min().getZ());
+         BlockPos layerMax = new BlockPos(options.max().getX(), y, options.max().getZ());
 
-      for (BlockPos mutable : BlockPos.betweenClosed(options.min(), options.max())) {
-         BlockPos pos = mutable.immutable();
-         if (client.level.isLoaded(pos) && !this.activeMineAreaSkippedBlocks.contains(pos) && isMineAreaBreakTarget(client.level.getBlockState(pos))) {
-            double distance = client.player.distanceToSqr(Vec3.atCenterOf(pos));
-            if (distance < nearestDistance) {
-               nearestDistance = distance;
-               nearest = pos;
+         for (BlockPos mutable : BlockPos.betweenClosed(layerMin, layerMax)) {
+            BlockPos pos = mutable.immutable();
+            if (client.level.isLoaded(pos) && !this.activeMineAreaSkippedBlocks.contains(pos) && isMineAreaBreakTarget(client.level.getBlockState(pos))) {
+               double distance = client.player.distanceToSqr(Vec3.atCenterOf(pos));
+               if (distance < nearestDistance) {
+                  nearestDistance = distance;
+                  nearest = pos;
+               }
             }
+         }
+
+         if (nearest != null) {
+            return nearest;
          }
       }
 
-      return nearest;
+      return null;
    }
 
    private static boolean isMineAreaBreakTarget(BlockState state) {

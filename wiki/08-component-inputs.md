@@ -174,6 +174,7 @@ Limits and behavior:
 
 - Max size is `16x16x16` for one `Mine Area`.
 - Bigger mines must be split into multiple `Mine Area` components.
+- Mining starts on the highest unfinished Y layer. Litemacro clears that layer before selecting blocks from the layer below, preventing a deep hole from leaving the top blocks out of reach.
 - `Auto Tool` checks your hotbar and switches between pickaxe, shovel, axe, or another faster tool based on the block being mined.
 - When `Stop before block` matches the next target, Litemacro leaves that block untouched and stops the whole macro before sending a mining action.
 - If the player enters water or lava, Mine Area immediately releases mining and movement, then follows the red `failed` connection. Connect that output to `/home`, `/heal`, a message, Stop Macro, or another recovery action.
