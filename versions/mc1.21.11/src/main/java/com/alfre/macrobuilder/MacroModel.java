@@ -29,6 +29,7 @@ final class MacroModel {
    static final String PLAYER_RESPAWN = "official:player.respawn";
    static final String PLAYER_MOVE = "official:player.move";
    static final String PLAYER_LOOK = "official:player.look";
+   static final String PLAYER_RECORDED_ACTIONS = "builder:player.recordedActions";
    static final String PLAYER_SET_MOUSE_BUTTON = "official:player.setMouseButton";
    static final String PLAYER_SHOOT_BOW = "official:player.shootBow";
    static final String PLAYER_IS_ACCOUNT = "official:player.isAccount";
@@ -136,6 +137,7 @@ final class MacroModel {
       new MacroModel.Descriptor("official:player.respawn", "Respawn", "Player", -6765703, COMPLETED_OR_FAILED, true, "", "", ""),
       new MacroModel.Descriptor("official:player.move", "Move", "Player", -6765703, COMPLETED_OR_FAILED, true, "Direction, position, or entity selector", "Distance", "forward"),
       new MacroModel.Descriptor("official:player.look", "Look", "Player", -6765703, COMPLETED_OR_FAILED, true, "Yaw Pitch, position, or entity selector", "", "0 0"),
+      new MacroModel.Descriptor("builder:player.recordedActions", "Recorded Actions", "Player", -6765703, COMPLETED_OR_FAILED, true, "", "", ""),
       new MacroModel.Descriptor(
          "official:player.setMouseButton", "Mouse Button", "Player", -6765703, COMPLETED_OR_FAILED, true, "State: press/release", "Button: left/right", "press"
       ),
@@ -991,6 +993,7 @@ final class MacroModel {
          case "official:player.respawn" -> "Clicks respawn when the player is dead";
          case "official:player.move" -> "Moves toward a direction, place, or entity";
          case "official:player.look" -> "Turns the player toward a target";
+         case "builder:player.recordedActions" -> "Records and replays movement, looking, clicks, and common gameplay keys";
          case "official:player.setMouseButton" -> "Presses or releases left/right click";
          case "official:player.shootBow" -> "Aims and fires a bow";
          case "official:player.isAccount" -> "Checks if your username matches";

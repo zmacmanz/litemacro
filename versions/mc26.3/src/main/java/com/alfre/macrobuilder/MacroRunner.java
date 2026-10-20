@@ -98,6 +98,19 @@ final class MacroRunner {
    private static final int MINE_AREA_BREAK_TIMEOUT_TICKS = 400;
    private static final int BOW_DRAW_TICKS = 25;
    private static final int ENTITY_REACH_DISTANCE = 3;
+   private static final int RECORDED_FORWARD = 1;
+   private static final int RECORDED_BACK = 1 << 1;
+   private static final int RECORDED_LEFT = 1 << 2;
+   private static final int RECORDED_RIGHT = 1 << 3;
+   private static final int RECORDED_JUMP = 1 << 4;
+   private static final int RECORDED_CROUCH = 1 << 5;
+   private static final int RECORDED_SPRINT = 1 << 6;
+   private static final int RECORDED_ATTACK = 1 << 7;
+   private static final int RECORDED_USE = 1 << 8;
+   private static final int RECORDED_INVENTORY = 1 << 9;
+   private static final int RECORDED_DROP = 1 << 10;
+   private static final int RECORDED_SWAP_HANDS = 1 << 11;
+   private static final int MAX_RECORDED_ACTION_TICKS = 20 * 60 * 10;
    private static final Set<String> VANILLA_RAIDER_ENTITY_IDS = Set.of(
       "minecraft:evoker",
       "minecraft:pillager",
@@ -210,6 +223,19 @@ final class MacroRunner {
    private boolean wasWorldAvailable;
    private InputConstants.Key activePressedKey;
    private Boolean previousPauseOnLostFocus;
+   private boolean actionRecording;
+   private MacroModel actionRecordingModel;
+   private String actionRecordingNodeId = "";
+   private int actionRecordingMacroNumber;
+   private int actionRecordingStopKey = -1;
+   private boolean actionRecordingStopKeyWasDown;
+   private boolean actionRecordingStopKeyArmed;
+   private int actionRecordingTicks;
+   private final List<RecordedActionFrame> actionRecordingFrames = new ArrayList<>();
+   private List<RecordedActionFrame> activeRecordedActionFrames = List.of();
+   private int activeRecordedActionFrameIndex;
+   private int activeRecordedActionFrameTicks;
+   private int activeRecordedActionPreviousFlags;
 
    MacroRunner() {
       this(false, null);
@@ -306,6 +332,51 @@ final class MacroRunner {
 
    String macroKeyName(int macroNumber) {
       return keyName(this.settings.macroKey(macroNumber));
+   }
+
+   boolean actionRecording() {
+      return this.actionRecording;
+   }
+
+   int actionRecordingTicks() {
+      return this.actionRecordingTicks;
+   }
+
+   String actionRecordingStopKeyName() {
+      return keyName(this.actionRecordingStopKey);
+   }
+
+   boolean startActionRecording(Minecraft client, MacroModel recordingModel, MacroModel.Node node) {
+      if (client == null || client.player == null || client.level == null || recordingModel == null || node == null) {
+         this.lastStatus = "Recording needs an active world and a selected Recorded Actions component.";
+         return false;
+      }
+
+      if (!MacroModel.PLAYER_RECORDED_ACTIONS.equals(node.type)) {
+         this.lastStatus = "Select a Recorded Actions component first.";
+         return false;
+      }
+
+      int stopKey = this.settings.macroKey(this.currentMacroNumber);
+      if (stopKey <= 0) {
+         this.lastStatus = "Assign a key to Macro " + this.currentMacroNumber + " before recording.";
+         this.send(client, this.lastStatus);
+         return false;
+      }
+
+      this.stopMacroRuns(client, this.currentMacroNumber, "Stopped before recording actions.");
+      this.actionRecording = true;
+      this.actionRecordingModel = recordingModel;
+      this.actionRecordingNodeId = node.id;
+      this.actionRecordingMacroNumber = this.currentMacroNumber;
+      this.actionRecordingStopKey = stopKey;
+      this.actionRecordingStopKeyWasDown = InputConstants.isKeyDown(stopKey);
+      this.actionRecordingStopKeyArmed = !this.actionRecordingStopKeyWasDown;
+      this.actionRecordingTicks = 0;
+      this.actionRecordingFrames.clear();
+      this.lastStatus = "Recording actions. Press " + keyName(stopKey) + " to stop and save.";
+      this.send(client, this.lastStatus);
+      return true;
    }
 
    void selectMacro(Minecraft client, int macroNumber) {
@@ -1352,6 +1423,10 @@ final class MacroRunner {
 
    void tick(Minecraft client) {
       if (!this.childRunner) {
+         if (this.tickActionRecording(client)) {
+            return;
+         }
+
          this.pollMacroHotkeys(client);
          this.detectMacroStateChanges(client);
       }
@@ -1454,6 +1529,9 @@ final class MacroRunner {
                            break;
                         case "official:player.look":
                            this.runPlayerLook(client, node);
+                           break;
+                        case "builder:player.recordedActions":
+                           this.runRecordedActions(client, node);
                            break;
                         case "official:player.setMouseButton":
                            this.runSetMouseButton(client, node);
@@ -1971,6 +2049,11 @@ final class MacroRunner {
    }
 
    void handleMacroHotkeyPress(Minecraft client, int keyCode) {
+      if (this.actionRecording && keyCode == this.actionRecordingStopKey) {
+         this.finishActionRecording(client, true, "");
+         return;
+      }
+
       if (!macroHotkeysAvailable(client) || keyCode < 0) {
          return;
       }
@@ -2433,6 +2516,230 @@ final class MacroRunner {
             }
          }
       }
+   }
+
+   private boolean tickActionRecording(Minecraft client) {
+      if (!this.actionRecording) {
+         return false;
+      }
+
+      if (client == null || client.player == null || client.level == null) {
+         this.finishActionRecording(client, false, "Recording canceled because the world closed.");
+         return true;
+      }
+
+      boolean stopKeyDown = this.actionRecordingStopKey > 0 && InputConstants.isKeyDown(this.actionRecordingStopKey);
+      if (!stopKeyDown) {
+         this.actionRecordingStopKeyArmed = true;
+      }
+
+      if (this.actionRecordingStopKeyArmed && stopKeyDown && !this.actionRecordingStopKeyWasDown) {
+         this.finishActionRecording(client, true, "");
+         return true;
+      }
+
+      this.actionRecordingStopKeyWasDown = stopKeyDown;
+      this.captureRecordedActionFrame(client);
+      this.actionRecordingTicks++;
+      if (this.actionRecordingTicks >= MAX_RECORDED_ACTION_TICKS) {
+         this.finishActionRecording(client, true, "Recording reached the 10 minute limit.");
+      }
+
+      return true;
+   }
+
+   private void captureRecordedActionFrame(Minecraft client) {
+      int flags = 0;
+      flags |= client.options.keyUp.isDown() ? RECORDED_FORWARD : 0;
+      flags |= client.options.keyDown.isDown() ? RECORDED_BACK : 0;
+      flags |= client.options.keyLeft.isDown() ? RECORDED_LEFT : 0;
+      flags |= client.options.keyRight.isDown() ? RECORDED_RIGHT : 0;
+      flags |= client.options.keyJump.isDown() ? RECORDED_JUMP : 0;
+      flags |= client.options.keyShift.isDown() ? RECORDED_CROUCH : 0;
+      flags |= client.options.keySprint.isDown() ? RECORDED_SPRINT : 0;
+      flags |= client.options.keyAttack.isDown() ? RECORDED_ATTACK : 0;
+      flags |= client.options.keyUse.isDown() ? RECORDED_USE : 0;
+      flags |= client.options.keyInventory.isDown() ? RECORDED_INVENTORY : 0;
+      flags |= client.options.keyDrop.isDown() ? RECORDED_DROP : 0;
+      flags |= client.options.keySwapOffhand.isDown() ? RECORDED_SWAP_HANDS : 0;
+      int yawTenths = Math.round(Mth.wrapDegrees(client.player.getYRot()) * 10.0F);
+      int pitchTenths = Math.round(Mth.clamp(client.player.getXRot(), -90.0F, 90.0F) * 10.0F);
+      int slot = Mth.clamp(client.player.getInventory().getSelectedSlot(), 0, 8);
+      RecordedActionFrame frame = new RecordedActionFrame(1, yawTenths, pitchTenths, flags, slot);
+      int lastIndex = this.actionRecordingFrames.size() - 1;
+      if (lastIndex >= 0 && this.actionRecordingFrames.get(lastIndex).sameState(frame)) {
+         this.actionRecordingFrames.get(lastIndex).ticks++;
+      } else {
+         this.actionRecordingFrames.add(frame);
+      }
+   }
+
+   private void finishActionRecording(Minecraft client, boolean saveRecording, String detail) {
+      MacroModel recordingModel = this.actionRecordingModel;
+      String nodeId = this.actionRecordingNodeId;
+      int macroNumber = this.actionRecordingMacroNumber;
+      int stopKey = this.actionRecordingStopKey;
+      int ticks = this.actionRecordingTicks;
+      List<RecordedActionFrame> frames = new ArrayList<>(this.actionRecordingFrames);
+      this.actionRecording = false;
+      this.actionRecordingModel = null;
+      this.actionRecordingNodeId = "";
+      this.actionRecordingMacroNumber = 0;
+      this.actionRecordingStopKey = -1;
+      this.actionRecordingStopKeyArmed = false;
+      this.actionRecordingStopKeyWasDown = false;
+      this.actionRecordingTicks = 0;
+      this.actionRecordingFrames.clear();
+      if (macroNumber > 0 && macroNumber <= this.macroKeyWasDown.length) {
+         this.macroKeyWasDown[macroNumber - 1] = stopKey > 0 && client != null && InputConstants.isKeyDown(stopKey);
+      }
+
+      MacroModel.Node node = recordingModel == null ? null : recordingModel.node(nodeId);
+      if (saveRecording && node != null && !frames.isEmpty()) {
+         node.value = encodeRecordedActions(frames);
+         try {
+            this.model = recordingModel;
+            this.ensureConfigFiles();
+            recordingModel.save(this.macroPath(macroNumber));
+            this.lastStatus = "Saved " + ticks + " recorded ticks (" + String.format(Locale.ROOT, "%.1f", ticks / 20.0) + " seconds).";
+         } catch (RuntimeException | IOException error) {
+            MacroBuilderClient.LOGGER.error("Failed to save recorded actions", error);
+            this.lastStatus = "Recording save failed: " + error.getMessage();
+         }
+      } else {
+         this.lastStatus = detail == null || detail.isBlank() ? "Recording canceled or empty." : detail;
+      }
+
+      if (detail != null && !detail.isBlank() && saveRecording) {
+         this.lastStatus = this.lastStatus + " " + detail;
+      }
+
+      this.send(client, this.lastStatus);
+      if (client != null && recordingModel != null) {
+         client.setScreenAndShow(new MacroBuilderScreen(this, recordingModel, nodeId));
+      }
+   }
+
+   private void runRecordedActions(Minecraft client, MacroModel.Node node) {
+      if (this.activeTicks == 1) {
+         this.activeRecordedActionFrames = parseRecordedActions(node.value);
+         this.activeRecordedActionFrameIndex = 0;
+         this.activeRecordedActionFrameTicks = 0;
+         this.activeRecordedActionPreviousFlags = 0;
+      }
+
+      if (this.activeRecordedActionFrames.isEmpty()) {
+         this.fail(client, node, "Failed: Record actions with the component's Record button first.");
+         return;
+      }
+
+      if (this.activeRecordedActionFrameIndex >= this.activeRecordedActionFrames.size()) {
+         this.releaseRecordedActionInputs(client);
+         this.complete(client, node, "completed");
+         return;
+      }
+
+      RecordedActionFrame frame = this.activeRecordedActionFrames.get(this.activeRecordedActionFrameIndex);
+      this.applyRecordedActionFrame(client, frame);
+      this.activeRecordedActionFrameTicks++;
+      if (this.activeRecordedActionFrameTicks >= frame.ticks) {
+         this.activeRecordedActionPreviousFlags = frame.flags;
+         this.activeRecordedActionFrameIndex++;
+         this.activeRecordedActionFrameTicks = 0;
+         if (this.activeRecordedActionFrameIndex >= this.activeRecordedActionFrames.size()) {
+            this.releaseRecordedActionInputs(client);
+            this.complete(client, node, "completed");
+         }
+      }
+   }
+
+   private void applyRecordedActionFrame(Minecraft client, RecordedActionFrame frame) {
+      client.player.setYRot(frame.yawTenths / 10.0F);
+      client.player.setXRot(frame.pitchTenths / 10.0F);
+      client.player.getInventory().setSelectedSlot(Mth.clamp(frame.slot, 0, 8));
+      this.setMacroKeyDown(client, client.options.keyUp, hasRecordedFlag(frame.flags, RECORDED_FORWARD));
+      this.setMacroKeyDown(client, client.options.keyDown, hasRecordedFlag(frame.flags, RECORDED_BACK));
+      this.setMacroKeyDown(client, client.options.keyLeft, hasRecordedFlag(frame.flags, RECORDED_LEFT));
+      this.setMacroKeyDown(client, client.options.keyRight, hasRecordedFlag(frame.flags, RECORDED_RIGHT));
+      this.setMacroKeyDown(client, client.options.keyJump, hasRecordedFlag(frame.flags, RECORDED_JUMP));
+      this.setMacroKeyDown(client, client.options.keyShift, hasRecordedFlag(frame.flags, RECORDED_CROUCH));
+      this.setMacroKeyDown(client, client.options.keySprint, hasRecordedFlag(frame.flags, RECORDED_SPRINT));
+      this.setMacroKeyDown(client, client.options.keyAttack, hasRecordedFlag(frame.flags, RECORDED_ATTACK));
+      this.setMacroKeyDown(client, client.options.keyUse, hasRecordedFlag(frame.flags, RECORDED_USE));
+      this.clickRecordedKeyOnRise(client.options.keyInventory, frame.flags, RECORDED_INVENTORY);
+      this.clickRecordedKeyOnRise(client.options.keyDrop, frame.flags, RECORDED_DROP);
+      this.clickRecordedKeyOnRise(client.options.keySwapOffhand, frame.flags, RECORDED_SWAP_HANDS);
+      this.activeRecordedActionPreviousFlags = frame.flags;
+   }
+
+   private void clickRecordedKeyOnRise(KeyMapping mapping, int flags, int flag) {
+      if (hasRecordedFlag(flags, flag) && !hasRecordedFlag(this.activeRecordedActionPreviousFlags, flag)) {
+         KeyMapping.click(mapping.getDefaultKey());
+      }
+   }
+
+   private void releaseRecordedActionInputs(Minecraft client) {
+      this.releaseMovementKeys(client);
+      this.setMacroKeyDown(client, client.options.keyShift, false);
+      this.setMacroKeyDown(client, client.options.keySprint, false);
+      this.setMacroKeyDown(client, client.options.keyAttack, false);
+      this.setMacroKeyDown(client, client.options.keyUse, false);
+      this.activeRecordedActionFrames = List.of();
+      this.activeRecordedActionFrameIndex = 0;
+      this.activeRecordedActionFrameTicks = 0;
+      this.activeRecordedActionPreviousFlags = 0;
+   }
+
+   static String recordedActionSummary(String encoded) {
+      List<RecordedActionFrame> frames = parseRecordedActions(encoded);
+      int ticks = frames.stream().mapToInt(frame -> frame.ticks).sum();
+      return ticks <= 0 ? "Not recorded" : frames.size() + " steps / " + String.format(Locale.ROOT, "%.1fs", ticks / 20.0);
+   }
+
+   private static String encodeRecordedActions(List<RecordedActionFrame> frames) {
+      StringBuilder encoded = new StringBuilder("v1|");
+      for (int index = 0; index < frames.size(); index++) {
+         RecordedActionFrame frame = frames.get(index);
+         if (index > 0) {
+            encoded.append(';');
+         }
+
+         encoded.append(frame.ticks)
+            .append(',').append(frame.yawTenths)
+            .append(',').append(frame.pitchTenths)
+            .append(',').append(frame.flags)
+            .append(',').append(frame.slot);
+      }
+
+      return encoded.toString();
+   }
+
+   private static List<RecordedActionFrame> parseRecordedActions(String encoded) {
+      if (encoded == null || !encoded.startsWith("v1|")) {
+         return List.of();
+      }
+
+      List<RecordedActionFrame> frames = new ArrayList<>();
+      String body = encoded.substring(3);
+      for (String token : body.split(";")) {
+         String[] values = token.split(",");
+         if (values.length != 5) {
+            return List.of();
+         }
+
+         try {
+            int ticks = Math.max(1, Integer.parseInt(values[0]));
+            frames.add(new RecordedActionFrame(ticks, Integer.parseInt(values[1]), Integer.parseInt(values[2]), Integer.parseInt(values[3]), Integer.parseInt(values[4])));
+         } catch (NumberFormatException error) {
+            return List.of();
+         }
+      }
+
+      return frames;
+   }
+
+   private static boolean hasRecordedFlag(int flags, int flag) {
+      return (flags & flag) != 0;
    }
 
    private void runSetMouseButton(Minecraft client, MacroModel.Node node) {
@@ -5277,6 +5584,7 @@ final class MacroRunner {
       if (client != null) {
          this.setMacroKeyDown(client, client.options.keyAttack, false);
          this.setMacroKeyDown(client, client.options.keyUse, false);
+         this.setMacroKeyDown(client, client.options.keyShift, false);
          this.setMacroKeyDown(client, client.options.keySprint, false);
       }
    }
@@ -8290,5 +8598,29 @@ final class MacroRunner {
    }
 
    private record PressKeyOptions(boolean hold, int durationMs) {
+   }
+
+   private static final class RecordedActionFrame {
+      int ticks;
+      final int yawTenths;
+      final int pitchTenths;
+      final int flags;
+      final int slot;
+
+      RecordedActionFrame(int ticks, int yawTenths, int pitchTenths, int flags, int slot) {
+         this.ticks = ticks;
+         this.yawTenths = yawTenths;
+         this.pitchTenths = pitchTenths;
+         this.flags = flags;
+         this.slot = slot;
+      }
+
+      boolean sameState(RecordedActionFrame other) {
+         return other != null
+            && this.yawTenths == other.yawTenths
+            && this.pitchTenths == other.pitchTenths
+            && this.flags == other.flags
+            && this.slot == other.slot;
+      }
    }
 }

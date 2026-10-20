@@ -219,6 +219,7 @@ ${mine.protected_block.pos}  matched block X Y Z
 | `Respawn` | Empty | Empty | Clicks respawn when dead. |
 | `Move` | Direction, coordinates, or entity selector | Distance | `forward` and `5`, `100 64 100`, `id=123`, or `minecraft:villager` |
 | `Look` | Yaw pitch, coordinates, or entity selector | Empty | `0 0`, `100 64 100`, `id=123`, or `uuid=...` |
+| `Recorded Actions` | Record button | Empty | Assign the macro key, click `Record`, perform the sequence, then press the macro key to stop and save. |
 | `Mouse Button` | `press` or `release` | `left` or `right` | `press` and `left` |
 | `Shoot Bow` | Coordinates, entity ID/name, or `#entity_type_tag` | Equip bow true/false | `#minecraft:raiders` and `true` |
 | `Is Account` | Player names | Empty | `letgio, altname` |
@@ -232,6 +233,8 @@ ${mine.protected_block.pos}  matched block X Y Z
 | `Press Key` | Key name | Press/hold duration | `shift` and `hold 2000` |
 
 `Auto Fish` handles one catch per pass. Connect `caught` back to Auto Fish to keep fishing. Connect `inventory_full` to a home command, movement, or container-deposit path. Connect `rod_low` to a repair command or replacement-rod path. It automatically chooses the hotbar fishing rod with the most durability above the selected limit.
+
+`Recorded Actions` captures forward/back/left/right movement, camera direction, jump, crouch, sprint, attack, use, hotbar selection, inventory-key, drop-key, offhand-swap, and idle timing. It does not capture typed chat text or inventory/menu slot mouse clicks. Re-recording replaces the previous sequence, and one recording is limited to 10 minutes.
 
 Runtime values:
 

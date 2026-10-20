@@ -170,6 +170,7 @@ final class MacroBuilderScreen extends Screen {
    private Button autoGrindstonePickRepairButton;
    private Button autoGrindstoneShiftButton;
    private Button autoGrindstoneCloseButton;
+   private Button recordActionsButton;
    private Button copyComponentButton;
    private Button pasteComponentButton;
    private Button moreActionsButton;
@@ -248,10 +249,17 @@ final class MacroBuilderScreen extends Screen {
    private long lastAutoSaveTimeMs;
 
    MacroBuilderScreen(MacroRunner runner, MacroModel model) {
+      this(runner, model, null);
+   }
+
+   MacroBuilderScreen(MacroRunner runner, MacroModel model, String selectedNodeId) {
       super(Component.literal("Macro Builder"));
       this.runner = runner;
       this.model = model;
-      this.selectedNode = model.startNode();
+      this.selectedNode = selectedNodeId == null ? model.startNode() : model.node(selectedNodeId);
+      if (this.selectedNode == null) {
+         this.selectedNode = model.startNode();
+      }
       if (this.selectedNode != null) {
          this.selectedNodes.add(this.selectedNode);
       }
@@ -322,6 +330,9 @@ final class MacroBuilderScreen extends Screen {
       );
       this.enabledButton = (Button)this.addRenderableWidget(
          Button.builder(Component.literal("Enabled: On"), button -> this.toggleSelectedEnabled()).bounds(rightX + 14, RIGHT_ENABLE_BUTTON_Y, rightWidth, 20).build()
+      );
+      this.recordActionsButton = (Button)this.addRenderableWidget(
+         Button.builder(Component.literal("Record"), button -> this.startRecordedActions()).bounds(rightX + 14, RIGHT_PRIMARY_FIELD_Y, rightWidth, 20).build()
       );
       this.primaryField = new EditBox(this.font, rightX + 14, RIGHT_PRIMARY_FIELD_Y, rightWidth, 20, Component.empty());
       this.primaryField.setMaxLength(2048);
@@ -1090,6 +1101,7 @@ final class MacroBuilderScreen extends Screen {
          && this.autoGrindstoneInputField != null
          && this.autoGrindstoneRepairField != null
          && this.excludeSlotsField != null
+         && this.recordActionsButton != null
          && this.nodeDelayField != null) {
          this.selectedNode.delayMs = this.parseNodeDelayMs(this.nodeDelayField.getValue());
          this.selectedNode.displayName = this.cleanComponentName(this.componentNameField.getValue());
@@ -1167,6 +1179,7 @@ final class MacroBuilderScreen extends Screen {
          }
 
          boolean mineAreaNode = hasSelection && this.isMineAreaNode(this.selectedNode);
+         boolean recordedActionsNode = hasSelection && MacroModel.PLAYER_RECORDED_ACTIONS.equals(this.selectedNode.type);
          boolean containerSettingsNode = hasSelection && this.isOpenNearestContainerSettingsNode(this.selectedNode);
          boolean genericContainerNode = hasSelection && this.isOpenNearestContainerNode(this.selectedNode);
          if (!containerSettingsNode) {
@@ -1318,6 +1331,9 @@ final class MacroBuilderScreen extends Screen {
          this.enabledButton.visible = hasSelection && !noteNode;
          this.enabledButton.active = this.enabledButton.visible && !"official:start".equals(this.selectedNode.type);
          this.enabledButton.setMessage(Component.literal(hasSelection && this.selectedNode.enabled ? "Enabled: On" : "Enabled: Off"));
+         this.recordActionsButton.visible = recordedActionsNode;
+         this.recordActionsButton.active = recordedActionsNode && !this.runner.actionRecording();
+         this.recordActionsButton.setMessage(Component.literal(recordedActionsNode && this.selectedNode.value != null && !this.selectedNode.value.isBlank() ? "Record Again" : "Record"));
          this.repeatIndefinitelyButton.visible = repeatNode;
          this.repeatIndefinitelyButton.active = repeatNode;
          this.repeatIndefinitelyButton.setMessage(Component.literal(repeatNode && this.repeatIndefinitelyEnabled(this.selectedNode) ? "Repeat: Forever" : "Repeat: Count"));
@@ -2768,6 +2784,19 @@ final class MacroBuilderScreen extends Screen {
          this.drawWrappedText(context, descriptor.description(), rightX + 14, RIGHT_COMPONENT_Y + 12, rightWidth, -7366491, 3);
          if (this.isNoteNode(this.selectedNode)) {
             return;
+         }
+
+         if (MacroModel.PLAYER_RECORDED_ACTIONS.equals(this.selectedNode.type)) {
+            context.text(this.font, MacroRunner.recordedActionSummary(this.selectedNode.value), rightX + 14, RIGHT_SECONDARY_LABEL_Y, -5327166);
+            this.drawWrappedText(
+               context,
+               "Click Record, perform the actions, then press this macro's assigned key to stop and save.",
+               rightX + 14,
+               RIGHT_SECONDARY_LABEL_Y + 14,
+               rightWidth,
+               -7366491,
+               4
+            );
          }
 
          if ("official:start".equals(this.selectedNode.type)) {
@@ -4465,7 +4494,9 @@ final class MacroBuilderScreen extends Screen {
    }
 
    private String nodeValueText(MacroModel.Node node) {
-      if ("official:misc.wait".equals(node.type)) {
+      if (MacroModel.PLAYER_RECORDED_ACTIONS.equals(node.type)) {
+         return MacroRunner.recordedActionSummary(node.value);
+      } else if ("official:misc.wait".equals(node.type)) {
          return node.value + " ms";
       } else if ("official:misc.chat".equals(node.type) || "builder:localMessage".equals(node.type)) {
          return node.value;
@@ -4706,6 +4737,24 @@ final class MacroBuilderScreen extends Screen {
 
    private void openItemPicker(boolean secondary) {
       this.openItemPicker(secondary ? "secondary" : "primary");
+   }
+
+   private void startRecordedActions() {
+      this.syncSelectedFromFields();
+      if (this.selectedNode == null || !MacroModel.PLAYER_RECORDED_ACTIONS.equals(this.selectedNode.type)) {
+         return;
+      }
+
+      if (!this.save()) {
+         return;
+      }
+
+      if (this.runner.startActionRecording(this.minecraft, this.model, this.selectedNode)) {
+         this.minecraft.setScreenAndShow(null);
+      } else {
+         this.status = this.runner.status();
+         this.statusColor = -30070;
+      }
    }
 
    private void openItemPicker(String target) {

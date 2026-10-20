@@ -61,7 +61,23 @@ public final class  MacroBuilderClient implements ClientModInitializer {
    }
 
    private static void renderMacroOverlay(GuiGraphicsExtractor context, Minecraft client) {
-      if (client == null || client.player == null || client.level == null || !RUNNER.running() || !RUNNER.runningOverlay()) {
+      if (client == null || client.player == null || client.level == null) {
+         return;
+      }
+
+      if (RUNNER.actionRecording()) {
+         int panelWidth = 210;
+         int x = Math.max(6, client.getWindow().getGuiScaledWidth() - panelWidth - 8);
+         int y = 8;
+         context.fill(x, y, x + panelWidth, y + 42, 0xE0101820);
+         context.fill(x, y, x + panelWidth, y + 2, 0xFFFF4D6D);
+         context.text(client.font, "Recording actions", x + 9, y + 8, 0xFFFFDCE3);
+         String detail = String.format(Locale.ROOT, "%.1fs - press %s to stop", RUNNER.actionRecordingTicks() / 20.0, RUNNER.actionRecordingStopKeyName());
+         context.text(client.font, fitOverlay(client, detail, panelWidth - 18), x + 9, y + 24, 0xFFEFF6FF);
+         return;
+      }
+
+      if (!RUNNER.running() || !RUNNER.runningOverlay()) {
          return;
       }
 

@@ -70,6 +70,19 @@ Useful builder shortcuts:
 
 Notes support normal text editing: select text with the mouse, copy/paste selected text, use Up/Down to move lines, and use Ctrl+Left/Ctrl+Right to jump by words.
 
+## Recording Actions
+
+Use the Player category's `Recorded Actions` component when a short sequence is easier to demonstrate than build one step at a time.
+
+1. Assign a key to the current macro from the macro library.
+2. Add and select `Recorded Actions`.
+3. Click `Record`. The builder closes and the recording indicator appears.
+4. Walk, look, jump, crouch, sprint, attack, use items, change hotbar slots, or wait.
+5. Press that macro's assigned key to stop and save. The builder reopens on the recorded component.
+6. Connect `completed` and `failed` like any other component.
+
+Click `Record Again` to replace the saved sequence. Recordings can be up to 10 minutes. The component records in-world controls and timing; it does not record chat text or mouse clicks on inventory/menu slots.
+
 ## Global Delay
 
 The top bar `Delay` is the default wait time between components.
