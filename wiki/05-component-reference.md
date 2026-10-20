@@ -17,8 +17,8 @@ Many fields can use live values such as `${player.name}`, `${player.pos}`, `${ta
 | Component | Use |
 | --- | --- |
 | `Respawn` | Clicks respawn when dead. |
-| `Move` | Moves in a direction, to a place, or toward an entity ID, visible name, or entity-type tag. |
-| `Look` | Turns the player toward yaw/pitch, a place, or an entity ID, visible name, or entity-type tag. |
+| `Move` | Moves in a direction, to a place, or toward an exact entity with `id=123`, `uuid=...`, or `name=...`; a type such as `minecraft:villager` selects the nearest match. |
+| `Look` | Turns toward yaw/pitch, a place, or an exact entity with `id=123`, `uuid=...`, or `name=...`; a type or tag selects the nearest match. |
 | `Mouse Button` | Presses or releases left/right click. Good for hold mining. |
 | `Shoot Bow` | Aims at coordinates or an entity ID, visible name, or entity-type tag, then fires a bow. |
 | `Is Account` | Checks the current username against names. |

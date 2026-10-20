@@ -61,6 +61,8 @@ target.block.pos   block X Y Z you are looking at
 target.block.id    block ID you are looking at
 target.entity.name entity name you are looking at
 target.entity.id   entity type you are looking at
+target.entity.runtime_id numeric ID of the exact entity you are looking at
+target.entity.uuid UUID of the exact entity you are looking at
 server.ip          current or last server IP
 screen.name        current screen title
 macro.name         current macro name
@@ -215,8 +217,8 @@ ${mine.protected_block.pos}  matched block X Y Z
 | Component | Field 1 | Field 2 | Example |
 | --- | --- | --- | --- |
 | `Respawn` | Empty | Empty | Clicks respawn when dead. |
-| `Move` | Direction, coordinates, entity ID/name, or `#entity_type_tag` | Distance | `forward` and `5`, `100 64 100`, or `#minecraft:raiders` |
-| `Look` | Yaw pitch, coordinates, entity ID/name, or `#entity_type_tag` | Target type | `0 0`, `100 64 100`, or `#minecraft:raiders` |
+| `Move` | Direction, coordinates, or entity selector | Distance | `forward` and `5`, `100 64 100`, `id=123`, or `minecraft:villager` |
+| `Look` | Yaw pitch, coordinates, or entity selector | Empty | `0 0`, `100 64 100`, `id=123`, or `uuid=...` |
 | `Mouse Button` | `press` or `release` | `left` or `right` | `press` and `left` |
 | `Shoot Bow` | Coordinates, entity ID/name, or `#entity_type_tag` | Equip bow true/false | `#minecraft:raiders` and `true` |
 | `Is Account` | Player names | Empty | `letgio, altname` |
@@ -232,6 +234,22 @@ ${mine.protected_block.pos}  matched block X Y Z
 `Auto Fish` handles one catch per pass. Connect `caught` back to Auto Fish to keep fishing. Connect `inventory_full` to a home command, movement, or container-deposit path. Connect `rod_low` to a repair command or replacement-rod path. It automatically chooses the hotbar fishing rod with the most durability above the selected limit.
 
 Runtime values:
+
+### Exact Entity Selectors
+
+`Move` and `Look` can select one exact loaded entity instead of the nearest entity of a type:
+
+```text
+id=123                                  exact numeric runtime ID
+123                                     exact numeric runtime ID (short form)
+uuid=12345678-1234-1234-1234-123456789abc exact UUID
+12345678-1234-1234-1234-123456789abc      exact UUID (short form)
+name=Trading Villager                   exact visible/custom name
+minecraft:villager                      nearest villager entity type
+#minecraft:raiders                      nearest entity in the tag
+```
+
+Point at an entity to read `${target.entity.runtime_id}` and `${target.entity.uuid}` through Runtime Data. A numeric runtime ID can change after leaving or rejoining the world; use the UUID when the macro must keep targeting the same persistent entity.
 
 ```text
 ${fish.catch_count}

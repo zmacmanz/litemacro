@@ -912,7 +912,9 @@ final class MacroRunner {
          "target.block.pos",
          "target.block.id",
          "target.entity.name",
-         "target.entity.id"
+         "target.entity.id",
+         "target.entity.runtime_id",
+         "target.entity.uuid"
       )) {
          this.putRuntimeValue(key, "");
       }
@@ -938,9 +940,13 @@ final class MacroRunner {
          Entity entity = hit.getEntity();
          this.putRuntimeValue("target.entity.name", entity.getName().getString());
          this.putRuntimeValue("target.entity.id", BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString());
+         this.putRuntimeValue("target.entity.runtime_id", Integer.toString(entity.getId()));
+         this.putRuntimeValue("target.entity.uuid", entity.getUUID().toString());
       } else {
          this.putRuntimeValue("target.entity.name", "");
          this.putRuntimeValue("target.entity.id", "");
+         this.putRuntimeValue("target.entity.runtime_id", "");
+         this.putRuntimeValue("target.entity.uuid", "");
       }
    }
 
@@ -2351,9 +2357,15 @@ final class MacroRunner {
                }
             }
          } else {
+            String direction = targetText != null && !targetText.isBlank() ? targetText.trim().toLowerCase(Locale.ROOT) : "forward";
+            if (!isMoveDirection(direction)) {
+               this.releaseMovementKeys(client);
+               this.fail(client, node, "Failed: Move could not find entity '" + targetText + "'. Use id=123, uuid=..., an entity type, or a visible name.");
+               return;
+            }
+
             if (this.activeTicks == 1) {
                this.releaseMovementKeys(client);
-               String direction = targetText != null && !targetText.isBlank() ? targetText.trim().toLowerCase(Locale.ROOT) : "forward";
                switch (direction) {
                   case "back":
                   case "backward":
@@ -2382,6 +2394,18 @@ final class MacroRunner {
             }
          }
       }
+   }
+
+   private static boolean isMoveDirection(String direction) {
+      return "forward".equals(direction)
+         || "forwards".equals(direction)
+         || "back".equals(direction)
+         || "backward".equals(direction)
+         || "backwards".equals(direction)
+         || "left".equals(direction)
+         || "right".equals(direction)
+         || "jump".equals(direction)
+         || "up".equals(direction);
    }
 
    private void runPlayerLook(Minecraft client, MacroModel.Node node) {
@@ -5129,6 +5153,40 @@ final class MacroRunner {
    }
 
    private boolean entityMatches(Entity entity, String filter) {
+      String selector = filter == null ? "" : filter.trim();
+      String selectorValue = selector;
+      boolean runtimeIdSelector = false;
+      if (selector.startsWith("id=")) {
+         runtimeIdSelector = true;
+         selectorValue = selector.substring(3).trim();
+      } else if (selector.startsWith("entity_id=")) {
+         runtimeIdSelector = true;
+         selectorValue = selector.substring("entity_id=".length()).trim();
+      } else if (!selector.isEmpty() && selector.chars().allMatch(Character::isDigit)) {
+         runtimeIdSelector = true;
+      }
+
+      if (runtimeIdSelector) {
+         try {
+            return entity.getId() == Integer.parseInt(selectorValue);
+         } catch (NumberFormatException ignored) {
+            return false;
+         }
+      }
+
+      if (selector.startsWith("uuid=") || selector.length() == 36 && selector.indexOf('-') >= 0) {
+         try {
+            String uuidValue = selector.startsWith("uuid=") ? selector.substring(5).trim() : selector;
+            return entity.getUUID().equals(UUID.fromString(uuidValue));
+         } catch (IllegalArgumentException ignored) {
+            return false;
+         }
+      }
+
+      if (selector.startsWith("name=")) {
+         return entity.getName().getString().equalsIgnoreCase(selector.substring(5).trim());
+      }
+
       String type = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString().toLowerCase(Locale.ROOT);
       if (filter.startsWith("#")) {
          TagKey<EntityType<?>> tag = entityTypeTagKey(filter);

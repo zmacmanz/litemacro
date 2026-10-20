@@ -134,8 +134,8 @@ final class MacroModel {
    private static final List<MacroModel.Descriptor> DESCRIPTORS = List.of(
       new MacroModel.Descriptor("official:start", "Macro Entry Point", "Entry", -11961857, List.of("started"), true, "", "", ""),
       new MacroModel.Descriptor("official:player.respawn", "Respawn", "Player", -6765703, COMPLETED_OR_FAILED, true, "", "", ""),
-      new MacroModel.Descriptor("official:player.move", "Move", "Player", -6765703, COMPLETED_OR_FAILED, true, "Direction or target", "Distance", "forward"),
-      new MacroModel.Descriptor("official:player.look", "Look", "Player", -6765703, COMPLETED_OR_FAILED, true, "Yaw Pitch or target", "Target type", "0 0"),
+      new MacroModel.Descriptor("official:player.move", "Move", "Player", -6765703, COMPLETED_OR_FAILED, true, "Direction, position, or entity selector", "Distance", "forward"),
+      new MacroModel.Descriptor("official:player.look", "Look", "Player", -6765703, COMPLETED_OR_FAILED, true, "Yaw Pitch, position, or entity selector", "", "0 0"),
       new MacroModel.Descriptor(
          "official:player.setMouseButton", "Mouse Button", "Player", -6765703, COMPLETED_OR_FAILED, true, "State: press/release", "Button: left/right", "press"
       ),
