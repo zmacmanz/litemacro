@@ -15,6 +15,7 @@ import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents.Chat;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents.Game;
+import net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
@@ -463,6 +464,8 @@ public final class MacroBuilderClient implements ClientModInitializer {
    }
 
    private static void registerMessageEvents() {
+      ClientSendMessageEvents.CHAT.register(message -> RUNNER.recordSentChat(message, false));
+      ClientSendMessageEvents.COMMAND.register(command -> RUNNER.recordSentChat(command, true));
       ClientReceiveMessageEvents.CHAT
          .register((Chat)(message, signedMessage, sender, params, receptionTimestamp) -> RUNNER.recordChatMessage(message.getString()));
       ClientReceiveMessageEvents.GAME.register((Game)(message, overlay) -> {
@@ -472,5 +475,13 @@ public final class MacroBuilderClient implements ClientModInitializer {
             RUNNER.recordChatMessage(message.getString());
          }
       });
+   }
+
+   public static void recordContainerInput(int slotId, int button, String inputType, int menuSlotCount, String menuType) {
+      RUNNER.recordContainerInput(slotId, button, inputType, menuSlotCount, menuType);
+   }
+
+   public static void recordContainerClose(int menuSlotCount, String menuType) {
+      RUNNER.recordContainerClose(menuSlotCount, menuType);
    }
 }

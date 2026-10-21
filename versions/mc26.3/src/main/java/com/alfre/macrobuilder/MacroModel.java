@@ -993,7 +993,7 @@ final class MacroModel {
          case "official:player.respawn" -> "Clicks respawn when the player is dead";
          case "official:player.move" -> "Moves toward a direction, place, or entity";
          case "official:player.look" -> "Turns the player toward a target";
-         case "builder:player.recordedActions" -> "Records and replays movement, looking, clicks, and common gameplay keys";
+         case "builder:player.recordedActions" -> "Records movement, gameplay keys, inventory moves, and sent chat";
          case "official:player.setMouseButton" -> "Presses or releases left/right click";
          case "official:player.shootBow" -> "Aims and fires a bow";
          case "official:player.isAccount" -> "Checks if your username matches";

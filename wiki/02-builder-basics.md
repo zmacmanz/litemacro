@@ -81,7 +81,7 @@ Use the Player category's `Recorded Actions` component when a short sequence is 
 5. Press that macro's assigned key to stop and save. The builder reopens on the recorded component.
 6. Connect `completed` and `failed` like any other component.
 
-Click `Record Again` to replace the saved sequence. Recordings can be up to 10 minutes. The component records in-world controls and timing; it does not record chat text or mouse clicks on inventory/menu slots.
+Click `Record Again` to replace the saved sequence. Recordings can be up to 10 minutes. The component records in-world controls, timing, sent chat/commands, and inventory or container slot actions. Replay waits for the same menu layout and follows `failed` if it cannot find it. Recorded chat and commands are stored in the macro JSON, so never record private messages or secrets.
 
 ## Global Delay
 

@@ -3,7 +3,9 @@
   "package": "com.alfre.macrobuilder.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "BossHealthOverlayAccessor"
+    "BossHealthOverlayAccessor",
+    "ContainerInputRecorderMixin",
+    "ContainerCloseRecorderMixin"
   ],
   "injectors": {
     "defaultRequire": 1

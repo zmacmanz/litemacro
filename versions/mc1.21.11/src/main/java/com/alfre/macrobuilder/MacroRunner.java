@@ -19,9 +19,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.FileTime;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -230,10 +232,15 @@ final class MacroRunner {
    private boolean actionRecordingStopKeyArmed;
    private int actionRecordingTicks;
    private final List<RecordedActionFrame> actionRecordingFrames = new ArrayList<>();
+   private final List<RecordedActionEvent> actionRecordingEvents = new ArrayList<>();
    private List<RecordedActionFrame> activeRecordedActionFrames = List.of();
+   private List<RecordedActionEvent> activeRecordedActionEvents = List.of();
    private int activeRecordedActionFrameIndex;
    private int activeRecordedActionFrameTicks;
    private int activeRecordedActionPreviousFlags;
+   private int activeRecordedActionEventIndex;
+   private int activeRecordedActionPlaybackTick;
+   private int activeRecordedActionEventWaitTicks;
 
    MacroRunner() {
       this(false, null);
@@ -372,9 +379,28 @@ final class MacroRunner {
       this.actionRecordingStopKeyArmed = !this.actionRecordingStopKeyWasDown;
       this.actionRecordingTicks = 0;
       this.actionRecordingFrames.clear();
+      this.actionRecordingEvents.clear();
       this.lastStatus = "Recording actions. Press " + keyName(stopKey) + " to stop and save.";
       this.send(client, this.lastStatus);
       return true;
+   }
+
+   void recordContainerInput(int slotId, int button, String inputType, int menuSlotCount, String menuType) {
+      if (this.actionRecording && inputType != null && menuType != null) {
+         this.actionRecordingEvents.add(
+            RecordedActionEvent.container(this.actionRecordingTicks, slotId, button, inputType, menuSlotCount, menuType)
+         );
+      }
+   }
+
+   void recordContainerClose(int menuSlotCount, String menuType) {
+      this.recordContainerInput(0, 0, "CLOSE", menuSlotCount, menuType);
+   }
+
+   void recordSentChat(String message, boolean command) {
+      if (this.actionRecording && message != null && !message.isBlank()) {
+         this.actionRecordingEvents.add(RecordedActionEvent.message(this.actionRecordingTicks, command, message));
+      }
    }
 
    void selectMacro(Minecraft client, int macroNumber) {
@@ -2579,6 +2605,7 @@ final class MacroRunner {
       int stopKey = this.actionRecordingStopKey;
       int ticks = this.actionRecordingTicks;
       List<RecordedActionFrame> frames = new ArrayList<>(this.actionRecordingFrames);
+      List<RecordedActionEvent> events = new ArrayList<>(this.actionRecordingEvents);
       this.actionRecording = false;
       this.actionRecordingModel = null;
       this.actionRecordingNodeId = "";
@@ -2588,18 +2615,20 @@ final class MacroRunner {
       this.actionRecordingStopKeyWasDown = false;
       this.actionRecordingTicks = 0;
       this.actionRecordingFrames.clear();
+      this.actionRecordingEvents.clear();
       if (macroNumber > 0 && macroNumber <= this.macroKeyWasDown.length) {
          this.macroKeyWasDown[macroNumber - 1] = stopKey > 0 && client != null && InputConstants.isKeyDown(client.getWindow(), stopKey);
       }
 
       MacroModel.Node node = recordingModel == null ? null : recordingModel.node(nodeId);
       if (saveRecording && node != null && !frames.isEmpty()) {
-         node.value = encodeRecordedActions(frames);
+         node.value = encodeRecordedActions(frames, events);
          try {
             this.model = recordingModel;
             this.ensureConfigFiles();
             recordingModel.save(this.macroPath(macroNumber));
-            this.lastStatus = "Saved " + ticks + " recorded ticks (" + String.format(Locale.ROOT, "%.1f", ticks / 20.0) + " seconds).";
+            this.lastStatus = "Saved " + ticks + " recorded ticks and " + events.size() + " inventory/chat events ("
+               + String.format(Locale.ROOT, "%.1f", ticks / 20.0) + " seconds).";
          } catch (RuntimeException | IOException error) {
             MacroBuilderClient.LOGGER.error("Failed to save recorded actions", error);
             this.lastStatus = "Recording save failed: " + error.getMessage();
@@ -2620,10 +2649,15 @@ final class MacroRunner {
 
    private void runRecordedActions(Minecraft client, MacroModel.Node node) {
       if (this.activeTicks == 1) {
-         this.activeRecordedActionFrames = parseRecordedActions(node.value);
+         RecordedActionData data = parseRecordedActionData(node.value);
+         this.activeRecordedActionFrames = data.frames();
+         this.activeRecordedActionEvents = data.events();
          this.activeRecordedActionFrameIndex = 0;
          this.activeRecordedActionFrameTicks = 0;
          this.activeRecordedActionPreviousFlags = 0;
+         this.activeRecordedActionEventIndex = 0;
+         this.activeRecordedActionPlaybackTick = 0;
+         this.activeRecordedActionEventWaitTicks = 0;
       }
 
       if (this.activeRecordedActionFrames.isEmpty()) {
@@ -2632,6 +2666,10 @@ final class MacroRunner {
       }
 
       if (this.activeRecordedActionFrameIndex >= this.activeRecordedActionFrames.size()) {
+         if (!this.applyRecordedActionEvents(client, node)) {
+            return;
+         }
+
          this.releaseRecordedActionInputs(client);
          this.complete(client, node, "completed");
          return;
@@ -2639,16 +2677,79 @@ final class MacroRunner {
 
       RecordedActionFrame frame = this.activeRecordedActionFrames.get(this.activeRecordedActionFrameIndex);
       this.applyRecordedActionFrame(client, frame);
+      if (!this.applyRecordedActionEvents(client, node)) {
+         return;
+      }
+
       this.activeRecordedActionFrameTicks++;
+      this.activeRecordedActionPlaybackTick++;
       if (this.activeRecordedActionFrameTicks >= frame.ticks) {
          this.activeRecordedActionPreviousFlags = frame.flags;
          this.activeRecordedActionFrameIndex++;
          this.activeRecordedActionFrameTicks = 0;
-         if (this.activeRecordedActionFrameIndex >= this.activeRecordedActionFrames.size()) {
+         if (this.activeRecordedActionFrameIndex >= this.activeRecordedActionFrames.size()
+            && this.activeRecordedActionEventIndex >= this.activeRecordedActionEvents.size()) {
             this.releaseRecordedActionInputs(client);
             this.complete(client, node, "completed");
          }
       }
+   }
+
+   private boolean applyRecordedActionEvents(Minecraft client, MacroModel.Node node) {
+      while (this.activeRecordedActionEventIndex < this.activeRecordedActionEvents.size()) {
+         RecordedActionEvent event = this.activeRecordedActionEvents.get(this.activeRecordedActionEventIndex);
+         if (event.tick > this.activeRecordedActionPlaybackTick) {
+            this.activeRecordedActionEventWaitTicks = 0;
+            return true;
+         }
+
+         if (event.containerInput) {
+            AbstractContainerMenu menu = client.player.containerMenu;
+            String currentMenuType = menu == null ? "" : menu.getClass().getName();
+            if (menu == null || menu.slots.size() != event.menuSlotCount || !currentMenuType.equals(event.menuType)) {
+               this.activeRecordedActionEventWaitTicks++;
+               if (this.activeRecordedActionEventWaitTicks > SCREEN_TIMEOUT_TICKS) {
+                  this.releaseRecordedActionInputs(client);
+                  this.fail(client, node, "Failed: Recorded inventory action expected " + simpleMenuName(event.menuType)
+                     + " with " + event.menuSlotCount + " slots. Open the same inventory or container setup.");
+               }
+
+               return false;
+            }
+
+            if ("CLOSE".equals(event.inputType)) {
+               client.player.closeContainer();
+               this.activeRecordedActionEventIndex++;
+               this.activeRecordedActionEventWaitTicks = 0;
+               continue;
+            }
+
+            ClickType input;
+            try {
+               input = ClickType.valueOf(event.inputType);
+            } catch (IllegalArgumentException error) {
+               this.releaseRecordedActionInputs(client);
+               this.fail(client, node, "Failed: Recorded inventory action type is not supported: " + event.inputType);
+               return false;
+            }
+
+            client.gameMode.handleInventoryMouseClick(menu.containerId, event.slotId, event.button, input, client.player);
+         } else if (event.command) {
+            client.player.connection.sendCommand(event.message);
+         } else {
+            client.player.connection.sendChat(event.message);
+         }
+
+         this.activeRecordedActionEventIndex++;
+         this.activeRecordedActionEventWaitTicks = 0;
+      }
+
+      return true;
+   }
+
+   private static String simpleMenuName(String menuType) {
+      int separator = menuType == null ? -1 : menuType.lastIndexOf('.');
+      return separator >= 0 ? menuType.substring(separator + 1) : String.valueOf(menuType);
    }
 
    private void applyRecordedActionFrame(Minecraft client, RecordedActionFrame frame) {
@@ -2683,19 +2784,25 @@ final class MacroRunner {
       this.setMacroKeyDown(client, client.options.keyAttack, false);
       this.setMacroKeyDown(client, client.options.keyUse, false);
       this.activeRecordedActionFrames = List.of();
+      this.activeRecordedActionEvents = List.of();
       this.activeRecordedActionFrameIndex = 0;
       this.activeRecordedActionFrameTicks = 0;
       this.activeRecordedActionPreviousFlags = 0;
+      this.activeRecordedActionEventIndex = 0;
+      this.activeRecordedActionPlaybackTick = 0;
+      this.activeRecordedActionEventWaitTicks = 0;
    }
 
    static String recordedActionSummary(String encoded) {
-      List<RecordedActionFrame> frames = parseRecordedActions(encoded);
+      RecordedActionData data = parseRecordedActionData(encoded);
+      List<RecordedActionFrame> frames = data.frames();
       int ticks = frames.stream().mapToInt(frame -> frame.ticks).sum();
-      return ticks <= 0 ? "Not recorded" : frames.size() + " steps / " + String.format(Locale.ROOT, "%.1fs", ticks / 20.0);
+      return ticks <= 0 ? "Not recorded" : frames.size() + " steps / " + data.events().size() + " events / "
+         + String.format(Locale.ROOT, "%.1fs", ticks / 20.0);
    }
 
-   private static String encodeRecordedActions(List<RecordedActionFrame> frames) {
-      StringBuilder encoded = new StringBuilder("v1|");
+   private static String encodeRecordedActions(List<RecordedActionFrame> frames, List<RecordedActionEvent> events) {
+      StringBuilder encoded = new StringBuilder("v2|");
       for (int index = 0; index < frames.size(); index++) {
          RecordedActionFrame frame = frames.get(index);
          if (index > 0) {
@@ -2709,31 +2816,88 @@ final class MacroRunner {
             .append(',').append(frame.slot);
       }
 
+      encoded.append('|');
+      for (int index = 0; index < events.size(); index++) {
+         RecordedActionEvent event = events.get(index);
+         if (index > 0) {
+            encoded.append(';');
+         }
+
+         if (event.containerInput) {
+            encoded.append(event.tick).append(",s,")
+               .append(event.slotId).append(',').append(event.button).append(',')
+               .append(event.inputType).append(',').append(event.menuSlotCount).append(',')
+               .append(encodeRecordedText(event.menuType));
+         } else {
+            encoded.append(event.tick).append(event.command ? ",m," : ",c,").append(encodeRecordedText(event.message));
+         }
+      }
+
       return encoded.toString();
    }
 
-   private static List<RecordedActionFrame> parseRecordedActions(String encoded) {
-      if (encoded == null || !encoded.startsWith("v1|")) {
-         return List.of();
+   private static RecordedActionData parseRecordedActionData(String encoded) {
+      if (encoded == null || (!encoded.startsWith("v1|") && !encoded.startsWith("v2|"))) {
+         return new RecordedActionData(List.of(), List.of());
+      }
+
+      String[] sections = encoded.split("\\|", -1);
+      if (sections.length < 2) {
+         return new RecordedActionData(List.of(), List.of());
       }
 
       List<RecordedActionFrame> frames = new ArrayList<>();
-      String body = encoded.substring(3);
+      String body = sections[1];
       for (String token : body.split(";")) {
+         if (token.isBlank()) {
+            continue;
+         }
+
          String[] values = token.split(",");
          if (values.length != 5) {
-            return List.of();
+            return new RecordedActionData(List.of(), List.of());
          }
 
          try {
             int ticks = Math.max(1, Integer.parseInt(values[0]));
             frames.add(new RecordedActionFrame(ticks, Integer.parseInt(values[1]), Integer.parseInt(values[2]), Integer.parseInt(values[3]), Integer.parseInt(values[4])));
          } catch (NumberFormatException error) {
-            return List.of();
+            return new RecordedActionData(List.of(), List.of());
          }
       }
 
-      return frames;
+      if (!encoded.startsWith("v2|") || sections.length < 3 || sections[2].isBlank()) {
+         return new RecordedActionData(frames, List.of());
+      }
+
+      List<RecordedActionEvent> events = new ArrayList<>();
+      for (String token : sections[2].split(";")) {
+         String[] values = token.split(",", -1);
+         try {
+            if (values.length == 7 && "s".equals(values[1])) {
+               events.add(RecordedActionEvent.container(
+                  Integer.parseInt(values[0]), Integer.parseInt(values[2]), Integer.parseInt(values[3]),
+                  values[4], Integer.parseInt(values[5]), decodeRecordedText(values[6])
+               ));
+            } else if (values.length == 3 && ("c".equals(values[1]) || "m".equals(values[1]))) {
+               events.add(RecordedActionEvent.message(Integer.parseInt(values[0]), "m".equals(values[1]), decodeRecordedText(values[2])));
+            } else {
+               return new RecordedActionData(List.of(), List.of());
+            }
+         } catch (IllegalArgumentException error) {
+            return new RecordedActionData(List.of(), List.of());
+         }
+      }
+
+      return new RecordedActionData(frames, events);
+   }
+
+   private static String encodeRecordedText(String value) {
+      return Base64.getUrlEncoder().withoutPadding().encodeToString(value.getBytes(StandardCharsets.UTF_8));
+   }
+
+   private static String decodeRecordedText(String value) {
+      return new String(Base64.getUrlDecoder().decode(value), StandardCharsets.UTF_8);
    }
 
    private static boolean hasRecordedFlag(int flags, int flag) {
@@ -8591,6 +8755,51 @@ final class MacroRunner {
    }
 
    private record PressKeyOptions(boolean hold, int durationMs) {
+   }
+
+   private record RecordedActionData(List<RecordedActionFrame> frames, List<RecordedActionEvent> events) {
+   }
+
+   private static final class RecordedActionEvent {
+      final int tick;
+      final boolean containerInput;
+      final int slotId;
+      final int button;
+      final String inputType;
+      final int menuSlotCount;
+      final String menuType;
+      final boolean command;
+      final String message;
+
+      private RecordedActionEvent(
+         int tick,
+         boolean containerInput,
+         int slotId,
+         int button,
+         String inputType,
+         int menuSlotCount,
+         String menuType,
+         boolean command,
+         String message
+      ) {
+         this.tick = Math.max(0, tick);
+         this.containerInput = containerInput;
+         this.slotId = slotId;
+         this.button = button;
+         this.inputType = inputType == null ? "" : inputType;
+         this.menuSlotCount = menuSlotCount;
+         this.menuType = menuType == null ? "" : menuType;
+         this.command = command;
+         this.message = message == null ? "" : message;
+      }
+
+      static RecordedActionEvent container(int tick, int slotId, int button, String inputType, int menuSlotCount, String menuType) {
+         return new RecordedActionEvent(tick, true, slotId, button, inputType, menuSlotCount, menuType, false, "");
+      }
+
+      static RecordedActionEvent message(int tick, boolean command, String message) {
+         return new RecordedActionEvent(tick, false, 0, 0, "", 0, "", command, message);
+      }
    }
 
    private static final class RecordedActionFrame {
