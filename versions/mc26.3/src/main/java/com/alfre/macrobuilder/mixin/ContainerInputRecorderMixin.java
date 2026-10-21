@@ -1,6 +1,8 @@
 package com.alfre.macrobuilder.mixin;
 
 import com.alfre.macrobuilder.MacroBuilderClient;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ContainerInput;
@@ -13,6 +15,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 abstract class ContainerInputRecorderMixin {
    @Inject(method = "handleContainerInput", at = @At("HEAD"))
    private void litemacro$recordContainerInput(int containerId, int slotId, int button, ContainerInput input, Player player, CallbackInfo callback) {
+      if (Minecraft.getInstance().gui.screen() instanceof CreativeModeInventoryScreen) {
+         return;
+      }
+
       if (player != null && player.containerMenu != null) {
          MacroBuilderClient.recordContainerInput(slotId, button, input.name(), player.containerMenu.slots.size(), player.containerMenu.getClass().getName());
       }

@@ -1,6 +1,7 @@
 package com.alfre.macrobuilder;
 
 import com.alfre.macrobuilder.mixin.BossHealthOverlayAccessor;
+import com.alfre.macrobuilder.mixin.CreativeSlotClickInvoker;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -47,6 +48,7 @@ import net.minecraft.client.gui.screens.ConnectScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.multiplayer.ServerData;
@@ -2708,6 +2710,14 @@ final class MacroRunner {
             String currentMenuType = menu == null ? "" : menu.getClass().getName();
             if (menu == null || menu.slots.size() != event.menuSlotCount || !currentMenuType.equals(event.menuType)) {
                this.activeRecordedActionEventWaitTicks++;
+               if (this.activeRecordedActionEventWaitTicks == 1 || this.activeRecordedActionEventWaitTicks % 10 == 0) {
+                  KeyMapping.click(
+                     (event.menuType.contains("InventoryMenu") || event.menuType.contains("CreativeModeInventoryScreen"))
+                        ? client.options.keyInventory.getDefaultKey()
+                        : client.options.keyUse.getDefaultKey()
+                  );
+               }
+
                if (this.activeRecordedActionEventWaitTicks > SCREEN_TIMEOUT_TICKS) {
                   this.releaseRecordedActionInputs(client);
                   this.fail(client, node, "Failed: Recorded inventory action expected " + simpleMenuName(event.menuType)
@@ -2719,6 +2729,24 @@ final class MacroRunner {
 
             if ("CLOSE".equals(event.inputType)) {
                client.player.closeContainer();
+               this.activeRecordedActionEventIndex++;
+               this.activeRecordedActionEventWaitTicks = 0;
+               continue;
+            }
+
+            if (client.gui.screen() instanceof CreativeModeInventoryScreen creativeScreen
+               && creativeScreen instanceof CreativeSlotClickInvoker invoker) {
+               Slot slot = event.slotId >= 0 && event.slotId < menu.slots.size() ? menu.getSlot(event.slotId) : null;
+               ContainerInput input;
+               try {
+                  input = ContainerInput.valueOf(event.inputType);
+               } catch (IllegalArgumentException error) {
+                  this.releaseRecordedActionInputs(client);
+                  this.fail(client, node, "Failed: Recorded creative inventory action type is not supported: " + event.inputType);
+                  return false;
+               }
+
+               invoker.litemacro$invokeSlotClicked(slot, event.slotId, event.button, input);
                this.activeRecordedActionEventIndex++;
                this.activeRecordedActionEventWaitTicks = 0;
                continue;

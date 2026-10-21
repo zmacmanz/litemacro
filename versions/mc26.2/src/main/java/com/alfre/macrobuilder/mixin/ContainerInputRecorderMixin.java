@@ -1,6 +1,8 @@
 package com.alfre.macrobuilder.mixin;
 
 import com.alfre.macrobuilder.MacroBuilderClient;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ContainerInput;
@@ -20,6 +22,10 @@ abstract class ContainerInputRecorderMixin {
       Player player,
       CallbackInfo callback
    ) {
+      if (Minecraft.getInstance().gui.screen() instanceof CreativeModeInventoryScreen) {
+         return;
+      }
+
       if (player != null && player.containerMenu != null) {
          MacroBuilderClient.recordContainerInput(
             slotId,

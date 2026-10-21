@@ -5,7 +5,9 @@
   "client": [
     "BossHealthOverlayAccessor",
     "ContainerInputRecorderMixin",
-    "ContainerCloseRecorderMixin"
+    "ContainerCloseRecorderMixin",
+    "CreativeSlotClickInvoker",
+    "CreativeSlotClickRecorderMixin"
   ],
   "injectors": {
     "defaultRequire": 1
